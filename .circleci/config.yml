@@ -1,0 +1,35 @@
+version: 2.1
+
+orbs:
+  ruby: circleci/ruby@1.0
+  cst: cst/framework@1
+
+jobs:
+
+workflows:
+  version: 2
+  yeet-le-jobs:
+    jobs:
+      - cst/enforce-gem-version-bump
+      - cst/rspec-rails-ruby:
+          database-migration: true
+          database-migration-command: "RAILS_ENV=test bin/rails db:test:prepare"
+          rspec-system-args: "CI=true"
+          cc-report-collect-ruby: "3.2.5"
+          cc-report-collect-rails: "~> 7"
+          matrix:
+            parameters:
+              ruby-version: ["3.2.5", "3.3.6", "3.4.0"]
+              rails-version: ["~> 6", "~> 7", "~> 8"]
+            alias: required-matrix-tests
+          name: test-ruby<< matrix.ruby-version >>-rails<< matrix.rails-version >>
+      - cst/publish-gem:
+          publish-git: true
+          publish-default-gem: true
+          requires:
+            - required-matrix-tests
+            - cst/enforce-gem-version-bump
+          filters:
+            branches:
+              only:
+                - main
