@@ -1,0 +1,15 @@
+/.bundle/
+/doc/
+/log/*.log
+/pkg/
+/tmp/
+/rails_app/db/*.sqlite3
+/rails_app/db/*.sqlite3-*
+/rails_app/log/*.log
+/rails_app/storage/
+/rails_app/tmp/
+.env
+/coverage
+/**/*.log*
+/**/*.keep
+/**/*.DS_Store

@@ -1,0 +1,8 @@
+Description:
+    Creates a default Configuration file for the ApiBaseEngine.
+
+Example:
+    bin/rails generate api_engine_base:configure
+
+    This will create:
+        config/initializers/api_engine_base.rb

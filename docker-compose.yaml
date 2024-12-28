@@ -1,0 +1,63 @@
+volumes:
+  bundle:
+    driver: local
+  mysql:
+    driver: local
+
+x-common-environment: &common-environment
+  RAILS_ENV: "development"
+  MYSQL_HOST: "mysql"
+  MYSQL_USER: "root"
+  MYSQL_PORT: "3306"
+  MYSQL_PASSWORD: "root"
+  BUNDLE_PATH: "/bundle"
+  BUNDLE_JOBS: "2"
+  BUNDLE_RETRY: "3"
+  API_ENGINE_BASE_URL: "http://localhost"
+  API_ENGINE_BASE_PORT: "7777"
+  SESSION_TIMEOUT_IN_SECONDS: "900"
+  SESSION_TIMEOUT_WARNING: "true"
+  RAILS_MAX_THREADS: "1"
+  REDIS_URL: "redis://redis"
+  BUNDLER_RAILS_VERSION: "~> 7"
+
+services:
+  mysql:
+    image: mysql:latest
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_HOST=mysql
+    ports:
+      - "3310:3306"
+    expose:
+      - "3310"
+    volumes:
+      - mysql:/var/lib/mysql
+  redis:
+    image: redis
+    expose:
+      - 6379
+  api_engine:
+    build:
+      args:
+        BUNDLE_WITHOUT: "darwin"
+        RAILS_ENV: development
+      target: base
+      context: .
+    command: bin/rails s -p 7777 -e development -b '0.0.0.0'
+    # so things like pry work
+    tty: true
+    stdin_open: true
+    volumes:
+      - .:/api_engine
+      - bundle:/bundle
+      - ..:/local
+    env_file:
+      - .env
+    environment:
+      <<: *common-environment
+    ports:
+      - "7777:7777"
+    links:
+      - mysql
+      - redis
