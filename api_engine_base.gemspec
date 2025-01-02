@@ -11,7 +11,7 @@ Gem::Specification.new do |spec|
   spec.description = "ApiEngineBase is the Base API to handle all the things you don't want to for a Rails API only backend serving a Dedicated frontend"
   spec.license     = "MIT"
 
-  spec.metadata["homepage_uri"] = spec.homepage
+  spec.metadata["homepage_uri"] = "https://github.com/matt-taylor/api_engine_base"
   spec.metadata["source_code_uri"] = "https://github.com/matt-taylor/api_engine_base"
 
   spec.files = Dir.chdir(File.expand_path(__dir__)) do
