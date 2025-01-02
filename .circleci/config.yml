@@ -16,8 +16,7 @@ workflows:
           database-migration: true
           database-migration-command: "RAILS_ENV=test bin/rails db:test:prepare"
           rspec-system-args: "CI=true"
-          cc-report-collect-ruby: "3.2.5"
-          cc-report-collect-rails: "~> 7"
+          code-climate-report: false
           matrix:
             parameters:
               ruby-version: ["3.2.5", "3.3.6"]
