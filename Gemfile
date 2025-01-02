@@ -12,7 +12,7 @@ gem "pry"
 # Start debugger with binding.b [https://github.com/ruby/debug]
 # gem "debug", ">= 1.0.0"
 
-gem "json_schematize", path: "/local/json_schematize"
+# gem "json_schematize", path: "/local/json_schematize"
 
 gem "rspec-rails"
 gem "rspec_junit_formatter"
