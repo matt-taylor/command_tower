@@ -119,7 +119,7 @@ GEM
     irb (1.14.3)
       rdoc (>= 4.0.0)
       reline (>= 0.4.2)
-    json_schematize (0.10.0)
+    json_schematize (0.11.0)
       class_composer (>= 1.0)
     jwt (2.10.1)
       base64
