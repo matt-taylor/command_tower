@@ -10,7 +10,7 @@ module ApiEngineBase
     # Run after Rails loads the initializes and environment files
     # Ensures User has already set their desired config before we lock this down
     config.after_initialize do
-      db_rake_task = defined?(Rake) && (Rake.application.top_level_tasks.any? { |task| task =~ /db:(create|setup|migrate|seed)/ } rescue nil)
+      db_rake_task = defined?(Rake) && (Rake.application.top_level_tasks.any? { |task| task =~ /db:/ } rescue nil)
       if db_rake_task
         # Because we call the Database during configuration setup,
         # We want to skip calling the DB during a DB migration
