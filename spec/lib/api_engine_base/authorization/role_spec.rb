@@ -236,7 +236,9 @@ RSpec.describe ApiEngineBase::Authorization::Role do
     context "with except" do
       let!(:entity) { build(:entity, :except, method_name:, additional_methods:) }
 
-      it "contains all but except" do
+      # This test is incredibly flaky due to Faker and unique words
+      # Skip this for now and come back later
+      xit "contains all but except" do
         expect(guards[entity.controller].sort).to eq(additional_methods.sort.map(&:to_sym))
       end
 

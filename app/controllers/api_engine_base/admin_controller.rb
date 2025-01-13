@@ -36,7 +36,7 @@ module ApiEngineBase
     end
 
     def modify_role
-      result = ApiEngineBase::UserAttributes::Roles.(user:, admin_user:, roles: params[:roles])
+      result = ApiEngineBase::UserAttributes::Roles.(user:, admin_user:, roles: params[:roles] || [])
       if result.success?
         schema = ApiEngineBase::Schema::User.convert_user_object(user: user.reload)
         status = 201

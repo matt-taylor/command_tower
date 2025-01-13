@@ -165,7 +165,7 @@ result.invalid_argument_hash
 result.invalid_argument_keys
 => [:name_of_composition]
 
-result = ServiceExample.( email: 7, username: 8)
+result = ServiceExample.(email: 7, username: 8)
 result.invalid_arguments
 => true
 result.invalid_argument_hash

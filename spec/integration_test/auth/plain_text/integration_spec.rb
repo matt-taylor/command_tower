@@ -2,7 +2,7 @@ RSpec.describe ApiEngineBase::Auth::PlainTextController, type: :controller do
 
   before do
     # create some users in the system
-    10.times { create(:user)}
+    10.times { create(:user) }
   end
 
   let(:fake_user) { build(:user, :unvalidated_email, password:) }

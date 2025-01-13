@@ -39,7 +39,7 @@ Other more complex Argument validation includes:
 - Delegate context variable to the class for simplicity
 - Validating Argument length or size is `<` `≤` `==` `>` `≥`
 
-For More information, Check out the [ArgumentValidation ReadMe](argument_validation/REDME.md)
+For More information, Check out the [ArgumentValidation ReadMe](argument_validation/README.md)
 
 
 ## Basic Examples:
