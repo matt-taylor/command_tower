@@ -16,7 +16,7 @@
 #  password_consecutive_fail  :integer          default(0)
 #  password_digest            :string(255)      default(""), not null
 #  recovery_password_digest   :string(255)      default(""), not null
-#  roles                      :string(255)      default("")
+#  roles                      :string(255)      default([])
 #  successful_login           :integer          default(0)
 #  username                   :string(255)
 #  verifier_token             :string(255)

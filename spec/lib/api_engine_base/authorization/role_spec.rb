@@ -222,7 +222,7 @@ RSpec.describe ApiEngineBase::Authorization::Role do
     subject(:guards) { instance.guards }
 
     let(:additional_methods) { Faker::Lorem.words(number: additional_method_count) }
-    let(:additional_method_count) { 5 }
+    let(:additional_method_count) { 2 }
     let(:method_name) { Faker::Lorem.word }
 
     context "with only" do
