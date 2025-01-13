@@ -1,11 +1,11 @@
 PATH
   remote: .
   specs:
-    api_engine_base (0.1.0)
+    api_engine_base (0.1.2)
       bcrypt (>= 3)
       class_composer (>= 2)
       interactor
-      json_schematize (>= 0.10)
+      json_schematize (>= 0.11)
       jwt (>= 2)
       rails (~> 7)
       rotp
@@ -95,7 +95,7 @@ GEM
     class_composer (2.1.0)
     coderay (1.1.3)
     concurrent-ruby (1.3.4)
-    connection_pool (2.4.1)
+    connection_pool (2.5.0)
     crass (1.0.6)
     database_cleaner-active_record (2.2.0)
       activerecord (>= 5.a)
@@ -119,12 +119,12 @@ GEM
     irb (1.14.3)
       rdoc (>= 4.0.0)
       reline (>= 0.4.2)
-    json_schematize (0.10.0)
+    json_schematize (0.11.0)
       class_composer (>= 1.0)
     jwt (2.10.1)
       base64
-    logger (1.6.4)
-    loofah (2.23.1)
+    logger (1.6.5)
+    loofah (2.24.0)
       crass (~> 1.0.2)
       nokogiri (>= 1.12.0)
     mail (2.8.1)
@@ -138,7 +138,7 @@ GEM
     mini_portile2 (2.8.8)
     minitest (5.25.4)
     mysql2 (0.5.6)
-    net-imap (0.5.4)
+    net-imap (0.5.5)
       date
       net-protocol
     net-pop (0.1.2)
@@ -148,7 +148,7 @@ GEM
     net-smtp (0.5.0)
       net-protocol
     nio4r (2.7.4)
-    nokogiri (1.18.0)
+    nokogiri (1.18.1)
       mini_portile2 (~> 2.8.2)
       racc (~> 1.4)
     null-logger (0.1.7)
@@ -162,7 +162,8 @@ GEM
       nio4r (~> 2.0)
     racc (1.8.1)
     rack (3.1.8)
-    rack-session (2.0.0)
+    rack-session (2.1.0)
+      base64 (>= 0.1.0)
       rack (>= 3.0.0)
     rack-test (2.2.0)
       rack (>= 1.3)
@@ -247,7 +248,8 @@ GEM
     tzinfo (2.0.6)
       concurrent-ruby (~> 1.0)
     useragent (0.16.11)
-    websocket-driver (0.7.6)
+    websocket-driver (0.7.7)
+      base64
       websocket-extensions (>= 0.1.0)
     websocket-extensions (0.1.5)
     zeitwerk (2.7.1)
