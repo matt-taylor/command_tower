@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
 RSpec.shared_examples "ApiEngineBase::Schema::Error:InvalidArguments examples" do |status, message, keys|
-  let(:response_body) { JSON.parse(response.body) }
-
   context "with shared example -- InvalidArguments" do
+    let(:response_body) { JSON.parse(response.body) }
+
     it "sets #{status} status" do
       subject
 
@@ -39,9 +39,8 @@ RSpec.shared_examples "ApiEngineBase::Schema::Error:InvalidArguments examples" d
   end
 end
 
-
 RSpec.shared_examples "Invalid/Missing JWT token on required route" do
-  context "with shared example -- JWT token" do
+  context "with shared example -- UnAuthenticated User(JWT token)" do
     let(:response_body) { JSON.parse(response.body) }
 
     context "with token missing" do
@@ -93,6 +92,20 @@ RSpec.shared_examples "Invalid/Missing JWT token on required route" do
           expect(response_body["message"]).to eq("Unauthorized Access. Token is no longer valid")
         end
       end
+    end
+  end
+end
+
+RSpec.shared_examples "UnAuthorized Access on Controller Action" do
+  context "with shared example -- UnAuthorized User" do
+    it "sets 403 status" do
+      subject
+      expect(response.status).to eq(403)
+    end
+
+    it "sets invalid message" do
+      subject
+      expect(response_body["message"]).to eq("Unauthorized Access. Incorrect User Privileges")
     end
   end
 end

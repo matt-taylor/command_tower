@@ -41,9 +41,8 @@ class ApiEngineBase::ServiceBase
   def internal_validate(interactor)
     # call validate that is overridden from child
     begin
-      validate!
-      # validate_param!
-      run_validations!
+      validate! # custom validations defined on the child class
+      run_validations! # ArgumentValidation's based on defined settings on child
     rescue StandardError => e
       log_error("Error during validation. #{e.message}")
       raise
@@ -72,8 +71,8 @@ class ApiEngineBase::ServiceBase
 
     # Re-raise to let the core Interactor handle this
     raise
-  # Capture exception explicitly to try to logging purposes. Then reraise.
-  rescue ::Exception => e # rubocop:disable Lint/RescueException
+  # Capture exception explicitly for logging purposes, then reraise
+  rescue ::Exception => e
     # set status for use in ensure block
     status = :error
 

@@ -1,10 +1,10 @@
+require "api_engine_base/error"
+
 require "api_engine_base/version"
 require "api_engine_base/engine"
 require "api_engine_base/configuration/config"
 
 module ApiEngineBase
-  class Error < StandardError; end
-
   def self.config
     @config ||= Configuration::Config.new
   end

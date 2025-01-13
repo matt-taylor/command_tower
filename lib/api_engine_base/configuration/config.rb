@@ -9,6 +9,9 @@ require "api_engine_base/configuration/login/config"
 require "api_engine_base/configuration/otp/config"
 require "api_engine_base/configuration/username/config"
 require "api_engine_base/configuration/application/config"
+require "api_engine_base/configuration/admin/config"
+require "api_engine_base/configuration/authorization/config"
+require "api_engine_base/configuration/user/config"
 
 module ApiEngineBase
   module Configuration
@@ -47,6 +50,21 @@ module ApiEngineBase
 
       # allow shorthand to be used
       alias_method :app, :application
+
+      add_composer :authorization,
+        desc: "Authorization via rbac configurations",
+        allowed: Configuration::Authorization::Config,
+        default: Configuration::Authorization::Config.new
+
+      add_composer :user,
+        desc: "User configuration for the app. Includes what to display and what attributes can be changed",
+        allowed: Configuration::User::Config,
+        default: Configuration::User::Config.new
+
+      add_composer_blocking :admin,
+        desc: "Admin configuration for the app",
+        composer_class: Configuration::Admin::Config,
+        enable_attr: :enable
 
       # To be Deleted
       add_composer :otp,
