@@ -20,4 +20,15 @@ Rails.application.routes.draw do
       end
     end
   end
+
+  scope "user" do
+    get "/", to: "api_engine_base/user#show", as: :"#{append_to_ass}_user_show_get"
+    post "/modify", to: "api_engine_base/user#modify", as: :"#{append_to_ass}_user_modify_post"
+  end
+
+  scope "admin" do
+    get "/", to: "api_engine_base/admin#show", as: :"#{append_to_ass}_admin_show_get"
+    post "/modify", to: "api_engine_base/admin#modify", as: :"#{append_to_ass}_admin_modify_post"
+    post "/modify/role", to: "api_engine_base/admin#modify_role", as: :"#{append_to_ass}_admin_modify_role_post"
+  end
 end

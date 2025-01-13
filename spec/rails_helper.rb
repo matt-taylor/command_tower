@@ -36,6 +36,39 @@ RSpec.configure do |config|
     Rails.root.join('spec/fixtures')
   ]
 
+  config.around do |example|
+    if example.metadata[:with_rbac_setup]
+      ApiEngineBase::Authorization::Role.roles_reset!
+      ApiEngineBase::Authorization::Entity.entities_reset!
+      ApiEngineBase::Authorization.mapped_controllers_reset!
+      ApiEngineBase::Authorization.default_defined!
+
+      example.run
+
+      ApiEngineBase::Authorization::Role.roles_reset!
+      ApiEngineBase::Authorization::Entity.entities_reset!
+      ApiEngineBase::Authorization.mapped_controllers_reset!
+    else
+      example.run
+    end
+  end
+
+  config.around do |example|
+    if example.metadata[:with_rbac_zero]
+      ApiEngineBase::Authorization::Role.roles_reset!
+      ApiEngineBase::Authorization::Entity.entities_reset!
+      ApiEngineBase::Authorization.mapped_controllers_reset!
+
+      example.run
+
+      ApiEngineBase::Authorization::Role.roles_reset!
+      ApiEngineBase::Authorization::Entity.entities_reset!
+      ApiEngineBase::Authorization.mapped_controllers_reset!
+    else
+      example.run
+    end
+  end
+
   # If you're not using ActiveRecord, or you'd prefer not to run each of your
   # examples within a transaction, remove the following line or assign false
   # instead of true.

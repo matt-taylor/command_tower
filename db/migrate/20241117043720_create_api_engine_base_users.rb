@@ -12,6 +12,8 @@ class CreateApiEngineBaseUsers < ActiveRecord::Migration[7.2]
       t.string :last_login_strategy
       t.datetime :last_login
 
+      t.string :roles, default: ""
+
       ###
       # Database token to verify JWT
       # Token will allow JWT values to expire/reset all devices

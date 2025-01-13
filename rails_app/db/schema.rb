@@ -34,6 +34,7 @@ ActiveRecord::Schema[7.2].define(version: 2024_12_04_065708) do
     t.integer "successful_login", default: 0
     t.string "last_login_strategy"
     t.datetime "last_login"
+    t.string "roles", default: ""
     t.string "verifier_token"
     t.datetime "verifier_token_last_reset"
     t.string "email", default: "", null: false

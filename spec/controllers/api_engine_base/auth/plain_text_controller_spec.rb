@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 RSpec.describe ApiEngineBase::Auth::PlainTextController, type: :controller do
   let(:response_body) { JSON.parse(response.body) }
 

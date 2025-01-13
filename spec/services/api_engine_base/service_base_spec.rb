@@ -970,6 +970,14 @@ RSpec.describe ApiEngineBase::ServiceBase do
       let(:value) { "succesful" }
       let(:failure) { 5 }
 
+      context "with inheritance" do
+        let(:metadata) { super().merge({ is_a: [ActionController::Base, ActionController::API] }) }
+        let(:value) { ApiEngineBase::AdminController }
+        let(:failure) { 5 }
+
+        include_examples "sharable validations"
+      end
+
       include_examples "sharable validations"
 
       context "with complex" do
