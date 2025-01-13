@@ -22,8 +22,7 @@ module ApiEngineBase::ArgumentValidation
       raise ApiEngineBase::ServiceBase::CompositionValidationError, "Count must be greater than 0" if count < 1
 
       validation_proc = Proc.new do |input_count, keys|
-
-        language = (input_count > 1) ? "But more than #{count} did" : "But no key had a value"
+        language = (input_count > 0) ? "But #{input_count} keys were assigned" : "But no key was assigned"
         {
           message: "Expected [#{count}] of the keys to have a value assigned. #{language}",
           is_valid: (input_count == count),
@@ -111,7 +110,7 @@ module ApiEngineBase::ArgumentValidation
       end
     end
 
-    def validate(name, default: nil, length: false, matches: nil, is_a: nil, is_one: nil, lt: nil, lte: nil, eq: nil, gt: nil, gte: nil, delegation: true, sensitive: false, required: false)
+    def validate(name, default: nil, length: false, is_a: nil, is_one: nil, lt: nil, lte: nil, eq: nil, gt: nil, gte: nil, delegation: true, sensitive: false, required: false)
       if __existing_names.include?(name)
         raise ApiEngineBase::ServiceBase::NameConflictError, "Duplicate key name found. [#{name}] can only be defined once"
       end
