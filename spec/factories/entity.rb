@@ -3,12 +3,12 @@
 FactoryBot.define do
   factory :entity, class: ApiEngineBase::Authorization::Entity do
     controller { Class.new(::ApiEngineBase::ApplicationController) }
-    name { Faker::Lorem.word }
+    name { Faker::Lorem.unique.word }
 
     transient do
       additional_method_count { 5 }
       additional_methods { [] }
-      method_name { Faker::Lorem.word }
+      method_name { Faker::Lorem.unique.word }
     end
 
     trait :only do
@@ -20,7 +20,7 @@ FactoryBot.define do
     end
 
     trait :additional_methods do
-      additional_methods { Faker::Lorem.words(number: additional_method_count) }
+      additional_methods { Faker::Lorem.unique.words(number: additional_method_count) }
     end
 
     initialize_with do

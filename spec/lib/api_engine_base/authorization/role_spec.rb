@@ -12,7 +12,7 @@ RSpec.describe ApiEngineBase::Authorization::Role do
       allow_everything:
     }
   end
-  let(:name) { Faker::Lorem.word }
+  let(:name) { Faker::Lorem.unique.word }
   let(:allow_everything) { false }
   let(:instance) { described_class.new(**params) }
   let(:entities) { entity }
@@ -221,9 +221,9 @@ RSpec.describe ApiEngineBase::Authorization::Role do
   describe "#guards" do
     subject(:guards) { instance.guards }
 
-    let(:additional_methods) { Faker::Lorem.words(number: additional_method_count) }
-    let(:additional_method_count) { 2 }
-    let(:method_name) { Faker::Lorem.word }
+    let(:additional_methods) { Faker::Lorem.unique.words(number: additional_method_count) }
+    let(:additional_method_count) { 5 }
+    let(:method_name) { Faker::Lorem.unique.word }
 
     context "with only" do
       let(:entity) { build(:entity, :only, method_name:, additional_methods:) }
@@ -234,7 +234,7 @@ RSpec.describe ApiEngineBase::Authorization::Role do
     end
 
     context "with except" do
-      let(:entity) { build(:entity, :except, method_name:, additional_methods:) }
+      let!(:entity) { build(:entity, :except, method_name:, additional_methods:) }
 
       it "contains all but except" do
         expect(guards[entity.controller].sort).to eq(additional_methods.sort.map(&:to_sym))
