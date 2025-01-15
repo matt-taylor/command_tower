@@ -28,7 +28,7 @@ entities:
     controller: ApiEngineBase::AdminController
   - name: admin-without-impersonate
     controller: ApiEngineBase::AdminController
-    only: impersonate
+    except: impersonate
 
 
 
