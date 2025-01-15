@@ -60,13 +60,13 @@ RSpec.shared_examples "Invalid/Missing JWT token on required route" do
     context "with valid token" do
       let(:user) { create(:user) }
       let!(:verifier_token) { user.retreive_verifier_token! }
-      let(:payload) { { expires_at:, user_id: user.id, verifier_token: } }
+      let(:payload) { { generated_at:, user_id: user.id, verifier_token: } }
       let(:token) { ApiEngineBase::Jwt::Encode.(payload:).token }
-      let(:expires_at) { ApiEngineBase.config.jwt.ttl.from_now.to_i }
+      let(:generated_at) { Time.now.to_i }
       before { set_jwt_token!(user:, token:) }
 
       context "when token is expired" do
-        let(:expires_at) { (Time.now - 1.day).to_i }
+        let(:generated_at) { (ApiEngineBase.config.jwt.ttl - 1.day).to_i }
 
         it "sets 401 status" do
           subject

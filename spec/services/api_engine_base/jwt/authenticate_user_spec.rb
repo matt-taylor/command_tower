@@ -3,9 +3,9 @@
 RSpec.describe ApiEngineBase::Jwt::AuthenticateUser do
   let(:user) { create(:user) }
   let(:token) { ApiEngineBase::Jwt::LoginCreate.(user:).token }
-  let(:payload) { { expires_at:, user_id:, verifier_token: } }
+  let(:payload) { { generated_at:, user_id:, verifier_token: } }
   let(:user_id) { user.id }
-  let(:expires_at) { ApiEngineBase.config.jwt.ttl.from_now.to_i }
+  let(:generated_at) { Time.now.to_i }
   let(:verifier_token) { user.retreive_verifier_token! }
 
   describe ".call" do
@@ -44,11 +44,11 @@ RSpec.describe ApiEngineBase::Jwt::AuthenticateUser do
       end
     end
 
-    context "with expires_at failure" do
+    context "with generated_at failure" do
       let(:token) { ApiEngineBase::Jwt::Encode.(payload:).token }
 
       context "with missing param" do
-        let(:expires_at) { nil }
+        let(:generated_at) { nil }
 
         it "fails" do
           expect(call.failure?).to eq(true)
@@ -60,7 +60,7 @@ RSpec.describe ApiEngineBase::Jwt::AuthenticateUser do
       end
 
       context "with invalid param" do
-        let(:expires_at) { "invalid param" }
+        let(:generated_at) { "invalid param" }
 
         it "fails" do
           expect(call.failure?).to eq(true)
@@ -72,7 +72,7 @@ RSpec.describe ApiEngineBase::Jwt::AuthenticateUser do
       end
 
       context "when expired" do
-        let(:expires_at) { (Time.now - 1.day).to_i }
+        let(:generated_at) { (ApiEngineBase.config.jwt.ttl - 1.day).to_i }
 
         it "fails" do
           expect(call.failure?).to eq(true)
