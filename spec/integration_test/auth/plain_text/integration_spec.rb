@@ -71,6 +71,11 @@ RSpec.describe ApiEngineBase::Auth::PlainTextController, type: :controller do
     post(:email_verify_resend_post)
     expect(response.status).to eq(201)
 
+    ####
+    # Sets the Expire Time on the header
+    expire_time = response.headers[ApiEngineBase::ApplicationController::AUTHENTICATION_EXPIRE_HEADER.downcase]
+    expect(Time.parse(expire_time)).to be_within(1.second).of(ApiEngineBase.config.jwt.ttl.from_now)
+
     unset_jwt_token!
 
     ####
@@ -85,5 +90,10 @@ RSpec.describe ApiEngineBase::Auth::PlainTextController, type: :controller do
     code = UserSecret.last.secret
     post(:email_verify_post, params: { code: })
     expect(response.status).to eq(201)
+
+    ####
+    # Sets the Expire Time on the header
+    expire_time = response.headers[ApiEngineBase::ApplicationController::AUTHENTICATION_EXPIRE_HEADER.downcase]
+    expect(Time.parse(expire_time)).to be_within(1.second).of(ApiEngineBase.config.jwt.ttl.from_now)
   end
 end

@@ -55,6 +55,11 @@ RSpec.shared_examples "Invalid/Missing JWT token on required route" do
          subject
          expect(response_body["message"]).to eq("Bearer token missing")
        end
+
+       it "does not set expire header" do
+         subject
+         expect(response.header[ApiEngineBase::ApplicationController::AUTHENTICATION_EXPIRE_HEADER]).to_not be_present
+       end
     end
 
     context "with valid token" do
@@ -77,6 +82,11 @@ RSpec.shared_examples "Invalid/Missing JWT token on required route" do
           subject
           expect(response_body["message"]).to eq("Unauthorized Access. Invalid Authorization token")
         end
+
+        it "does not set expire header" do
+          subject
+          expect(response.header[ApiEngineBase::ApplicationController::AUTHENTICATION_EXPIRE_HEADER]).to_not be_present
+        end
       end
 
       context "when token verifier does not match" do
@@ -90,6 +100,11 @@ RSpec.shared_examples "Invalid/Missing JWT token on required route" do
         it "sets invalid message" do
           subject
           expect(response_body["message"]).to eq("Unauthorized Access. Token is no longer valid")
+        end
+
+        it "does not set expire header" do
+          subject
+          expect(response.header[ApiEngineBase::ApplicationController::AUTHENTICATION_EXPIRE_HEADER]).to_not be_present
         end
       end
     end

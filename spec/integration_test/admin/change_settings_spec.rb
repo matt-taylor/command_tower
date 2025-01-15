@@ -16,11 +16,20 @@ RSpec.describe ApiEngineBase::AdminController, :with_rbac_setup, type: :controll
     get(:show)
     expect(response.status).to eq(401)
 
+    ####
+    # Does Not set the Expire Time on the header
+    expect(response.headers[ApiEngineBase::ApplicationController::AUTHENTICATION_EXPIRE_HEADER.downcase]).to be_nil
+
     ##
     # User is not authorized to make the call
     set_jwt_token!(user: user)
     get(:show)
     expect(response.status).to eq(403)
+
+    ####
+    # Sets the Expire Time on the header
+    expire_time = response.headers[ApiEngineBase::ApplicationController::AUTHENTICATION_EXPIRE_HEADER.downcase]
+    expect(Time.parse(expire_time)).to be_within(1.second).of(ApiEngineBase.config.jwt.ttl.from_now)
 
     ##
     # User is authorized to make the call
@@ -36,6 +45,11 @@ RSpec.describe ApiEngineBase::AdminController, :with_rbac_setup, type: :controll
     expect(user.first_name).to eq(user_json["first_name"])
     expect(user.last_name).to eq(user_json["last_name"])
     expect(user.username).to eq(user_json["username"])
+
+    ####
+    # Sets the Expire Time on the header
+    expire_time = response.headers[ApiEngineBase::ApplicationController::AUTHENTICATION_EXPIRE_HEADER.downcase]
+    expect(Time.parse(expire_time)).to be_within(1.second).of(ApiEngineBase.config.jwt.ttl.from_now)
 
     ##
     # Update to an invalid email!

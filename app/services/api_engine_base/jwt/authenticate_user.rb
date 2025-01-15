@@ -5,6 +5,7 @@ module ApiEngineBase::Jwt
 
     validate :token, is_a: String, required: true, sensitive: true
     validate :bypass_email_validation, is_one: [true, false], default: false
+    validate :with_reset, is_one: [true, false], default: false
 
     def call
       result = Decode.(token:)
@@ -14,7 +15,7 @@ module ApiEngineBase::Jwt
       end
       payload = result.payload
 
-      validate_generated_at!(generated_at: payload[:generated_at])
+      expires_at = validate_generated_at!(generated_at: payload[:generated_at])
 
       user = User.find(payload[:user_id]) rescue nil
       if user.nil?
@@ -29,6 +30,13 @@ module ApiEngineBase::Jwt
       end
 
       email_validation_required!(user:)
+
+      if with_reset
+        context.generated_token = ApiEngineBase::Jwt::LoginCreate.(user:).token
+        expires_at = ApiEngineBase.config.jwt.ttl.from_now.to_time
+      end
+
+      context.expires_at = expires_at.to_s
     end
 
     def validate_generated_at!(generated_at:)
@@ -53,6 +61,8 @@ module ApiEngineBase::Jwt
         log_warn("generated_at is no longer valid. Must request new token")
         context.fail!(msg: "Unauthorized Access. Invalid Authorization token")
       end
+
+      expires_time
     end
 
     def email_validation_required!(user:)

@@ -7,16 +7,45 @@ RSpec.describe ApiEngineBase::Jwt::AuthenticateUser do
   let(:user_id) { user.id }
   let(:generated_at) { Time.now.to_i }
   let(:verifier_token) { user.retreive_verifier_token! }
+  let(:with_reset) { false }
 
   describe ".call" do
-    subject(:call) { described_class.(token:) }
+    subject(:call) { described_class.(token:, with_reset:) }
 
     it "succeeds" do
       expect(call.success?).to be(true)
     end
 
     it "sets user" do
-      expect(call.user.id).to be(user.id)
+      expect(call.user.id).to eq(user.id)
+    end
+
+    it "sets expires_at" do
+      expect(call.expires_at).to be_a(String)
+    end
+
+    it "does not set generated_token" do
+      expect(call.generated_token).to be_nil
+    end
+
+    context "with reset" do
+      let(:with_reset) { true }
+
+      it "succeeds" do
+        expect(call.success?).to be(true)
+      end
+
+      it "sets user" do
+        expect(call.user.id).to eq(user.id)
+      end
+
+      it "sets expires_at" do
+        expect(call.expires_at).to eq(ApiEngineBase.config.jwt.ttl.from_now.to_time.to_s)
+      end
+
+      it "sets generated_token" do
+        expect(call.generated_token).to be_a(String)
+      end
     end
 
     context "with invalid user" do

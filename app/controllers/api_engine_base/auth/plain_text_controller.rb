@@ -12,7 +12,7 @@ module ApiEngineBase
         if result.success?
           schema = ApiEngineBase::Schema::PlainText::LoginResponse.new(
             token: result.token,
-            header_name: AUTHORIZATION_HEADER,
+            header_name: AUTHENTICATION_HEADER,
             message: "Successfully logged user in"
           )
           status = 201

@@ -2,7 +2,9 @@
 
 module ApiEngineBase
   class ApplicationController < ActionController::API
-    AUTHORIZATION_HEADER = "AUTHORIZATION"
+    AUTHENTICATION_HEADER = "Authentication"
+    AUTHENTICATION_EXPIRE_HEADER = "X-Authentication-Expire"
+    AUTHENTICATION_WITH_RESET = "X-Authentication-Reset"
 
     def safe_boolean(value:)
       return nil unless [true, false, "true", "false", "0", "1", 0, 1].include?(value)
@@ -11,9 +13,9 @@ module ApiEngineBase
     end
 
     ###
-    # AUTHORIZATION_HEADER="Bearer: {token value}"
+    # AUTHENTICATION_HEADER="Bearer: {token value}"
     def authenticate_user!(bypass_email_validation: false)
-      raw_token = request.headers[AUTHORIZATION_HEADER]
+      raw_token = request.headers[AUTHENTICATION_HEADER]
       if raw_token.nil?
         status = 401
         schema = ApiEngineBase::Schema::Error::Base.new(status:, message: "Bearer token missing")
@@ -22,9 +24,14 @@ module ApiEngineBase
       end
 
       token = raw_token.split("Bearer:")[1].strip
-      result = ApiEngineBase::Jwt::AuthenticateUser.(token:, bypass_email_validation:)
+      with_reset = safe_boolean(value: request.headers[AUTHENTICATION_WITH_RESET])
+      result = ApiEngineBase::Jwt::AuthenticateUser.(token:, bypass_email_validation:, with_reset:)
       if result.success?
         @current_user = result.user
+        response.set_header(AUTHENTICATION_EXPIRE_HEADER, result.expires_at)
+        if with_reset
+          response.set_header(AUTHENTICATION_WITH_RESET, result.generated_token)
+        end
         true
       else
         status = 401
