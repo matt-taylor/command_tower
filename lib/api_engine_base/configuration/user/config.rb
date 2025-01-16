@@ -35,7 +35,8 @@ module ApiEngineBase
         add_composer :additional_attributes_for_change,
           desc: "On top of the default attributes to change, this adds additional values for the user to change on their account",
           allowed: Array,
-          default: []
+          default: [],
+          default_shown: "[]"
 
         add_composer :default_attributes_for_change,
           desc: "[Not Recommended for change] Default attributes that are allowed to change",

@@ -61,14 +61,14 @@ module ApiEngineBase
         allowed: Configuration::User::Config,
         default: Configuration::User::Config.new
 
-      add_composer_blocking :admin,
+      add_composer :admin,
         desc: "Admin configuration for the app",
-        composer_class: Configuration::Admin::Config,
-        enable_attr: :enable
+        allowed: Configuration::Admin::Config,
+        default: Configuration::Admin::Config.new
 
       # To be Deleted
       add_composer :otp,
-        desc: "One Time Password generator is used for all Code validation. This describes defaults not set in other configurations",
+        desc: "One Time Password generation is used for ease in quickly validating a users actions. This is good for short term validation requirements as opposed to UserSecrets",
         allowed: Configuration::Otp::Config,
         default: Configuration::Otp::Config.new
     end

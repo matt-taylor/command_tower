@@ -12,16 +12,6 @@ module ApiEngineBase
           desc: "Allow Admin Capabilities for the application. By default, this is enabled",
           allowed: [FalseClass, TrueClass],
           default: true
-
-        add_composer :application_owners,
-          desc: "The number of Owners for the application.",
-          allowed: Integer,
-          default: 1
-
-        add_composer :privileges,
-          desc: "Admin Privileges",
-          allowed: Integer,
-          default: 1
       end
     end
   end

@@ -27,13 +27,13 @@ module ApiEngineBase
         add_composer :port,
           allowed: [String, NilClass],
           default: ENV.fetch("API_ENGINE_BASE_PORT", nil),
-          desc: "When composing SSO's or verification URL's, this is the URL for the application"
+          desc: "When composing SSO's or verification URL's, this is the PORT for the application"
 
         add_composer :composed_url,
           allowed: String,
           dynamic_default: ->(instance) { "#{instance.url}#{ ":#{instance.port}" if instance.port }" },
           desc: "The fully composed URL including the port number when needed. This Config variable is not needed as it is composed of the `url` and `port` composed values",
-          default_shown: "Composed String of the URL and PORT. Override this with caution"
+          default_shown: "# Composed String of the URL and PORT. Override this with caution"
       end
     end
   end

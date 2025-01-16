@@ -16,7 +16,8 @@ module ApiEngineBase
         add_composer :rbac_group_path,
           desc: "If defined, this config points to the users YAML file defining RBAC group roles.",
           allowed: String,
-          dynamic_default: ->(_) { Rails.root.join("config","rbac_groups.yml").to_s }
+          dynamic_default: ->(_) { Rails.root.join("config","rbac_groups.yml").to_s },
+          default_shown: "Rails.root.join(\"config\",\"rbac_groups.yml\")"
       end
     end
   end
