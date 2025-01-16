@@ -5,5 +5,6 @@ params = {
   first_name: "Matt",
   last_name: "Taylor",
   username: "mathetrius",
+  roles: ["owner"],
 }
 User.create!(**params)

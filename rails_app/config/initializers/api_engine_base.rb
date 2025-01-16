@@ -89,7 +89,7 @@ ApiEngineBase.configure do |config|
   # ## Email configuration for the app sending Native Rails emails via ActiveMailer. Config changed here will update the Rails Configuration as well
 
   # User Name for email. Defaults to ENV['GMAIL_USER_NAME']: [String]
-  # config.email.from = ENV["GMAIL_USER_NAME"]
+  # config.email.user_name = ENV["GMAIL_USER_NAME"]
 
   # Password for email. Defaults to ENV['GMAIL_PASSWORD']. For more info on how to get this for GMAIL...https://support.google.com/accounts/answer/185833: [String]
   # config.email.password = ENV["GMAIL_PASSWORD"]
@@ -159,11 +159,50 @@ ApiEngineBase.configure do |config|
   # When composing SSO's or verification URL's, this is the URL for the application: [String]
   # config.application.url = "http://localhost"
 
-  # When composing SSO's or verification URL's, this is the URL for the application: [String, NilClass]
+  # When composing SSO's or verification URL's, this is the PORT for the application: [String, NilClass]
   # config.application.port = "7777"
 
   # The fully composed URL including the port number when needed. This Config variable is not needed as it is composed of the `url` and `port` composed values: [String]
-  # config.application.composed_url =  # Proc provided for :dynamic_default parameter. :default_shown parameter not provided
+  # config.application.composed_url = # Composed String of the URL and PORT. Override this with caution
+
+  # ###################################
+  # #                                 #
+  # #########  Authorization  #########
+  # #                                 #
+  # ###################################
+  # ## Authorization via rbac configurations
+
+  # The default Group Roles defined by this engine.: [TrueClass, FalseClass]
+  # config.authorization.rbac_default_groups = true
+
+  # If defined, this config points to the users YAML file defining RBAC group roles.: [String]
+  # config.authorization.rbac_group_path = Rails.root.join("config","rbac_groups.yml")
+
+  # ##########################
+  # #                        #
+  # #########  User  #########
+  # #                        #
+  # ##########################
+  # ## User configuration for the app. Includes what to display and what attributes can be changed
+
+  # On top of the default attributes to change, this adds additional values for the user to change on their account: [Array]
+  # config.user.additional_attributes_for_change = []
+
+  # [Not Recommended for change] Default attributes that are allowed to change: [Array]
+  # config.user.default_attributes_for_change = email first_name last_name last_known_timezone username verifier_token
+
+  # [Not Recommended for change] Default attributes that are shown to the user: [Array]
+  # config.user.default_attributes = email first_name last_name last_known_timezone username verifier_token id roles created_at
+
+  # ###########################
+  # #                         #
+  # #########  Admin  #########
+  # #                         #
+  # ###########################
+  # ## Admin configuration for the app
+
+  # Allow Admin Capabilities for the application. By default, this is enabled: [FalseClass, TrueClass]
+  # config.admin.enable = true
 
   # #########################
   # #                       #

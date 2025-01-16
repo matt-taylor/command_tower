@@ -1,0 +1,34 @@
+---
+groups:
+  owner:
+    description: The owner of the application will have full access to all components
+    entities: true
+  admin:
+    description: |
+      This group defines permissions for Admin Read and Write operations. Users with this role will have
+      the ability to view and update other users states.
+    entities:
+      - admin
+  admin-without-impersonation:
+    description: |
+      This group defines permissions for Admin Read and Write operations. Users with this role will have
+      the ability to view and update other users states. However, impersonation is not permitted with this role
+    entities:
+      - admin-without-impersonate
+  admin-read-only:
+    description: |
+      This group defines permissions for Admin Read interface only.
+    entities:
+      - read-admin
+entities:
+  - name: read-admin
+    controller: ApiEngineBase::AdminController
+    only: show
+  - name: admin
+    controller: ApiEngineBase::AdminController
+  - name: admin-without-impersonate
+    controller: ApiEngineBase::AdminController
+    except: impersonate
+
+
+

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 RSpec.describe ApiEngineBase::Auth::PlainTextController, type: :controller do
   let(:response_body) { JSON.parse(response.body) }
 
@@ -251,7 +253,7 @@ RSpec.describe ApiEngineBase::Auth::PlainTextController, type: :controller do
           subject
           expect(response_body["message"]).to eq("Successfully logged user in")
           expect(response_body["token"]).to be_present
-          expect(response_body["header_name"]).to eq(ApiEngineBase::ApplicationController::AUTHORIZATION_HEADER)
+          expect(response_body["header_name"]).to eq(ApiEngineBase::ApplicationController::AUTHENTICATION_HEADER)
         end
       end
 
@@ -267,7 +269,7 @@ RSpec.describe ApiEngineBase::Auth::PlainTextController, type: :controller do
           subject
           expect(response_body["message"]).to eq("Successfully logged user in")
           expect(response_body["token"]).to be_present
-          expect(response_body["header_name"]).to eq(ApiEngineBase::ApplicationController::AUTHORIZATION_HEADER)
+          expect(response_body["header_name"]).to eq(ApiEngineBase::ApplicationController::AUTHENTICATION_HEADER)
         end
       end
     end

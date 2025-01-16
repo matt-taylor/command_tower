@@ -21,5 +21,10 @@ module ApiEngineBase
 
     require "api_engine_base/schema/plain_text/login_request"
     require "api_engine_base/schema/plain_text/login_response"
+
+    require "api_engine_base/schema/admin/users"
+
+    require "api_engine_base/schema/user"
+    require "api_engine_base/schema/page"
   end
 end

@@ -24,5 +24,5 @@ Gem::Specification.new do |spec|
   spec.add_dependency "bcrypt", ">= 3"
   spec.add_dependency "interactor"
   spec.add_dependency "class_composer", ">= 2"
-  spec.add_dependency "json_schematize", ">= 0.10"
+  spec.add_dependency "json_schematize", ">= 0.11"
 end

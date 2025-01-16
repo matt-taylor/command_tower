@@ -12,7 +12,7 @@ module ApiEngineBase::Jwt
 
     def payload
       {
-        expires_at: ApiEngineBase.config.jwt.ttl.from_now.to_i,
+        generated_at: Time.now.to_i,
         user_id: user.id,
         verifier_token: user.retreive_verifier_token!,
       }

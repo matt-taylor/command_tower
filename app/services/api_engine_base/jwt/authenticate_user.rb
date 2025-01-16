@@ -5,6 +5,7 @@ module ApiEngineBase::Jwt
 
     validate :token, is_a: String, required: true, sensitive: true
     validate :bypass_email_validation, is_one: [true, false], default: false
+    validate :with_reset, is_one: [true, false], default: false
 
     def call
       result = Decode.(token:)
@@ -14,7 +15,7 @@ module ApiEngineBase::Jwt
       end
       payload = result.payload
 
-      validate_expires_at!(expires_at: payload[:expires_at])
+      expires_at = validate_generated_at!(generated_at: payload[:generated_at])
 
       user = User.find(payload[:user_id]) rescue nil
       if user.nil?
@@ -29,25 +30,39 @@ module ApiEngineBase::Jwt
       end
 
       email_validation_required!(user:)
+
+      if with_reset
+        context.generated_token = ApiEngineBase::Jwt::LoginCreate.(user:).token
+        expires_at = ApiEngineBase.config.jwt.ttl.from_now.to_time
+      end
+
+      context.expires_at = expires_at.to_s
     end
 
-    def validate_expires_at!(expires_at:)
-      if expires_at.nil?
-        log_warn("expires_at payload is missing from the JWT token. Cannot continue")
+    def validate_generated_at!(generated_at:)
+      if generated_at.nil?
+        log_warn("generated_at payload is missing from the JWT token. Cannot continue")
         context.fail!(msg: "Unauthorized Access. Invalid Authorization token")
       end
 
-      expires_time = Time.at(expires_at) rescue nil
+      expires_time = begin
+        time = Time.at(generated_at)
+        time + ApiEngineBase.config.jwt.ttl
+      rescue
+        nil
+      end
 
       if expires_time.nil?
-        log_warn("expires_at payload cannot be parsed. Cannot continue")
+        log_warn("generated_at payload cannot be parsed. Cannot continue")
         context.fail!(msg: "Unauthorized Access. Invalid Authorization token")
       end
 
       if expires_time < Time.now
-        log_warn("expires_at is no longer valid. Must request new token")
+        log_warn("generated_at is no longer valid. Must request new token")
         context.fail!(msg: "Unauthorized Access. Invalid Authorization token")
       end
+
+      expires_time
     end
 
     def email_validation_required!(user:)

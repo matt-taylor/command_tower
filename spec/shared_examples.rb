@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
 RSpec.shared_examples "ApiEngineBase::Schema::Error:InvalidArguments examples" do |status, message, keys|
-  let(:response_body) { JSON.parse(response.body) }
-
   context "with shared example -- InvalidArguments" do
+    let(:response_body) { JSON.parse(response.body) }
+
     it "sets #{status} status" do
       subject
 
@@ -39,9 +39,8 @@ RSpec.shared_examples "ApiEngineBase::Schema::Error:InvalidArguments examples" d
   end
 end
 
-
 RSpec.shared_examples "Invalid/Missing JWT token on required route" do
-  context "with shared example -- JWT token" do
+  context "with shared example -- UnAuthenticated User(JWT token)" do
     let(:response_body) { JSON.parse(response.body) }
 
     context "with token missing" do
@@ -56,18 +55,23 @@ RSpec.shared_examples "Invalid/Missing JWT token on required route" do
          subject
          expect(response_body["message"]).to eq("Bearer token missing")
        end
+
+       it "does not set expire header" do
+         subject
+         expect(response.header[ApiEngineBase::ApplicationController::AUTHENTICATION_EXPIRE_HEADER]).to_not be_present
+       end
     end
 
     context "with valid token" do
       let(:user) { create(:user) }
       let!(:verifier_token) { user.retreive_verifier_token! }
-      let(:payload) { { expires_at:, user_id: user.id, verifier_token: } }
+      let(:payload) { { generated_at:, user_id: user.id, verifier_token: } }
       let(:token) { ApiEngineBase::Jwt::Encode.(payload:).token }
-      let(:expires_at) { ApiEngineBase.config.jwt.ttl.from_now.to_i }
+      let(:generated_at) { Time.now.to_i }
       before { set_jwt_token!(user:, token:) }
 
       context "when token is expired" do
-        let(:expires_at) { (Time.now - 1.day).to_i }
+        let(:generated_at) { (ApiEngineBase.config.jwt.ttl - 1.day).to_i }
 
         it "sets 401 status" do
           subject
@@ -77,6 +81,11 @@ RSpec.shared_examples "Invalid/Missing JWT token on required route" do
         it "sets invalid message" do
           subject
           expect(response_body["message"]).to eq("Unauthorized Access. Invalid Authorization token")
+        end
+
+        it "does not set expire header" do
+          subject
+          expect(response.header[ApiEngineBase::ApplicationController::AUTHENTICATION_EXPIRE_HEADER]).to_not be_present
         end
       end
 
@@ -92,7 +101,26 @@ RSpec.shared_examples "Invalid/Missing JWT token on required route" do
           subject
           expect(response_body["message"]).to eq("Unauthorized Access. Token is no longer valid")
         end
+
+        it "does not set expire header" do
+          subject
+          expect(response.header[ApiEngineBase::ApplicationController::AUTHENTICATION_EXPIRE_HEADER]).to_not be_present
+        end
       end
+    end
+  end
+end
+
+RSpec.shared_examples "UnAuthorized Access on Controller Action" do
+  context "with shared example -- UnAuthorized User" do
+    it "sets 403 status" do
+      subject
+      expect(response.status).to eq(403)
+    end
+
+    it "sets invalid message" do
+      subject
+      expect(response_body["message"]).to eq("Unauthorized Access. Incorrect User Privileges")
     end
   end
 end

@@ -8,6 +8,7 @@ FactoryBot.define do
     password_confirmation { password }
     email_validated { true }
     email { Faker::Internet.email }
+    roles { [] }
     username do
       min = ApiEngineBase.config.username.username_length_min
       max = ApiEngineBase.config.username.username_length_max
@@ -23,6 +24,22 @@ FactoryBot.define do
 
     trait :verifier_token do
       verifier_token { SecureRandom.alphanumeric(32) }
+    end
+
+    trait :privileged_roles do
+      roles { ["admin", "owner"] }
+    end
+
+    trait :admin_roles do
+      roles { ["admin-without-impersonation", "admin-read-only", "admin"] }
+    end
+
+    trait :role_admin do
+      roles { ["admin"] }
+    end
+
+    trait :role_owner do
+      roles { ["owner"] }
     end
   end
 end

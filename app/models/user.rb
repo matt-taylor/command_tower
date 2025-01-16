@@ -16,6 +16,7 @@
 #  password_consecutive_fail  :integer          default(0)
 #  password_digest            :string(255)      default(""), not null
 #  recovery_password_digest   :string(255)      default(""), not null
+#  roles                      :string(255)      default([])
 #  successful_login           :integer          default(0)
 #  username                   :string(255)
 #  verifier_token             :string(255)
@@ -35,16 +36,24 @@ class User < ApiEngineBase::ApplicationRecord
   validates :username, uniqueness: true
   validates :email, uniqueness: true
 
+  ###
+  # Serialize the roles column to check for inclusion easily
+  serialize :roles, coder: JSON, type: Array
+
   def full_name
     "#{first_name} #{last_name}"
+  end
+
+  def reset_verifier_token!
+    value = SecureRandom.alphanumeric(32)
+    update!(verifier_token: value, verifier_token_last_reset: Time.now)
+
+    value
   end
 
   def retreive_verifier_token!
     return verifier_token if verifier_token
 
-    value = SecureRandom.alphanumeric(32)
-    update!(verifier_token: value)
-
-    value
+    reset_verifier_token!
   end
 end

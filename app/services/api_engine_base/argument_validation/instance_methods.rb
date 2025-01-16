@@ -50,7 +50,19 @@ module ApiEngineBase::ArgumentValidation
         end
 
         if is_a = metadata[:is_a]
-          if Array(is_a).none? { _1 === value }
+          direct_type = false
+          ancestor_type = false
+
+          # Check if direct type of `is_a` Integer === 5 => true
+          direct_type = Array(is_a).none? { _1 === value }
+
+          # If it is a direct type, we dont need to do any other type of checking
+          if direct_type == true
+            lineage = value.ancestors rescue []
+            # Check inclusion in ancestor list
+            ancestor_type = Array(is_a).none? { lineage.include?(_1) }
+          end
+          if direct_type && ancestor_type
             __failed_argument_validation(msg: "Parameter [#{metadata[:name]}] must be of type #{is_a}. Given #{value.class} [#{value}]", argument: metadata[:name], metadata:)
           end
         end

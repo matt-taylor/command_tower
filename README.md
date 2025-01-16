@@ -1,8 +1,7 @@
 # ApiEngineBase
-Short description and motivation.
+This is an API only base engine to build on top of. This Engine takes care of all Authentication, Token Refresh, and RBAC Roles so that you do not have to! For all applications, you can get right to work on implementing the code directly related to your project rather than dealing with the administrative overhead.
 
-## Usage
-How to use my plugin.
+While this gem is heavily opinionated, everything can be configured to your liking.
 
 ## Installation
 Add this line to your application's Gemfile:
@@ -21,8 +20,40 @@ Or install it yourself as:
 $ gem install api_engine_base
 ```
 
-## Contributing
-Contribution directions go here.
+## Initializing ApiEngineBase
+Please follow all steps in [Initializing ApiEngineBase](docs/initializing.md)
+
+
+## Available Routes
+
+For more info, check out [Controllers ReadMe](docs/controllers.md)
+
+Additionally, You can check out [RSpec Integration Testing](/spec/integration_test)
+
+## Available Models
+
+ApiEngineBase provides several Models at the in the root namespace. Core Models like `User` and `UserSecret` are readily available. Don't forget! You can add additional methods to these classes by opening them back up.
+
+For more info, check out [Models ReadMe](doc/models.md)
+
+## Authentication (JWT BearerToken)
+Authentication ensures that we know which user is requesting the action. When the Engine is unable to authenticate, a `401` status code is returned.
+
+For more info, check out [Authentication ReadMe](docs/authentication.md)
+
+## Authorization (RBAC)
+Authorization is only done after authentication. This is the act of ensuring that the user can perform the action it is requesting. Put differently, I know who you are, but I need to validate you have permissions to complete the action. When the engine is unable to authorize the user, a `403` status code is returned.
+
+For more info, check out [Authentication ReadMe](docs/authorization.md)
+
+## Sensitive Changes
+
+For more info, check out [Sensitive Routes](docs/sensitive_routes.md)
+
+## ServiceBase
+ServiceBase is built on top of Interactor. The ServiceBase is the heart of all logic for ApiEngineBase. It includes Logging and enhanced ArgumentValidation that can directly return back to the API request.
+
+For more info, check out [ServiceBase ReadMe](app/services/api_engine_base/README.md)
 
 ## License
-The gem is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).
+The engine is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).
