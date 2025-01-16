@@ -13,6 +13,7 @@ module ApiEngineBase
     end
 
     ###
+    # Authenticate user via the passed in header
     # AUTHENTICATION_HEADER="Bearer: {token value}"
     def authenticate_user!(bypass_email_validation: false)
       raw_token = request.headers[AUTHENTICATION_HEADER]
@@ -42,10 +43,14 @@ module ApiEngineBase
       end
     end
 
+    ###
+    # Authenticate user via the passed in header without validating email
     def authenticate_user_without_email_verification!
       authenticate_user!(bypass_email_validation: true)
     end
 
+    ###
+    # After Authenticating user, see if the user needs authorization on the route
     def authorize_user!
       if current_user.nil?
         Rails.logger.error { "Current User is not defined. This means that authenticate_user! was not called" }
@@ -71,13 +76,6 @@ module ApiEngineBase
 
     def current_user
       @current_user ||= nil
-    end
-
-    def add_to_body
-      # {
-      #   token_valid_till:,
-      #   needs_email_verification:,
-      # }
     end
   end
 end
