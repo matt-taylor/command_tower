@@ -19,7 +19,7 @@ Gem::Specification.new do |spec|
   end
 
   spec.add_dependency "rotp"
-  spec.add_dependency "rails", "~> 7"
+  spec.add_dependency 'rails', '>= 6.0', '< 9.0'
   spec.add_dependency "jwt", ">= 2"
   spec.add_dependency "bcrypt", ">= 3"
   spec.add_dependency "interactor"

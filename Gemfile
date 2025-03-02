@@ -14,6 +14,7 @@ gem "pry"
 
 # gem "json_schematize", path: "/local/json_schematize"
 
+gem "rails", ENV.fetch("BUNDLER_RAILS_VERSION", "~> 7")
 gem "rspec-rails"
 gem "rspec_junit_formatter"
 
