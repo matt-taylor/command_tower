@@ -22,7 +22,7 @@ RSpec.describe ApiEngineBase::InboxService::Message::Modify do
       end
 
       context "with no ID's available" do
-        let(:ids) { [100] }
+        let(:ids) { [12345678] }
 
         it "fails" do
           expect(call.failure?).to eq(true)

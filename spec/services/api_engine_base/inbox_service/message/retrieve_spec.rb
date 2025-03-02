@@ -26,7 +26,7 @@ RSpec.describe ApiEngineBase::InboxService::Message::Retrieve do
     end
 
     context "with incorrect id" do
-      let(:id) { 100 }
+      let(:id) { 12345678 }
 
       it "fails" do
         expect(call.failure?).to be(true)
