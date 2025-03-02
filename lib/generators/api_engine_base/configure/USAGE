@@ -2,7 +2,7 @@ Description:
     Creates a default Configuration file for the ApiBaseEngine.
 
 Example:
-    bin/rails generate api_engine_base:configure
+    bin/rails generate command_tower:configure
 
     This will create:
-        config/initializers/api_engine_base.rb
+        config/initializers/command_tower.rb

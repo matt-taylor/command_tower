@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-RSpec.shared_examples "ApiEngineBase::Schema::Error:InvalidArguments examples" do |status, message, keys|
+RSpec.shared_examples "CommandTower::Schema::Error:InvalidArguments examples" do |status, message, keys|
   context "with shared example -- InvalidArguments" do
     let(:response_body) { JSON.parse(response.body) }
 
@@ -58,7 +58,7 @@ RSpec.shared_examples "Invalid/Missing JWT token on required route" do
 
        it "does not set expire header" do
          subject
-         expect(response.header[ApiEngineBase::ApplicationController::AUTHENTICATION_EXPIRE_HEADER]).to_not be_present
+         expect(response.header[CommandTower::ApplicationController::AUTHENTICATION_EXPIRE_HEADER]).to_not be_present
        end
     end
 
@@ -66,12 +66,12 @@ RSpec.shared_examples "Invalid/Missing JWT token on required route" do
       let(:user) { create(:user) }
       let!(:verifier_token) { user.retreive_verifier_token! }
       let(:payload) { { generated_at:, user_id: user.id, verifier_token: } }
-      let(:token) { ApiEngineBase::Jwt::Encode.(payload:).token }
+      let(:token) { CommandTower::Jwt::Encode.(payload:).token }
       let(:generated_at) { Time.now.to_i }
       before { set_jwt_token!(user:, token:) }
 
       context "when token is expired" do
-        let(:generated_at) { (ApiEngineBase.config.jwt.ttl - 1.day).to_i }
+        let(:generated_at) { (CommandTower.config.jwt.ttl - 1.day).to_i }
 
         it "sets 401 status" do
           subject
@@ -85,7 +85,7 @@ RSpec.shared_examples "Invalid/Missing JWT token on required route" do
 
         it "does not set expire header" do
           subject
-          expect(response.header[ApiEngineBase::ApplicationController::AUTHENTICATION_EXPIRE_HEADER]).to_not be_present
+          expect(response.header[CommandTower::ApplicationController::AUTHENTICATION_EXPIRE_HEADER]).to_not be_present
         end
       end
 
@@ -104,7 +104,7 @@ RSpec.shared_examples "Invalid/Missing JWT token on required route" do
 
         it "does not set expire header" do
           subject
-          expect(response.header[ApiEngineBase::ApplicationController::AUTHENTICATION_EXPIRE_HEADER]).to_not be_present
+          expect(response.header[CommandTower::ApplicationController::AUTHENTICATION_EXPIRE_HEADER]).to_not be_present
         end
       end
     end

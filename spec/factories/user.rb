@@ -10,8 +10,8 @@ FactoryBot.define do
     email { Faker::Internet.email }
     roles { [] }
     username do
-      min = ApiEngineBase.config.username.username_length_min
-      max = ApiEngineBase.config.username.username_length_max
+      min = CommandTower.config.username.username_length_min
+      max = CommandTower.config.username.username_length_max
 
       Faker::Lorem.characters(number: rand(min...max))
     end

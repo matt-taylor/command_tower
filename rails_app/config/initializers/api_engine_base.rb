@@ -1,4 +1,4 @@
-require "api_engine_base"
+require "command_tower"
 
 =begin
 This configuration files lists all the configuration options available.
@@ -6,7 +6,7 @@ To change the default value, uncomment the line and change the value.
 Please take note: Values set as `=` to a config variable are the current default values when none is assigned
 =end
 
-ApiEngineBase.configure do |config|
+CommandTower.configure do |config|
   # Remove Secret after it is found as invalid: [TrueClass, FalseClass]
   # config.delete_secret_after_invalid = true
 

@@ -1,18 +1,18 @@
-# Initializing ApiEngineBase
+# Initializing CommandTower
 
 Blah Blah Lazy....
 
 Check out the Rails Generator.
 ```
-rails g api_engine_base:configure
+rails g command_tower:configure
 ```
 
 The Generator will:
 
 ## Add Configuration file
-The configuration file will get generated in `config/initializers/api_engine_base.rb`. This file will contain a list of every config option that you can change. Additionally, it will provide details about what each configuration option does so you are not fumbling around.
+The configuration file will get generated in `config/initializers/command_tower.rb`. This file will contain a list of every config option that you can change. Additionally, it will provide details about what each configuration option does so you are not fumbling around.
 
-Check out the [Rails App Config file for an example](/rails_app/config/initializers/api_engine_base.rb)
+Check out the [Rails App Config file for an example](/rails_app/config/initializers/command_tower.rb)
 
 ## Mounts the engine as a route
 

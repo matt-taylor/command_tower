@@ -1,4 +1,4 @@
-# ApiEngineBase Models
+# CommandTower Models
 
 ## User
 The User model is the core model behind any user facing application.
@@ -8,7 +8,7 @@ Through the User model, this engine is able to provide base competencies such as
 
 Sometimes, you may want to add additional methods to the User Class. While we advocate for adding additional logic into Service objects, this may be unavoidable. To ReOpen the User Class simple do the following
 ```ruby
-require ApiEngineBase::Engine.root.join("app","models", "user.rb")
+require CommandTower::Engine.root.join("app","models", "user.rb")
 
 class User
   def self.my_class_method; end
@@ -21,7 +21,7 @@ This model helps back some of the validation components. For example, it backs t
 
 Sometimes, you may want to add additional methods to the UserSecret Class. While we advocate for adding additional logic into Service objects, this may be unavoidable. To ReOpen the UserSecret Class simple do the following
 ```ruby
-require ApiEngineBase::Engine.root.join("app","models", "user_secret.rb")
+require CommandTower::Engine.root.join("app","models", "user_secret.rb")
 
 class UserSecret
   def self.my_class_method; end

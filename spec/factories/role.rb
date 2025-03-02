@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 FactoryBot.define do
-  factory :role, class: ApiEngineBase::Authorization::Role do
+  factory :role, class: CommandTower::Authorization::Role do
     name { Faker::Lorem.word }
     allow_everything { false }
     description { Faker::Lorem.sentence }
@@ -21,7 +21,7 @@ FactoryBot.define do
 
     initialize_with do
       if defined?(with_create_role)
-        ApiEngineBase::Authorization::Role.create_role(**attributes)
+        CommandTower::Authorization::Role.create_role(**attributes)
       else
         new(**attributes)
       end

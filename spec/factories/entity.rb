@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
 FactoryBot.define do
-  factory :entity, class: ApiEngineBase::Authorization::Entity do
-    controller { Class.new(::ApiEngineBase::ApplicationController) }
+  factory :entity, class: CommandTower::Authorization::Entity do
+    controller { Class.new(::CommandTower::ApplicationController) }
     name { Faker::Lorem.unique.word }
 
     transient do

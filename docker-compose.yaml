@@ -13,8 +13,8 @@ x-common-environment: &common-environment
   BUNDLE_PATH: "/bundle"
   BUNDLE_JOBS: "2"
   BUNDLE_RETRY: "3"
-  API_ENGINE_BASE_URL: "http://localhost"
-  API_ENGINE_BASE_PORT: "7777"
+  command_tower_URL: "http://localhost"
+  command_tower_PORT: "7777"
   SESSION_TIMEOUT_IN_SECONDS: "900"
   SESSION_TIMEOUT_WARNING: "true"
   RAILS_MAX_THREADS: "1"
@@ -37,7 +37,7 @@ services:
     image: redis
     expose:
       - 6379
-  api_engine:
+  engine:
     build:
       args:
         BUNDLE_WITHOUT: "darwin"
@@ -49,7 +49,7 @@ services:
     tty: true
     stdin_open: true
     volumes:
-      - .:/api_engine
+      - .:/engine
       - bundle:/bundle
       - ..:/local
     env_file:

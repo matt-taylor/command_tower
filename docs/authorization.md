@@ -14,7 +14,7 @@ before_action :authorize_user!
 ```
 
 ## Default roles
-Default roles are statically defined in [lib/api_engine_base/authorization/default.yml](../lib/api_engine_base/authorization/default.yml).
+Default roles are statically defined in [lib/command_tower/authorization/default.yml](../lib/command_tower/authorization/default.yml).
 
 Roles include:
 - `owner`: Users defined as owner will have access to every route regardless of required roles
@@ -26,9 +26,9 @@ Roles include:
 ## Creating new Roles
 
 ### From Config File
-Additional roles can be defined via a separate yml file that you can define from the [Initializer Config option](initializing.md) `ApiEngineBase.config.authorization.rbac_group_path` (By default we will look in `config/rbac_groups.yml`)
+Additional roles can be defined via a separate yml file that you can define from the [Initializer Config option](initializing.md) `CommandTower.config.authorization.rbac_group_path` (By default we will look in `config/rbac_groups.yml`)
 
 ### From Code File
 Defining code files is only recommended if you require complex user authorization. For more details check out the Spec tests
-[/spec/lib/api_engine_base/authorization/role_spec.rb](/spec/lib/api_engine_base/authorization/role_spec.rb) (`with custom authorized entity`)
+[/spec/lib/command_tower/authorization/role_spec.rb](/spec/lib/command_tower/authorization/role_spec.rb) (`with custom authorized entity`)
 

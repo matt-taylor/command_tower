@@ -1,0 +1,26 @@
+<p>Hello <%= @user.full_name %>!</p>
+
+<p>
+  Welcome to <%= CommandTower.config.app.communication_name %>.
+</p>
+<p>
+  Please provide the following verification code to confirm your email address.
+</p>
+<p></p>
+<p></p>
+<p>
+  <h1>
+    <%= @code %>
+  </h1>
+</p>
+
+<p></p>
+<p></p>
+
+<p>
+  Best wishes, <%= CommandTower.config.app.communication_name %> team
+</p>
+<p></p>
+<p></p>
+
+Visit us at <a href="<%= CommandTower.config.app.composed_url %>" target="_blank"><%= CommandTower.config.app.composed_url %></a>

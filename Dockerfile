@@ -7,7 +7,7 @@ ENV RAILS_SERVE_STATIC_FILES 1
 ENV EXECJS_RUNTIME Node
 
 # set the app directory var
-ENV APP_HOME /api_engine
+ENV APP_HOME /engine
 
 WORKDIR $APP_HOME
 RUN apt-get update -qq
@@ -28,6 +28,4 @@ RUN gem install annotate
 RUN bundle config set force_ruby_platform true
 
 COPY . $APP_HOME
-
-# RUN gem build rails_base
 

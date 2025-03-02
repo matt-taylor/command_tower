@@ -1,0 +1,42 @@
+---
+groups:
+  owner:
+    description: The owner of the application will have full access to all components
+    entities: true
+  admin:
+    description: |
+      This group defines permissions for Admin Read and Write operations. Users with this role will have
+      the ability to view and update other users states.
+    entities:
+      - admin
+      - message-blast
+  admin-without-impersonation:
+    description: |
+      This group defines permissions for Admin Read and Write operations. Users with this role will have
+      the ability to view and update other users states. However, impersonation is not permitted with this role
+    entities:
+      - admin-without-impersonate
+      - message-blast
+  admin-read-only:
+    description: |
+      This group defines permissions for Admin Read interface only.
+    entities:
+      - read-admin
+      - message-blast-read-only
+entities:
+  - name: message-blast
+    controller: CommandTower::Inbox::MessageBlastController
+  - name: message-blast-read-only
+    controller: CommandTower::Inbox::MessageBlastController
+    only: metadata
+  - name: read-admin
+    controller: CommandTower::AdminController
+    only: show
+  - name: admin
+    controller: CommandTower::AdminController
+  - name: admin-without-impersonate
+    controller: CommandTower::AdminController
+    except: impersonate
+
+
+

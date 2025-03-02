@@ -30,7 +30,7 @@
 #
 require "securerandom"
 
-class User < ApiEngineBase::ApplicationRecord
+class User < CommandTower::ApplicationRecord
   has_secure_password
 
   validates :username, uniqueness: true

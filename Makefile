@@ -1,6 +1,6 @@
 .PHONY: build run
 
-APP_NAME=api_engine
+APP_NAME=engine
 
 build:
 	docker-compose build

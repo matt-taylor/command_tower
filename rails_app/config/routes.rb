@@ -1,3 +1,3 @@
 Rails.application.routes.draw do
-  mount ApiEngineBase::Engine => "/"
+  mount CommandTower::Engine => "/"
 end
