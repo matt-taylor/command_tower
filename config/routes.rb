@@ -26,6 +26,27 @@ Rails.application.routes.draw do
     post "/modify", to: "api_engine_base/user#modify", as: :"#{append_to_ass}_user_modify_post"
   end
 
+  scope "inbox" do
+    scope "messages" do
+      get "/", to: "api_engine_base/inbox/message#metadata", as: :"#{append_to_ass}_inbox_metadata"
+
+      get "/:id", to: "api_engine_base/inbox/message#message", as: :"#{append_to_ass}_inbox_message"
+      delete "/:id", to: "api_engine_base/inbox/message#delete", as: :"#{append_to_ass}_inbox_message_del"
+
+      post "/ack", to: "api_engine_base/inbox/message#ack", as: :"#{append_to_ass}_inbox_ack"
+      post "/delete", to: "api_engine_base/inbox/message#delete", as: :"#{append_to_ass}_inbox_delete"
+    end
+
+    scope "blast" do
+      get "/", to: "api_engine_base/inbox/message_blast#metadata", as: :"#{append_to_ass}_blast_metadata"
+      post "/", to: "api_engine_base/inbox/message_blast#create", as: :"#{append_to_ass}_blast_create"
+
+      get "/:id", to: "api_engine_base/inbox/message_blast#blast", as: :"#{append_to_ass}_blast_blast"
+      patch "/:id", to: "api_engine_base/inbox/message_blast#modify", as: :"#{append_to_ass}_blast_modify"
+      delete "/:id", to: "api_engine_base/inbox/message_blast#delete", as: :"#{append_to_ass}_blast_delete"
+    end
+  end
+
   scope "admin" do
     get "/", to: "api_engine_base/admin#show", as: :"#{append_to_ass}_admin_show_get"
     post "/modify", to: "api_engine_base/admin#modify", as: :"#{append_to_ass}_admin_modify_post"
