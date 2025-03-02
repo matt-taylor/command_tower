@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-RSpec.describe ApiEngineBase::Inbox::MessageBlastController, type: :controller do
+RSpec.describe ApiEngineBase::Inbox::MessageBlastController, :with_rbac_setup, type: :controller do
   let(:response_body) { JSON.parse(response.body) }
 
   before { set_jwt_token!(user:) }
