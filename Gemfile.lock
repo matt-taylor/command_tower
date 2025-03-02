@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    api_engine_base (0.1.2)
+    api_engine_base (0.2.0)
       bcrypt (>= 3)
       class_composer (>= 2)
       interactor
