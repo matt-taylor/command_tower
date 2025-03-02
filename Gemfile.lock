@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    command_tower (0.3.0)
+    command_tower (0.3.1)
       bcrypt (>= 3)
       class_composer (>= 2)
       interactor

@@ -2,6 +2,7 @@
 
 require "command_tower/authorization"
 require "command_tower/schema"
+require "logger"
 
 module CommandTower
   class Engine < ::Rails::Engine
