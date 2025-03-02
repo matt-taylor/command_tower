@@ -34,6 +34,7 @@ module ApiEngineBase::LoginStrategy::PlainText
 
       if user.save
         context.user = user
+        ApiEngineBase::InboxService::Blast::NewUserBlaster.(user:)
       else
         inline_argument_failure!(errors: user.errors)
       end

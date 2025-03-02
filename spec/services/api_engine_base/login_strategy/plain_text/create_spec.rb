@@ -38,6 +38,18 @@ RSpec.describe ApiEngineBase::LoginStrategy::PlainText::Create do
       expect(call.user).to be_a(User)
     end
 
+    it "does not send any inbox blasts" do
+      expect { call }.to_not change(::Message, :count)
+    end
+
+    context "with message blasts available" do
+      before { create(:message_blast, new_users: true) }
+
+      it "sends message" do
+        expect { call }.to change(::Message, :count).by(1)
+      end
+    end
+
     shared_examples "with invalid inline arguments" do |argument, message|
       it "fails" do
         expect(call.failure?).to be(true)
