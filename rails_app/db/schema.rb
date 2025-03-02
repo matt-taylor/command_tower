@@ -10,7 +10,31 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2024_12_04_065708) do
+ActiveRecord::Schema[7.2].define(version: 2025_02_23_023313) do
+  create_table "message_blasts", charset: "utf8mb3", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.text "text"
+    t.string "title"
+    t.boolean "existing_users", default: false
+    t.boolean "new_users", default: false
+    t.index ["user_id"], name: "index_message_blasts_on_user_id"
+  end
+
+  create_table "messages", charset: "utf8mb3", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.text "text"
+    t.string "title"
+    t.boolean "viewed", default: false
+    t.boolean "pushed", default: false
+    t.bigint "message_blast_id"
+    t.index ["message_blast_id"], name: "index_messages_on_message_blast_id"
+    t.index ["user_id"], name: "index_messages_on_user_id"
+  end
+
   create_table "user_secrets", charset: "utf8mb3", force: :cascade do |t|
     t.bigint "user_id", null: false
     t.integer "use_count", default: 0
@@ -47,5 +71,8 @@ ActiveRecord::Schema[7.2].define(version: 2024_12_04_065708) do
     t.index ["username"], name: "index_users_on_username", unique: true
   end
 
+  add_foreign_key "message_blasts", "users"
+  add_foreign_key "messages", "message_blasts"
+  add_foreign_key "messages", "users"
   add_foreign_key "user_secrets", "users"
 end

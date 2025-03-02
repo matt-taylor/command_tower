@@ -7,4 +7,5 @@ params = {
   username: "mathetrius",
   roles: ["owner"],
 }
+
 User.create!(**params)

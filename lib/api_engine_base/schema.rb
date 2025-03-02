@@ -26,5 +26,13 @@ module ApiEngineBase
 
     require "api_engine_base/schema/user"
     require "api_engine_base/schema/page"
+
+    require "api_engine_base/schema/inbox/metadata"
+    require "api_engine_base/schema/inbox/message_entity"
+    require "api_engine_base/schema/inbox/modified"
+    require "api_engine_base/schema/inbox/blast_response"
+    require "api_engine_base/schema/inbox/blast_request"
+    require "api_engine_base/schema/inbox/message_blast_entity"
+    require "api_engine_base/schema/inbox/message_blast_metadata"
   end
 end

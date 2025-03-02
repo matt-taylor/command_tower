@@ -40,6 +40,8 @@ class User < ApiEngineBase::ApplicationRecord
   # Serialize the roles column to check for inclusion easily
   serialize :roles, coder: JSON, type: Array
 
+  has_many :messages
+
   def full_name
     "#{first_name} #{last_name}"
   end
