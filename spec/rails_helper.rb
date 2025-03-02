@@ -8,7 +8,7 @@ if ENV["CI"] == "true"
     enable_coverage :branch
     add_filter "rails_app/"
     add_group "Services","app/services"
-    add_group "Configuration","lib/api_engine_base/configuration"
+    add_group "Configuration","lib/command_tower/configuration"
   end
 end
 
@@ -38,16 +38,16 @@ RSpec.configure do |config|
 
   config.around do |example|
     if example.metadata[:with_rbac_setup]
-      ApiEngineBase::Authorization::Role.roles_reset!
-      ApiEngineBase::Authorization::Entity.entities_reset!
-      ApiEngineBase::Authorization.mapped_controllers_reset!
-      ApiEngineBase::Authorization.default_defined!
+      CommandTower::Authorization::Role.roles_reset!
+      CommandTower::Authorization::Entity.entities_reset!
+      CommandTower::Authorization.mapped_controllers_reset!
+      CommandTower::Authorization.default_defined!
 
       example.run
 
-      ApiEngineBase::Authorization::Role.roles_reset!
-      ApiEngineBase::Authorization::Entity.entities_reset!
-      ApiEngineBase::Authorization.mapped_controllers_reset!
+      CommandTower::Authorization::Role.roles_reset!
+      CommandTower::Authorization::Entity.entities_reset!
+      CommandTower::Authorization.mapped_controllers_reset!
     else
       example.run
     end
@@ -55,15 +55,15 @@ RSpec.configure do |config|
 
   config.around do |example|
     if example.metadata[:with_rbac_zero]
-      ApiEngineBase::Authorization::Role.roles_reset!
-      ApiEngineBase::Authorization::Entity.entities_reset!
-      ApiEngineBase::Authorization.mapped_controllers_reset!
+      CommandTower::Authorization::Role.roles_reset!
+      CommandTower::Authorization::Entity.entities_reset!
+      CommandTower::Authorization.mapped_controllers_reset!
 
       example.run
 
-      ApiEngineBase::Authorization::Role.roles_reset!
-      ApiEngineBase::Authorization::Entity.entities_reset!
-      ApiEngineBase::Authorization.mapped_controllers_reset!
+      CommandTower::Authorization::Role.roles_reset!
+      CommandTower::Authorization::Entity.entities_reset!
+      CommandTower::Authorization.mapped_controllers_reset!
     else
       example.run
     end
@@ -76,8 +76,8 @@ RSpec.configure do |config|
 
   config.filter_rails_from_backtrace!
 
-  require "api_engine_base/spec_helper"
-  config.include ApiEngineBase::SpecHelper
+  require "command_tower/spec_helper"
+  config.include CommandTower::SpecHelper
 
   require "timecop"
   config.before(:each) do

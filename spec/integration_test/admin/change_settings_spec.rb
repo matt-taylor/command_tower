@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-RSpec.describe ApiEngineBase::AdminController, :with_rbac_setup, type: :controller do
+RSpec.describe CommandTower::AdminController, :with_rbac_setup, type: :controller do
   before do
     # create some users in the system
     10.times { create(:user) }
@@ -18,7 +18,7 @@ RSpec.describe ApiEngineBase::AdminController, :with_rbac_setup, type: :controll
 
     ####
     # Does Not set the Expire Time on the header
-    expect(response.headers[ApiEngineBase::ApplicationController::AUTHENTICATION_EXPIRE_HEADER.downcase]).to be_nil
+    expect(response.headers[CommandTower::ApplicationController::AUTHENTICATION_EXPIRE_HEADER.downcase]).to be_nil
 
     ##
     # User is not authorized to make the call
@@ -28,8 +28,8 @@ RSpec.describe ApiEngineBase::AdminController, :with_rbac_setup, type: :controll
 
     ####
     # Sets the Expire Time on the header
-    expire_time = response.headers[ApiEngineBase::ApplicationController::AUTHENTICATION_EXPIRE_HEADER.downcase]
-    expect(Time.parse(expire_time)).to be_within(1.second).of(ApiEngineBase.config.jwt.ttl.from_now)
+    expire_time = response.headers[CommandTower::ApplicationController::AUTHENTICATION_EXPIRE_HEADER.downcase]
+    expect(Time.parse(expire_time)).to be_within(1.second).of(CommandTower.config.jwt.ttl.from_now)
 
     ##
     # User is authorized to make the call
@@ -48,8 +48,8 @@ RSpec.describe ApiEngineBase::AdminController, :with_rbac_setup, type: :controll
 
     ####
     # Sets the Expire Time on the header
-    expire_time = response.headers[ApiEngineBase::ApplicationController::AUTHENTICATION_EXPIRE_HEADER.downcase]
-    expect(Time.parse(expire_time)).to be_within(1.second).of(ApiEngineBase.config.jwt.ttl.from_now)
+    expire_time = response.headers[CommandTower::ApplicationController::AUTHENTICATION_EXPIRE_HEADER.downcase]
+    expect(Time.parse(expire_time)).to be_within(1.second).of(CommandTower.config.jwt.ttl.from_now)
 
     ##
     # Update to an invalid email!
@@ -80,7 +80,7 @@ RSpec.describe ApiEngineBase::AdminController, :with_rbac_setup, type: :controll
 
     ##
     # Update to an Multiple Valid Roles
-    roles = ApiEngineBase::Authorization::Role.roles.keys
+    roles = CommandTower::Authorization::Role.roles.keys
     post(:modify_role, params: { user_id: user_json["id"], roles: } )
     expect(response.status).to eq(201)
 

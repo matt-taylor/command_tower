@@ -1,5 +1,5 @@
 
-require ApiEngineBase::Engine.root.join("app/models/user.rb")
+require CommandTower::Engine.root.join("app/models/user.rb")
 
 class User
   def am_i_a_user?

@@ -18,11 +18,11 @@ RSpec.configure do |config|
   end
 
   config.around(:example) do |ex|
-    original = ApiEngineBase.config.dup
+    original = CommandTower.config.dup
 
     ex.run
 
-    ApiEngineBase.config = original
+    CommandTower.config = original
   end
 
   config.after(:example) do

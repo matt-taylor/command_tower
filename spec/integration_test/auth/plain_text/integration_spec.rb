@@ -1,4 +1,4 @@
-RSpec.describe ApiEngineBase::Auth::PlainTextController, type: :controller do
+RSpec.describe CommandTower::Auth::PlainTextController, type: :controller do
 
   before do
     # create some users in the system
@@ -39,7 +39,7 @@ RSpec.describe ApiEngineBase::Auth::PlainTextController, type: :controller do
     post(:login_post, params: { username: fake_user.username, password: })
     expect(response.status).to eq(201)
     login_post_response = JSON.parse(response.body)
-    login_post_jwt_username = ApiEngineBase::Jwt::AuthenticateUser.(token: login_post_response["token"], bypass_email_validation: true)
+    login_post_jwt_username = CommandTower::Jwt::AuthenticateUser.(token: login_post_response["token"], bypass_email_validation: true)
     expect(login_post_jwt_username.success?).to be(true)
 
     ####
@@ -47,7 +47,7 @@ RSpec.describe ApiEngineBase::Auth::PlainTextController, type: :controller do
     post(:login_post, params: { email: fake_user.email, password: })
     expect(response.status).to eq(201)
     login_post_response = JSON.parse(response.body)
-    login_post_jwt_email = ApiEngineBase::Jwt::AuthenticateUser.(token: login_post_response["token"], bypass_email_validation: true)
+    login_post_jwt_email = CommandTower::Jwt::AuthenticateUser.(token: login_post_response["token"], bypass_email_validation: true)
     expect(login_post_jwt_email.success?).to be(true)
 
     ####
@@ -73,8 +73,8 @@ RSpec.describe ApiEngineBase::Auth::PlainTextController, type: :controller do
 
     ####
     # Sets the Expire Time on the header
-    expire_time = response.headers[ApiEngineBase::ApplicationController::AUTHENTICATION_EXPIRE_HEADER.downcase]
-    expect(Time.parse(expire_time)).to be_within(1.second).of(ApiEngineBase.config.jwt.ttl.from_now)
+    expire_time = response.headers[CommandTower::ApplicationController::AUTHENTICATION_EXPIRE_HEADER.downcase]
+    expect(Time.parse(expire_time)).to be_within(1.second).of(CommandTower.config.jwt.ttl.from_now)
 
     unset_jwt_token!
 
@@ -93,7 +93,7 @@ RSpec.describe ApiEngineBase::Auth::PlainTextController, type: :controller do
 
     ####
     # Sets the Expire Time on the header
-    expire_time = response.headers[ApiEngineBase::ApplicationController::AUTHENTICATION_EXPIRE_HEADER.downcase]
-    expect(Time.parse(expire_time)).to be_within(1.second).of(ApiEngineBase.config.jwt.ttl.from_now)
+    expire_time = response.headers[CommandTower::ApplicationController::AUTHENTICATION_EXPIRE_HEADER.downcase]
+    expect(Time.parse(expire_time)).to be_within(1.second).of(CommandTower.config.jwt.ttl.from_now)
   end
 end

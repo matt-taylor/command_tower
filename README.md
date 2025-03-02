@@ -1,4 +1,4 @@
-# ApiEngineBase
+# CommandTower
 This is an API only base engine to build on top of. This Engine takes care of all Authentication, Token Refresh, and RBAC Roles so that you do not have to! For all applications, you can get right to work on implementing the code directly related to your project rather than dealing with the administrative overhead.
 
 While this gem is heavily opinionated, everything can be configured to your liking.
@@ -7,7 +7,7 @@ While this gem is heavily opinionated, everything can be configured to your liki
 Add this line to your application's Gemfile:
 
 ```ruby
-gem "api_engine_base"
+gem "command_tower"
 ```
 
 And then execute:
@@ -17,11 +17,11 @@ $ bundle
 
 Or install it yourself as:
 ```bash
-$ gem install api_engine_base
+$ gem install command_tower
 ```
 
-## Initializing ApiEngineBase
-Please follow all steps in [Initializing ApiEngineBase](docs/initializing.md)
+## Initializing CommandTower
+Please follow all steps in [Initializing CommandTower](docs/initializing.md)
 
 
 ## Available Routes
@@ -32,7 +32,7 @@ Additionally, You can check out [RSpec Integration Testing](/spec/integration_te
 
 ## Available Models
 
-ApiEngineBase provides several Models at the in the root namespace. Core Models like `User` and `UserSecret` are readily available. Don't forget! You can add additional methods to these classes by opening them back up.
+CommandTower provides several Models at the in the root namespace. Core Models like `User` and `UserSecret` are readily available. Don't forget! You can add additional methods to these classes by opening them back up.
 
 For more info, check out [Models ReadMe](doc/models.md)
 
@@ -51,9 +51,9 @@ For more info, check out [Authentication ReadMe](docs/authorization.md)
 For more info, check out [Sensitive Routes](docs/sensitive_routes.md)
 
 ## ServiceBase
-ServiceBase is built on top of Interactor. The ServiceBase is the heart of all logic for ApiEngineBase. It includes Logging and enhanced ArgumentValidation that can directly return back to the API request.
+ServiceBase is built on top of Interactor. The ServiceBase is the heart of all logic for CommandTower. It includes Logging and enhanced ArgumentValidation that can directly return back to the API request.
 
-For more info, check out [ServiceBase ReadMe](app/services/api_engine_base/README.md)
+For more info, check out [ServiceBase ReadMe](app/services/command_tower/README.md)
 
 ## License
 The engine is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).

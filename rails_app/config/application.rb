@@ -4,7 +4,7 @@ require 'rails/all'
 
 Bundler.require(*Rails.groups)
 
-require 'api_engine_base'
+require 'command_tower'
 
 module RailsApp
   class Application < Rails::Application
