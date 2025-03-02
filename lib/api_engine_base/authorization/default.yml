@@ -9,18 +9,26 @@ groups:
       the ability to view and update other users states.
     entities:
       - admin
+      - message-blast
   admin-without-impersonation:
     description: |
       This group defines permissions for Admin Read and Write operations. Users with this role will have
       the ability to view and update other users states. However, impersonation is not permitted with this role
     entities:
       - admin-without-impersonate
+      - message-blast
   admin-read-only:
     description: |
       This group defines permissions for Admin Read interface only.
     entities:
       - read-admin
+      - message-blast-read-only
 entities:
+  - name: message-blast
+    controller: ApiEngineBase::Inbox::MessageBlastController
+  - name: message-blast-read-only
+    controller: ApiEngineBase::Inbox::MessageBlastController
+    only: metadata
   - name: read-admin
     controller: ApiEngineBase::AdminController
     only: show
