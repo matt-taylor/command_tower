@@ -55,5 +55,8 @@ ServiceBase is built on top of Interactor. The ServiceBase is the heart of all l
 
 For more info, check out [ServiceBase ReadMe](app/services/command_tower/README.md)
 
+## Pagination
+Pagination is available on routes when explicitly set. There are a subset of routes available as part of this engine. Pagination is available to be used in downstream services as well. For more info, check out [Pagination ReadMe](docs/pagination.md)
+
 ## License
 The engine is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).
