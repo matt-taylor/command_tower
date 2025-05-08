@@ -204,12 +204,22 @@ CommandTower.configure do |config|
   # Allow Admin Capabilities for the application. By default, this is enabled: [FalseClass, TrueClass]
   # config.admin.enable = true
 
+  # ################################
+  # #                              #
+  # #########  Pagination  #########
+  # #                              #
+  # ################################
+  # ## Pagination configuration for the app
+
+  # Default Limit for pagination return when not present on service or query/body. Negative values are treated like no limit: [Integer]
+  # config.pagination.limit = 10
+
   # #########################
   # #                       #
   # #########  Otp  #########
   # #                       #
   # #########################
-  # ## One Time Password generator is used for all Code validation. This describes defaults not set in other configurations
+  # ## One Time Password generation is used for ease in quickly validating a users actions. This is good for short term validation requirements as opposed to UserSecrets
 
   # The length of time a code is good for: [ActiveSupport::Duration]
   # config.otp.default_code_interval = 30.seconds

@@ -18,6 +18,8 @@ gem "rails", ENV.fetch("BUNDLER_RAILS_VERSION", "~> 7")
 gem "rspec-rails"
 gem "rspec_junit_formatter"
 
+gem "rack-cors"
+
 gem "database_cleaner-active_record"
 gem "factory_bot"
 gem "faker"

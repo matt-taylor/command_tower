@@ -2,16 +2,17 @@
 
 require "singleton"
 require "class_composer"
+require "command_tower/configuration/admin/config"
+require "command_tower/configuration/application/config"
+require "command_tower/configuration/authorization/config"
 require "command_tower/configuration/base"
 require "command_tower/configuration/email/config"
 require "command_tower/configuration/jwt/config"
 require "command_tower/configuration/login/config"
 require "command_tower/configuration/otp/config"
-require "command_tower/configuration/username/config"
-require "command_tower/configuration/application/config"
-require "command_tower/configuration/admin/config"
-require "command_tower/configuration/authorization/config"
+require "command_tower/configuration/pagination/config"
 require "command_tower/configuration/user/config"
+require "command_tower/configuration/username/config"
 
 module CommandTower
   module Configuration
@@ -65,6 +66,11 @@ module CommandTower
         desc: "Admin configuration for the app",
         allowed: Configuration::Admin::Config,
         default: Configuration::Admin::Config.new
+
+      add_composer :pagination,
+        desc: "Pagination configuration for the app",
+        allowed: Configuration::Pagination::Config,
+        default: Configuration::Pagination::Config.new
 
       # To be Deleted
       add_composer :otp,
