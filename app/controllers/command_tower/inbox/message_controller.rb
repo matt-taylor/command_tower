@@ -4,12 +4,14 @@ module CommandTower
   module Inbox
     class MessageController < ::CommandTower::ApplicationController
       include CommandTower::SchemaHelper
+      include CommandTower::PaginationHelper
 
       before_action :authenticate_user!
 
       # GET: /inbox/messages
+      # Pagination Available
       def metadata
-        result = CommandTower::InboxService::Message::Metadata.(user: current_user)
+        result = CommandTower::InboxService::Message::Metadata.(user: current_user, pagination: pagination_values)
         if result.success?
           schema = result.metadata
           status = 200

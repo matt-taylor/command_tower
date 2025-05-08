@@ -3,7 +3,9 @@
 module CommandTower
   module PaginationServiceHelper
     def query
-      return default_query if pagination_params.nil?
+      return default_query if pagination_params.empty?
+
+      context.pagination_used = true
 
       default_query.offset(pagination_params[:offset]).limit(pagination_params[:limit])
     end
@@ -12,8 +14,45 @@ module CommandTower
       raise NoMethodError, "Method must be defined on base class"
     end
 
+    def pagination_schema
+      return nil unless context.pagination_used
+
+      base_params = {
+        limit: pagination_params[:limit],
+        cursor: pagination_params[:offset],
+      }
+      query = base_params.to_query
+      current = CommandTower::Schema::Page.new(query:, **base_params)
+
+      base_params[:cursor] += pagination_params[:limit]
+      query = base_params.to_query
+      next_page = CommandTower::Schema::Page.new(query:, **base_params)
+
+      count_available = default_query.size
+      total_pages = count_available / pagination_params[:limit]
+      # when offset is zero, it returns 0...Min page is 1
+      base_current_page = (pagination_params[:offset].to_f / pagination_params[:limit].to_f)
+      if pagination_params[:offset] % pagination_params[:limit] == 0
+        current_page = (base_current_page + 1).to_i
+      else
+        current_page = base_current_page.ceil
+      end
+      # current_page = [, 1].max
+      # Ensure we cannot go negative when no elements are returned
+      remaining_pages = [total_pages - current_page, 0].max
+
+      CommandTower::Schema::Pagination.new(
+        count_available:,
+        total_pages:,
+        current_page:,
+        remaining_pages:,
+        current:,
+        next: next_page,
+      )
+    end
+
     def pagination_params
-      return {} if context.pagination.nil?
+      return {} if context.pagination.presence.nil?
 
       __params = { limit: pagination_limit }
       if pagination_cursor

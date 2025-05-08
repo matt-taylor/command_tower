@@ -3,18 +3,23 @@
 module CommandTower
   class AdminController < ::CommandTower::ApplicationController
     include CommandTower::SchemaHelper
+    include CommandTower::PaginationHelper
 
     before_action :authenticate_user!
     before_action :authorize_user!
     before_action :user!, only: [:modify, :modify_role]
 
-    # Pagination is needed here
+    # GET: /admin
+    # Pagination Available
     def show
-      schemafied_users = User.all.map { CommandTower::Schema::User.convert_user_object(user: _1) }
-      schema = CommandTower::Schema::Admin::Users.new(users: schemafied_users)
+      schema = CommandTower::AdminService::Users.(
+        user: admin_user,
+        pagination: pagination_values,
+      ).schema
       schema_succesful!(status: 200, schema:)
     end
 
+    # POST: /modify
     def modify
       result = CommandTower::UserAttributes::Modify.(user:, admin_user:, **modify_params)
       if result.success?
@@ -35,6 +40,7 @@ module CommandTower
       end
     end
 
+    # POST: /modify/role
     def modify_role
       result = CommandTower::UserAttributes::Roles.(user:, admin_user:, roles: params[:roles] || [])
       if result.success?
