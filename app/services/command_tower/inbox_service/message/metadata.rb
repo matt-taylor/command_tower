@@ -22,9 +22,9 @@ module CommandTower
           params = {
             count: entities.length,
             entities: entities.nil? ? nil : entities,
-          }
-
-          context.metadata = CommandTower::Schema::Inbox::Metadata.new(**params.compact)
+            pagination: pagination_schema,
+          }.compact
+          context.metadata = CommandTower::Schema::Inbox::Metadata.new(**params)
         end
 
         def default_query
