@@ -3,13 +3,16 @@
 RSpec.describe CommandTower::Inbox::MessageController, type: :controller do
   let(:response_body) { JSON.parse(response.body) }
   let(:user) { create(:user) }
-  let!(:messages) { create_list(:message, 5, user:) }
+  let!(:messages) { create_list(:message, count, user:) }
+  let(:count) { 5 }
   let(:ids) { messages.pluck(:id) }
 
   before { set_jwt_token!(user:) }
 
   describe "GET: metadata" do
-    subject(:metadata) { get(:metadata) }
+    subject(:metadata) { get(:metadata, params:) }
+
+    let(:params) { {} }
 
     it "returns 200" do
       metadata
@@ -20,6 +23,75 @@ RSpec.describe CommandTower::Inbox::MessageController, type: :controller do
     it "returns metadata values" do
       metadata
       expect(response_body).to include(*CommandTower::Schema::Inbox::Metadata.introspect.keys)
+    end
+
+    context "with pagination" do
+      let(:pagination_object) { { page:, limit:, cursor: }.compact }
+      let(:page) { nil }
+      let(:limit) { nil }
+      let(:cursor) { nil }
+      let(:count) { 3 * CommandTower.config.pagination.limit }
+      let(:pagination) { response_body.dig("pagination") }
+
+      shared_examples "pagination" do
+        context "with page" do
+          let(:page) { 2 }
+
+          it "returns correct pagination" do
+            subject
+
+            expect(pagination["current_page"]).to eq(2)
+            expect(pagination["remaining_pages"]).to eq(1)
+            expect(pagination["total_pages"]).to eq(3)
+          end
+        end
+
+        context "with limit" do
+          let(:limit) { 2 }
+          let(:page) { 4 }
+
+          it "returns correct pagination" do
+            subject
+
+            expect(pagination["current_page"]).to eq(4)
+            expect(pagination["remaining_pages"]).to eq(11)
+            expect(pagination["total_pages"]).to eq(15)
+          end
+        end
+
+        context "with cursor" do
+          let(:limit) { 2 }
+          let(:cursor) { 14 }
+
+          it "returns correct pagination" do
+            subject
+
+            expect(pagination["current_page"]).to eq(8)
+            expect(pagination["remaining_pages"]).to eq(7)
+            expect(pagination["total_pages"]).to eq(15)
+          end
+        end
+      end
+
+      context "when not enabled" do
+        it "has empty pagination" do
+          subject
+
+          expect(response_body["pagination"]).to be_empty
+        end
+      end
+
+      context "when in body" do
+        let(:params) { super().merge(pagination: pagination_object) }
+
+        include_examples "pagination"
+      end
+
+      context "when in query" do
+        let(:params) { super().merge(pagination: true, **pagination_object) }
+
+        include_examples "pagination"
+      end
     end
 
     include_examples "Invalid/Missing JWT token on required route"
