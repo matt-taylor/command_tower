@@ -13,6 +13,7 @@ module CommandTower
           schema = CommandTower::Schema::PlainText::LoginResponse.new(
             token: result.token,
             header_name: AUTHENTICATION_HEADER,
+            user: CommandTower::Schema::User.convert_user_object(user: result.user),
             message: "Successfully logged user in"
           )
           status = 201
