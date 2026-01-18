@@ -1,0 +1,183 @@
+# CommandTower Schema Structure Rules
+
+## Schema Organization Requirements
+
+### Every Endpoint Must Have Request and Response Schemas
+
+**MANDATORY**: Every API endpoint MUST have both a Request schema and a Response schema. No exceptions.
+
+### Directory Structure
+
+All schemas are organized in `lib/command_tower/schema/` with the following structure:
+
+```
+lib/command_tower/schema/
+├── shared/                          # Reusable schemas (cross-domain + domain-specific)
+│   ├── user.rb                      # Cross-domain: User entity
+│   ├── page.rb                      # Cross-domain: Page for pagination
+│   ├── pagination.rb                # Cross-domain: Pagination structure
+│   ├── inbox/                       # Domain-specific shared: Inbox reusable structures
+│   │   ├── metadata.rb
+│   │   ├── message_blast_metadata.rb
+│   │   └── modified.rb
+│   └── admin/                       # Domain-specific shared: Admin reusable structures
+│       └── users.rb
+│
+├── entities/                        # Domain-specific entity schemas (referenced by responses)
+│   └── inbox/
+│       ├── message_entity.rb
+│       └── message_blast_entity.rb
+│
+├── error/                          # Error schemas (can be referenced)
+│   ├── base.rb
+│   ├── invalid_argument.rb
+│   └── invalid_argument_response.rb
+│
+└── [endpoint folders]/             # Request/Response schemas organized by controller/action
+    ├── auth/
+    │   └── plain_text/
+    │       ├── login/
+    │       │   ├── request.rb
+    │       │   └── response.rb
+    │       └── ...
+    ├── user/
+    │   ├── show/
+    │   │   ├── request.rb
+    │   │   └── response.rb
+    │   └── modify/
+    │       ├── request.rb
+    │       └── response.rb
+    ├── admin/
+    │   ├── show/
+    │   ├── modify/
+    │   └── modify_role/
+    └── inbox/
+        ├── messages/
+        │   ├── metadata/
+        │   ├── message/
+        │   ├── ack/
+        │   └── ...
+        └── blast/
+            ├── metadata/
+            ├── create/
+            ├── show/
+            ├── modify/
+            └── delete/
+```
+
+### Schema Organization Rules
+
+1. **Request/Response Schemas**:
+   - MUST be placed in endpoint-specific folders: `{controller}/{action}/request.rb` and `{controller}/{action}/response.rb`
+   - Example: `auth/plain_text/login/request.rb` and `auth/plain_text/login/response.rb`
+   - CAN reference schemas from `shared/`, `entities/`, and `error/`
+   - CANNOT reference other Request/Response schemas
+
+2. **Shared Schemas** (`shared/`):
+   - Cross-domain reusable schemas go at root of `shared/` (e.g., `shared/user.rb`, `shared/page.rb`)
+   - Domain-specific reusable structures go in domain subfolders (e.g., `shared/inbox/metadata.rb`)
+   - Can be referenced by any Request/Response schema
+
+3. **Entity Schemas** (`entities/`):
+   - Domain-specific entity schemas that represent data models
+   - Organized by domain (e.g., `entities/inbox/message_entity.rb`)
+   - Can be referenced by Request/Response schemas
+
+4. **Error Schemas** (`error/`):
+   - Standard error response structures
+   - Can be referenced by Request/Response schemas
+
+### Naming Conventions
+
+- **Request schemas**: `{Controller}::{Action}::Request`
+  - Example: `CommandTower::Schema::Auth::PlainText::Login::Request`
+
+- **Response schemas**: `{Controller}::{Action}::Response`
+  - Example: `CommandTower::Schema::Auth::PlainText::Login::Response`
+
+- **Shared schemas**: `CommandTower::Schema::Shared::{Name}`
+  - Example: `CommandTower::Schema::Shared::User`
+  - Domain-specific: `CommandTower::Schema::Shared::Inbox::Metadata`
+
+- **Entity schemas**: `CommandTower::Schema::Entities::{Domain}::{Name}`
+  - Example: `CommandTower::Schema::Entities::Inbox::MessageEntity`
+
+### Implementation Requirements
+
+1. **When creating a new endpoint**:
+   - Create both `request.rb` and `response.rb` files in the appropriate endpoint folder
+   - Update `lib/command_tower/schema.rb` to require both files
+   - Use the Request schema for error validation in controllers
+   - Use the Response schema for successful responses
+
+2. **Request Schema Guidelines**:
+   - Define all fields that the endpoint accepts
+   - Mark optional fields with `required: false`
+   - Use appropriate types (`String`, `Integer`, `JsonSchematize::Boolean`, etc.)
+   - For GET endpoints, Request schemas can be empty but must still exist
+
+3. **Response Schema Guidelines**:
+   - Reference shared schemas or entity schemas when possible
+   - If the response is just a shared schema, document that in comments
+   - Define endpoint-specific fields if needed
+
+4. **Controller Usage**:
+   - Use Request schemas in `invalid_arguments!` calls for error validation
+   - Use Response schemas (or shared schemas directly) for successful responses via `schema_succesful!`
+
+### Examples
+
+**Creating a new endpoint schema:**
+```ruby
+# lib/command_tower/schema/user/profile/request.rb
+module CommandTower
+  module Schema
+    module User
+      module Profile
+        class Request < JsonSchematize::Generator
+          add_field name: :bio, type: String, required: false
+        end
+      end
+    end
+  end
+end
+
+# lib/command_tower/schema/user/profile/response.rb
+require "command_tower/schema/shared/user"
+
+module CommandTower
+  module Schema
+    module User
+      module Profile
+        class Response < JsonSchematize::Generator
+          # Response uses Shared::User directly in controller
+        end
+      end
+    end
+  end
+end
+```
+
+**Using in controller:**
+```ruby
+def profile
+  result = SomeService.(**params)
+  if result.success?
+    schema = CommandTower::Schema::Shared::User.convert_user_object(user: current_user)
+    schema_succesful!(status: 200, schema:)
+  else
+    invalid_arguments!(
+      status: 400,
+      message: result.msg,
+      argument_object: result.invalid_argument_hash,
+      schema: CommandTower::Schema::User::Profile::Request
+    )
+  end
+end
+```
+
+### Migration Notes
+
+- All existing endpoints have been migrated to this structure
+- Old schema files in `plain_text/`, `inbox/`, etc. have been moved or removed
+- All references have been updated to use the new namespace structure
