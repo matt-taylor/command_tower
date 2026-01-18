@@ -13,7 +13,7 @@ RSpec.describe CommandTower::InboxService::Message::Metadata do
     end
 
     it "sets empty metadata" do
-      expect(call.metadata).to be_a(CommandTower::Schema::Inbox::Metadata)
+      expect(call.metadata).to be_a(CommandTower::Schema::Shared::Inbox::Metadata)
       expect(call.metadata.count).to eq(0)
       expect(call.metadata.entities).to eq([])
     end
@@ -27,7 +27,7 @@ RSpec.describe CommandTower::InboxService::Message::Metadata do
       end
 
       it "sets metadata" do
-        expect(call.metadata).to be_a(CommandTower::Schema::Inbox::Metadata)
+        expect(call.metadata).to be_a(CommandTower::Schema::Shared::Inbox::Metadata)
         expect(call.metadata.count).to eq(count)
       end
 
@@ -39,7 +39,7 @@ RSpec.describe CommandTower::InboxService::Message::Metadata do
         end
 
         it "sets metadata" do
-          expect(call.metadata).to be_a(CommandTower::Schema::Inbox::Metadata)
+          expect(call.metadata).to be_a(CommandTower::Schema::Shared::Inbox::Metadata)
           expect(call.metadata.count).to eq(count)
         end
       end

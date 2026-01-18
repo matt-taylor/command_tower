@@ -13,7 +13,7 @@ RSpec.describe CommandTower::InboxService::Message::Retrieve do
     end
 
     it "sets message" do
-      expect(call.message).to be_a(CommandTower::Schema::Inbox::MessageEntity)
+      expect(call.message).to be_a(CommandTower::Schema::Entities::Inbox::MessageEntity)
 
       expect(call.message.title).to eq(message.title)
       expect(call.message.id).to eq(message.id)

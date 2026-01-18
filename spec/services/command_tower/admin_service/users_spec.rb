@@ -12,7 +12,7 @@ RSpec.describe CommandTower::AdminService::Users do
     end
 
     it "sets metadata" do
-      expect(call.schema).to be_a(CommandTower::Schema::Admin::Users)
+      expect(call.schema).to be_a(CommandTower::Schema::Shared::Admin::Users)
       expect(call.schema.count).to eq(1)
       expect(call.schema.users.length).to eq(1)
     end

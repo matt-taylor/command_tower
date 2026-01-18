@@ -22,7 +22,7 @@ RSpec.describe CommandTower::Inbox::MessageController, type: :controller do
 
     it "returns metadata values" do
       metadata
-      expect(response_body).to include(*CommandTower::Schema::Inbox::Metadata.introspect.keys)
+      expect(response_body).to include(*CommandTower::Schema::Shared::Inbox::Metadata.introspect.keys)
     end
 
     context "with pagination" do
@@ -112,7 +112,7 @@ RSpec.describe CommandTower::Inbox::MessageController, type: :controller do
     it "returns message values" do
       message
 
-      expect(response_body).to include(*CommandTower::Schema::Inbox::MessageEntity.introspect.keys)
+      expect(response_body).to include(*CommandTower::Schema::Entities::Inbox::MessageEntity.introspect.keys)
       expect(response_body["text"]).to eq(record.text)
     end
 
@@ -135,7 +135,7 @@ RSpec.describe CommandTower::Inbox::MessageController, type: :controller do
     it "changes metadata" do
       subject
 
-      expect(response_body).to include(*CommandTower::Schema::Inbox::Modified.introspect.keys)
+      expect(response_body).to include(*CommandTower::Schema::Shared::Inbox::Modified.introspect.keys)
       expect(response_body["count"]).to eq(messages.length)
       expect(response_body["type"]).to eq(modify_type)
       expect(response_body["ids"]).to include(*ids)
@@ -161,7 +161,7 @@ RSpec.describe CommandTower::Inbox::MessageController, type: :controller do
       it "changes metadata" do
         subject
 
-        expect(response_body).to include(*CommandTower::Schema::Inbox::Modified.introspect.keys)
+        expect(response_body).to include(*CommandTower::Schema::Shared::Inbox::Modified.introspect.keys)
         expect(response_body["count"]).to eq(messages.length)
         expect(response_body["type"]).to eq(modify_type)
         expect(response_body["ids"]).to include(*available_ids)

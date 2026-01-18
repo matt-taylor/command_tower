@@ -19,7 +19,7 @@ RSpec.describe CommandTower::UserController, :with_rbac_setup, type: :controller
     it "returns user values" do
       subject
 
-      expect(response_body).to include(*CommandTower::Schema::User.introspect.keys)
+      expect(response_body).to include(*CommandTower::Schema::Shared::User.introspect.keys)
     end
 
     include_examples "Invalid/Missing JWT token on required route"
@@ -58,7 +58,7 @@ RSpec.describe CommandTower::UserController, :with_rbac_setup, type: :controller
       it "returns new user keys" do
         subject
 
-        expect(response_body.keys).to include(*CommandTower::Schema::User.introspect.keys)
+        expect(response_body.keys).to include(*CommandTower::Schema::Shared::User.introspect.keys)
       end
 
       it "has correct key change" do
@@ -121,7 +121,7 @@ RSpec.describe CommandTower::UserController, :with_rbac_setup, type: :controller
       it "returns new user keys" do
         subject
 
-        expect(response_body.keys).to include(*CommandTower::Schema::User.introspect.keys)
+        expect(response_body.keys).to include(*CommandTower::Schema::Shared::User.introspect.keys)
       end
     end
 

@@ -56,7 +56,7 @@ RSpec.describe CommandTower::AdminController, :with_rbac_setup, type: :controlle
     it "returns user array" do
       subject
 
-      expect(response_body["users"]).to all(include(*CommandTower::Schema::User.introspect.keys))
+      expect(response_body["users"]).to all(include(*CommandTower::Schema::Shared::User.introspect.keys))
     end
 
     context "with pagination" do
@@ -162,7 +162,7 @@ RSpec.describe CommandTower::AdminController, :with_rbac_setup, type: :controlle
       it "returns new user keys" do
         subject
 
-        expect(response_body.keys).to include(*CommandTower::Schema::User.introspect.keys)
+        expect(response_body.keys).to include(*CommandTower::Schema::Shared::User.introspect.keys)
       end
 
       it "has correct key change" do
@@ -234,7 +234,7 @@ RSpec.describe CommandTower::AdminController, :with_rbac_setup, type: :controlle
       it "returns new user keys" do
         subject
 
-        expect(response_body.keys).to include(*CommandTower::Schema::User.introspect.keys)
+        expect(response_body.keys).to include(*CommandTower::Schema::Shared::User.introspect.keys)
       end
 
       include_examples "with invalid user to modify"

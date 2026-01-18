@@ -9,7 +9,7 @@ RSpec.describe CommandTower::InboxService::Blast::Metadata do
     end
 
     it "sets metadata_blast" do
-      expect(call.metadata).to be_a(CommandTower::Schema::Inbox::MessageBlastMetadata)
+      expect(call.metadata).to be_a(CommandTower::Schema::Shared::Inbox::MessageBlastMetadata)
       expect(call.metadata.count).to eq(0)
     end
 
@@ -21,8 +21,8 @@ RSpec.describe CommandTower::InboxService::Blast::Metadata do
       end
 
       it "sets metadata_blast" do
-        expect(call.metadata).to be_a(CommandTower::Schema::Inbox::MessageBlastMetadata)
-        expect(call.metadata.entities).to all(be_a(CommandTower::Schema::Inbox::MessageBlastEntity))
+        expect(call.metadata).to be_a(CommandTower::Schema::Shared::Inbox::MessageBlastMetadata)
+        expect(call.metadata.entities).to all(be_a(CommandTower::Schema::Entities::Inbox::MessageBlastEntity))
         expect(call.metadata.count).to eq(5)
       end
     end

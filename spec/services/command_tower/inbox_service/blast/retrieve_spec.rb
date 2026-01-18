@@ -13,7 +13,7 @@ RSpec.describe CommandTower::InboxService::Blast::Retrieve do
     end
 
     it "returns message_blast" do
-      expect(call.message_blast).to be_a(CommandTower::Schema::Inbox::MessageBlastEntity)
+      expect(call.message_blast).to be_a(CommandTower::Schema::Entities::Inbox::MessageBlastEntity)
     end
 
     it "returns correct content" do

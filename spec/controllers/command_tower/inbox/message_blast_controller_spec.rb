@@ -17,7 +17,7 @@ RSpec.describe CommandTower::Inbox::MessageBlastController, :with_rbac_setup, ty
 
     it "returns metadata values" do
       metadata
-      expect(response_body).to include(*CommandTower::Schema::Inbox::MessageBlastMetadata.introspect.keys)
+      expect(response_body).to include(*CommandTower::Schema::Shared::Inbox::MessageBlastMetadata.introspect.keys)
     end
 
     context "with auth* failures" do
@@ -43,7 +43,7 @@ RSpec.describe CommandTower::Inbox::MessageBlastController, :with_rbac_setup, ty
     it "returns entity values" do
       blast
 
-      expect(response_body).to include(*CommandTower::Schema::Inbox::MessageBlastEntity.introspect.keys)
+      expect(response_body).to include(*CommandTower::Schema::Entities::Inbox::MessageBlastEntity.introspect.keys)
       expect(response_body["text"]).to eq(message_blast.text)
     end
 
@@ -91,7 +91,7 @@ RSpec.describe CommandTower::Inbox::MessageBlastController, :with_rbac_setup, ty
     it "returns blast" do
       create_post
 
-      expect(response_body).to include(*CommandTower::Schema::Inbox::BlastResponse.introspect.keys)
+      expect(response_body).to include(*CommandTower::Schema::Inbox::Blast::Create::Response.introspect.keys)
       expect(response_body["text"]).to eq(text)
     end
 
@@ -140,7 +140,7 @@ RSpec.describe CommandTower::Inbox::MessageBlastController, :with_rbac_setup, ty
     it "returns blast" do
       modify
 
-      expect(response_body).to include(*CommandTower::Schema::Inbox::BlastResponse.introspect.keys)
+      expect(response_body).to include(*CommandTower::Schema::Inbox::Blast::Create::Response.introspect.keys)
     end
 
     it "modifies existing blast" do
@@ -184,4 +184,3 @@ RSpec.describe CommandTower::Inbox::MessageBlastController, :with_rbac_setup, ty
     end
   end
 end
-

@@ -40,7 +40,7 @@ RSpec.describe CommandTower::InboxService::Blast::Upsert do
       end
 
       it "sets blast context" do
-        expect(call.blast).to be_a(CommandTower::Schema::Inbox::BlastResponse)
+        expect(call.blast).to be_a(CommandTower::Schema::Inbox::Blast::Create::Response)
       end
 
       context "without existing_users" do
@@ -59,7 +59,7 @@ RSpec.describe CommandTower::InboxService::Blast::Upsert do
         end
 
         it "sets blast context" do
-          expect(call.blast).to be_a(CommandTower::Schema::Inbox::BlastResponse)
+          expect(call.blast).to be_a(CommandTower::Schema::Inbox::Blast::Create::Response)
         end
       end
     end
@@ -80,7 +80,7 @@ RSpec.describe CommandTower::InboxService::Blast::Upsert do
       end
 
       it "sets blast context" do
-        expect(call.blast).to be_a(CommandTower::Schema::Inbox::BlastResponse)
+        expect(call.blast).to be_a(CommandTower::Schema::Inbox::Blast::Create::Response)
       end
 
       context "without existing_users" do
@@ -99,7 +99,7 @@ RSpec.describe CommandTower::InboxService::Blast::Upsert do
         end
 
         it "sets blast context" do
-          expect(call.blast).to be_a(CommandTower::Schema::Inbox::BlastResponse)
+          expect(call.blast).to be_a(CommandTower::Schema::Inbox::Blast::Create::Response)
         end
       end
     end

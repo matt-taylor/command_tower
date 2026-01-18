@@ -15,7 +15,7 @@ RSpec.describe CommandTower::InboxService::Message::Modify do
       end
 
       it "returns modified" do
-        expect(call.modified).to be_a(CommandTower::Schema::Inbox::Modified)
+        expect(call.modified).to be_a(CommandTower::Schema::Shared::Inbox::Modified)
         expect(call.modified.type).to eq(type)
         expect(call.modified.ids).to include(*ids)
         expect(call.modified.count).to eq(count)
@@ -38,7 +38,7 @@ RSpec.describe CommandTower::InboxService::Message::Modify do
         end
 
         it "returns modified" do
-          expect(call.modified).to be_a(CommandTower::Schema::Inbox::Modified)
+          expect(call.modified).to be_a(CommandTower::Schema::Shared::Inbox::Modified)
           expect(call.modified.type).to eq(type)
           expect(call.modified.ids).to include(*ids.reject { _1 == additional_id })
           expect(call.modified.count).to eq(count)
