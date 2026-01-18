@@ -10,10 +10,10 @@ module CommandTower
       def login_post
         result = CommandTower::LoginStrategy::PlainText::Login.(**login_params)
         if result.success?
-          schema = CommandTower::Schema::PlainText::LoginResponse.new(
+          schema = CommandTower::Schema::Auth::PlainText::Login::Response.new(
             token: result.token,
             header_name: AUTHENTICATION_HEADER,
-            user: CommandTower::Schema::User.convert_user_object(user: result.user),
+            user: CommandTower::Schema::Shared::User.convert_user_object(user: result.user),
             message: "Successfully logged user in"
           )
           status = 201
@@ -24,11 +24,34 @@ module CommandTower
               status: 401,
               message: result.msg,
               argument_object: result.invalid_argument_hash,
-              schema: CommandTower::Schema::PlainText::LoginRequest
+              schema: CommandTower::Schema::Auth::PlainText::Login::Request
             )
           else
             json_result = { msg: result.msg }
             status = 400
+            render(json: schema.to_h, status:)
+          end
+        end
+      end
+
+      # GET /auth/login/identifier/valid
+      # Checks if a login identifier is valid
+      def login_identifier_valid_get
+        result = CommandTower::LoginStrategy::PlainText::ValidIdentifier.(login_key: params[:identifier])
+        if result.success?
+          schema = CommandTower::Schema::Auth::PlainText::LoginIdentifierValid::Response.new(valid: true)
+          status = 200
+          schema_succesful!(status:, schema:)
+        else
+          if result.invalid_arguments
+            invalid_arguments!(
+              status: 400,
+              message: result.msg,
+              argument_object: result.invalid_argument_hash,
+              schema: CommandTower::Schema::Auth::PlainText::LoginIdentifierValid::Request
+            )
+          else
+            schema = CommandTower::Schema::Error::Base.new(status: 400, message: result.msg)
             render(json: schema.to_h, status:)
           end
         end
@@ -39,7 +62,7 @@ module CommandTower
       def create_post
         result = CommandTower::LoginStrategy::PlainText::Create.(**create_params)
         if result.success?
-          schema = CommandTower::Schema::PlainText::CreateUserResponse.new(
+          schema = CommandTower::Schema::Auth::PlainText::CreateUser::Response.new(
             full_name: result.user.full_name,
             first_name: result.first_name,
             last_name: result.last_name,
@@ -55,7 +78,7 @@ module CommandTower
               status: 400,
               message: result.msg,
               argument_object: result.invalid_argument_hash,
-              schema: CommandTower::Schema::PlainText::CreateUserRequest
+              schema: CommandTower::Schema::Auth::PlainText::CreateUser::Request
             )
           end
         end
@@ -65,13 +88,13 @@ module CommandTower
       # Verifies a logged in users email verification code when enabled
       def email_verify_post
         if current_user.email_validated
-          schema = CommandTower::Schema::PlainText::EmailVerifyResponse.new(message: "Email is already verified.")
+          schema = CommandTower::Schema::Auth::PlainText::EmailVerify::Response.new(message: "Email is already verified.")
           status = 200
           schema_succesful!(status:, schema:)
         else
           result = CommandTower::LoginStrategy::PlainText::EmailVerification::Verify.(user: current_user, code: params[:code])
           if result.success?
-            schema = CommandTower::Schema::PlainText::EmailVerifyResponse.new(message: "Successfully verified email")
+            schema = CommandTower::Schema::Auth::PlainText::EmailVerify::Response.new(message: "Successfully verified email")
             status = 201
             schema_succesful!(status:, schema:)
           else
@@ -80,7 +103,7 @@ module CommandTower
                 status: result.status || 403,
                 message: result.msg,
                 argument_object: result.invalid_argument_hash,
-                schema: CommandTower::Schema::PlainText::EmailVerifyRequest
+                schema: CommandTower::Schema::Auth::PlainText::EmailVerify::Request
               )
             end
           end
@@ -91,13 +114,13 @@ module CommandTower
       # Sends a logged in users email verification code
       def email_verify_resend_post
         if current_user.email_validated
-          schema = CommandTower::Schema::PlainText::EmailVerifyResponse.new(message: "Email is already verified. No code required")
+          schema = CommandTower::Schema::Auth::PlainText::EmailVerify::SendResponse.new(message: "Email is already verified. No code required")
           status = 200
           schema_succesful!(status:, schema:)
         else
           result = CommandTower::LoginStrategy::PlainText::EmailVerification::Send.(user: current_user)
           if result.success?
-            schema = CommandTower::Schema::PlainText::EmailVerifyResponse.new(message: "Successfully sent Email verification code")
+            schema = CommandTower::Schema::Auth::PlainText::EmailVerify::SendResponse.new(message: "Successfully sent Email verification code")
             status = 201
             schema_succesful!(status:, schema:)
           else

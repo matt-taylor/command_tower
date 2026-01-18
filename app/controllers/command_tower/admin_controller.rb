@@ -23,7 +23,7 @@ module CommandTower
     def modify
       result = CommandTower::UserAttributes::Modify.(user:, admin_user:, **modify_params)
       if result.success?
-        schema = CommandTower::Schema::User.convert_user_object(user: user.reload)
+        schema = CommandTower::Schema::Shared::User.convert_user_object(user: user.reload)
         status = 201
         schema_succesful!(status:, schema:)
       else
@@ -32,7 +32,7 @@ module CommandTower
             status: 400,
             message: result.msg,
             argument_object: result.invalid_argument_hash,
-            schema: CommandTower::Schema::PlainText::LoginRequest
+            schema: CommandTower::Schema::Admin::Modify::Request
           )
         else
           server_error!(result:)
@@ -44,7 +44,7 @@ module CommandTower
     def modify_role
       result = CommandTower::UserAttributes::Roles.(user:, admin_user:, roles: params[:roles] || [])
       if result.success?
-        schema = CommandTower::Schema::User.convert_user_object(user: user.reload)
+        schema = CommandTower::Schema::Shared::User.convert_user_object(user: user.reload)
         status = 201
         schema_succesful!(status:, schema:)
       else
@@ -53,7 +53,7 @@ module CommandTower
             status: 400,
             message: result.msg,
             argument_object: result.invalid_argument_hash,
-            schema: CommandTower::Schema::PlainText::LoginRequest
+            schema: CommandTower::Schema::Admin::Modify::Request
           )
         else
           server_error!(result:)

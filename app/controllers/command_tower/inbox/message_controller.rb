@@ -21,7 +21,7 @@ module CommandTower
             status: 400,
             message: result.msg,
             argument_object: result.invalid_argument_hash,
-            schema: CommandTower::Schema::PlainText::LoginRequest
+            schema: CommandTower::Schema::Inbox::Messages::Metadata::Request
           )
         end
       end
@@ -38,7 +38,7 @@ module CommandTower
             status: 400,
             message: result.msg,
             argument_object: result.invalid_argument_hash,
-            schema: CommandTower::Schema::PlainText::LoginRequest
+            schema: CommandTower::Schema::Inbox::Messages::Message::Request
           )
         end
       end
@@ -72,7 +72,7 @@ module CommandTower
             status: 400,
             message: result.msg,
             argument_object: result.invalid_argument_hash,
-            schema: CommandTower::Schema::PlainText::LoginRequest
+            schema: CommandTower::Schema::Inbox::Messages::Ack::Request
           )
         end
       end

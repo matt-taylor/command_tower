@@ -26,7 +26,7 @@ module CommandTower
             status: 400,
             message: result.msg,
             argument_object: result.invalid_argument_hash,
-            schema: CommandTower::Schema::PlainText::LoginRequest,
+            schema: CommandTower::Schema::Inbox::Blast::Show::Request,
           )
         end
       end
@@ -53,7 +53,7 @@ module CommandTower
             status: 400,
             message: result.msg,
             argument_object: result.invalid_argument_hash,
-            schema: CommandTower::Schema::PlainText::LoginRequest,
+            schema: CommandTower::Schema::Inbox::Blast::Delete::Request,
           )
         end
       end
@@ -76,11 +76,12 @@ module CommandTower
           status = 200
           schema_succesful!(status:, schema:)
         else
+          request_schema = id ? CommandTower::Schema::Inbox::Blast::Modify::Request : CommandTower::Schema::Inbox::Blast::Create::Request
           invalid_arguments!(
             status: 400,
             message: result.msg,
             argument_object: result.invalid_argument_hash,
-            schema: CommandTower::Schema::Inbox::BlastRequest
+            schema: request_schema
           )
         end
       end

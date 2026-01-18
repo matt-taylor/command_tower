@@ -7,14 +7,14 @@ module CommandTower
     before_action :authenticate_user!
 
     def show
-      schema = CommandTower::Schema::User.convert_user_object(user: current_user)
+      schema = CommandTower::Schema::Shared::User.convert_user_object(user: current_user)
       schema_succesful!(status: 200, schema:)
     end
 
     def modify
       result = CommandTower::UserAttributes::Modify.(user: current_user, **modify_params)
       if result.success?
-        schema = CommandTower::Schema::User.convert_user_object(user: current_user.reload)
+        schema = CommandTower::Schema::Shared::User.convert_user_object(user: current_user.reload)
         status = 201
         schema_succesful!(status:, schema:)
       else
@@ -23,7 +23,7 @@ module CommandTower
             status: 400,
             message: result.msg,
             argument_object: result.invalid_argument_hash,
-            schema: CommandTower::Schema::PlainText::LoginRequest
+            schema: CommandTower::Schema::User::Modify::Request
           )
         else
           status = 500

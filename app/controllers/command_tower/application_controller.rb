@@ -2,9 +2,9 @@
 
 module CommandTower
   class ApplicationController < ActionController::API
-    AUTHENTICATION_HEADER = "Authentication"
-    AUTHENTICATION_EXPIRE_HEADER = "X-Authentication-Expire"
-    AUTHENTICATION_WITH_RESET = "X-Authentication-Reset"
+    AUTHENTICATION_HEADER = "Authorization"
+    AUTHENTICATION_EXPIRE_HEADER = "X-Authorization-Expire"
+    AUTHENTICATION_WITH_RESET = "X-Authorization-Reset"
 
     def safe_boolean(value:)
       return nil unless [true, false, "true", "false", "0", "1", 0, 1].include?(value)
@@ -14,7 +14,7 @@ module CommandTower
 
     ###
     # Authenticate user via the passed in header
-    # AUTHENTICATION_HEADER="Bearer: {token value}"
+    # AUTHENTICATION_HEADER="Bearer {token value}"
     def authenticate_user!(bypass_email_validation: false)
       raw_token = request.headers[AUTHENTICATION_HEADER]
       if raw_token.nil?
@@ -24,7 +24,7 @@ module CommandTower
         return false
       end
 
-      token = raw_token.split("Bearer:")[1].strip
+      token = raw_token.split("Bearer ")[1].strip
       with_reset = safe_boolean(value: request.headers[AUTHENTICATION_WITH_RESET])
       result = CommandTower::Jwt::AuthenticateUser.(token:, bypass_email_validation:, with_reset:)
       if result.success?
