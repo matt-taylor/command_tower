@@ -8,7 +8,7 @@ module CommandTower
         token = result.token
       end
 
-      @request.headers[CommandTower::ApplicationController::AUTHENTICATION_HEADER] = "Bearer: #{token}"
+      @request.headers[CommandTower::ApplicationController::AUTHENTICATION_HEADER] = "Bearer #{token}"
       @request.headers[CommandTower::ApplicationController::AUTHENTICATION_WITH_RESET] = "true" if with_reset
     end
 

@@ -12,16 +12,17 @@ module CommandTower
           :email,
           :first_name,
           :last_name,
-          :last_known_timezone,
           :username,
           :verifier_token,
         ]
 
         ATTRIBUTES_TO_SHOW = [
           *ATTRIBUTES_TO_CHANGE,
-          :id,
-          :roles,
           :created_at,
+          :email_validated,
+          :id,
+          :last_known_timezone,
+          :roles,
         ]
 
         ATTRIBUTES_CHANGE_EXECUTE = Proc.new do |key, value|
@@ -29,7 +30,7 @@ module CommandTower
         end
 
         ATTRIBUTES_SHOWN_EXECUTE = Proc.new do |key, value|
-          CommandTower::Schema::User.assign!
+          CommandTower::Schema::Shared::User.assign!
         end
 
         add_composer :additional_attributes_for_change,

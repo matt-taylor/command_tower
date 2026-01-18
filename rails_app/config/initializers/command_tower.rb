@@ -41,11 +41,11 @@ CommandTower.configure do |config|
     # Enable and change Lockable for User/Password Login strategy.
     # When using the block, the enable flag will automatically get set to true
     # plain_text_config.with_lockable do |lockable_config|
-      # Disabled by default. When enabled, this adds an additional level of support for brute force attacks on User/Password Logins: [FalseClass, TrueClass]
-      # lockable_config.enable = false
+    #   Disabled by default. When enabled, this adds an additional level of support for brute force attacks on User/Password Logins: [FalseClass, TrueClass]
+    #   lockable_config.enable = false
 
-      # Max failed password attempts before additional verification on account is required.: [Integer]
-      # lockable_config.password_attempts = 10
+    #   Max failed password attempts before additional verification on account is required.: [Integer]
+    #   lockable_config.password_attempts = 10
     # end
 
     # ### Block to configure Email Verify ###
