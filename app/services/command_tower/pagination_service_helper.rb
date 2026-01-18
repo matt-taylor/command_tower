@@ -22,11 +22,11 @@ module CommandTower
         cursor: pagination_params[:offset],
       }
       query = base_params.to_query
-      current = CommandTower::Schema::Page.new(query:, **base_params)
+      current = CommandTower::Schema::Shared::Page.new(query:, **base_params)
 
       base_params[:cursor] += pagination_params[:limit]
       query = base_params.to_query
-      next_page = CommandTower::Schema::Page.new(query:, **base_params)
+      next_page = CommandTower::Schema::Shared::Page.new(query:, **base_params)
 
       count_available = default_query.size
       total_pages = count_available / pagination_params[:limit]
@@ -41,7 +41,7 @@ module CommandTower
       # Ensure we cannot go negative when no elements are returned
       remaining_pages = [total_pages - current_page, 0].max
 
-      CommandTower::Schema::Pagination.new(
+      CommandTower::Schema::Shared::Pagination.new(
         count_available:,
         total_pages:,
         current_page:,

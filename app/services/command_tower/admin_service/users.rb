@@ -11,8 +11,8 @@ module CommandTower
       validate :user, is_a: User, required: true
 
       def call
-        schemafied_users = query.map { CommandTower::Schema::User.convert_user_object(user: _1) }
-        context.schema = CommandTower::Schema::Admin::Users.new(
+        schemafied_users = query.map { CommandTower::Schema::Shared::User.convert_user_object(user: _1) }
+        context.schema = CommandTower::Schema::Shared::Admin::Users.new(
           users: schemafied_users,
           count: schemafied_users.count,
           pagination: pagination_schema,

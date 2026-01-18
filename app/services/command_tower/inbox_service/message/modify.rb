@@ -27,7 +27,7 @@ module CommandTower
             modified_ids = messages.destroy_all.pluck(:id)
           end
 
-          context.modified = CommandTower::Schema::Inbox::Modified.new(
+          context.modified = CommandTower::Schema::Shared::Inbox::Modified.new(
             ids: modified_ids,
             type:,
             count: modified_ids.length,
@@ -37,8 +37,3 @@ module CommandTower
     end
   end
 end
-
-
-
-
-

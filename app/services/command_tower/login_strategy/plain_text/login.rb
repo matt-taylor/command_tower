@@ -11,11 +11,18 @@ module CommandTower::LoginStrategy::PlainText
     validate :password, is_a: String, required: true, sensitive: true
 
     def call
-      if user.nil?
-        log_warn("Login attempted with [#{login_key_key}] => [#{login_key}]. Resource not found")
-        credential_mismatch!
-      end
+     identifier_validity = ValidIdentifier.(login_key_key:, login_key:)
+     if identifier_validity.failure?
+       msg = "Unauthorized Access. Incorrect Credentials"
+       invalid_argument_hash = identifier_validity.invalid_argument_hash.dup
+       invalid_argument_hash[login_key_key] = { msg: }
+       invalid_argument_hash[:password] = { msg: }
+       invalid_argument_keys = [login_key_key, :password]
+       context.fail!(msg:, invalid_argument_hash:, invalid_argument_keys:, invalid_arguments: true)
+       return
+     end
 
+      user = identifier_validity.user
       if user.authenticate(password)
         user.successful_login += 1
         user.password_consecutive_fail = 0

@@ -18,7 +18,7 @@ module CommandTower
 
           message.update!(viewed: true)
 
-          context.message = CommandTower::Schema::Inbox::MessageEntity.new(
+          context.message = CommandTower::Schema::Entities::Inbox::MessageEntity.new(
             title: message.title,
             id: message.id,
             text: message.text,
@@ -29,8 +29,3 @@ module CommandTower
     end
   end
 end
-
-
-
-
-

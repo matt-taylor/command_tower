@@ -12,7 +12,7 @@ module CommandTower
 
         def call
           entities = query.map do |message|
-            CommandTower::Schema::Inbox::MessageEntity.new(
+            CommandTower::Schema::Entities::Inbox::MessageEntity.new(
               id: message.id,
               title: message.title,
               viewed: message.viewed,
@@ -24,7 +24,7 @@ module CommandTower
             entities: entities.nil? ? nil : entities,
             pagination: pagination_schema,
           }.compact
-          context.metadata = CommandTower::Schema::Inbox::Metadata.new(**params)
+          context.metadata = CommandTower::Schema::Shared::Inbox::Metadata.new(**params)
         end
 
         def default_query
@@ -34,8 +34,3 @@ module CommandTower
     end
   end
 end
-
-
-
-
-

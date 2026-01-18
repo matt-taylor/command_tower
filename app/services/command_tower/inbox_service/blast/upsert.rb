@@ -27,13 +27,13 @@ module CommandTower
           blast_messages!(message_blast: ar)
 
           context.message_blast = ar
-          context.blast = CommandTower::Schema::Inbox::BlastResponse.new(
+          context.blast = CommandTower::Schema::Inbox::Blast::Create::Response.new(
             existing_users:,
             new_users:,
             text:,
             title:,
             id: ar.id,
-            created_by: CommandTower::Schema::User.convert_user_object(user:)
+            created_by: CommandTower::Schema::Shared::User.convert_user_object(user:)
           )
         end
 

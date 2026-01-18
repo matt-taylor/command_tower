@@ -15,8 +15,8 @@ module CommandTower
             inline_argument_failure!(errors: { id: "MessageBlast ID not found" })
           end
 
-          context.message_blast = CommandTower::Schema::Inbox::MessageBlastEntity.new(
-            created_by: CommandTower::Schema::User.convert_user_object(user: message_blast.user),
+          context.message_blast = CommandTower::Schema::Entities::Inbox::MessageBlastEntity.new(
+            created_by: CommandTower::Schema::Shared::User.convert_user_object(user: message_blast.user),
             title: message_blast.title,
             text: message_blast.text,
             id: message_blast.id,

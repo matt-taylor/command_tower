@@ -6,7 +6,7 @@ module CommandTower
       class Metadata  < CommandTower::ServiceBase
         def call
           entities = ::MessageBlast.all.select(:id, :title, :existing_users, :new_users).map do |mb|
-            CommandTower::Schema::Inbox::MessageBlastEntity.new(
+            CommandTower::Schema::Entities::Inbox::MessageBlastEntity.new(
               title: mb.title,
               id: mb.id,
               existing_users: mb.existing_users,
@@ -15,7 +15,7 @@ module CommandTower
           end
 
 
-          context.metadata = CommandTower::Schema::Inbox::MessageBlastMetadata.new(
+          context.metadata = CommandTower::Schema::Shared::Inbox::MessageBlastMetadata.new(
             entities: entities,
             count: entities.length,
           )
