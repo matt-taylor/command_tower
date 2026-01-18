@@ -53,7 +53,7 @@ module CommandTower
             status: 400,
             message: result.msg,
             argument_object: result.invalid_argument_hash,
-            schema: CommandTower::Schema::Admin::Modify::Request
+            schema: CommandTower::Schema::Admin::ModifyRole::Request
           )
         else
           server_error!(result:)

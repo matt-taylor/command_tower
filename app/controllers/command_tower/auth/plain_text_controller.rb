@@ -37,9 +37,18 @@ module CommandTower
       # GET /auth/login/identifier/valid
       # Checks if a login identifier is valid
       def login_identifier_valid_get
-        result = CommandTower::LoginStrategy::PlainText::ValidIdentifier.(login_key: params[:identifier])
+        identifier = params[:identifier]
+        login_key_key = identifier&.include?("@") ? :email : :username
+        result = CommandTower::LoginStrategy::PlainText::ValidIdentifier.(
+          login_key_key: login_key_key,
+          login_key: identifier
+        )
         if result.success?
-          schema = CommandTower::Schema::Auth::PlainText::LoginIdentifierValid::Response.new(valid: true)
+          schema = CommandTower::Schema::Auth::PlainText::LoginIdentifierValid::Response.new(
+            valid: true,
+            message: "Login identifier is valid",
+            user: CommandTower::Schema::Shared::User.convert_user_object(user: result.user)
+          )
           status = 200
           schema_succesful!(status:, schema:)
         else
@@ -51,7 +60,8 @@ module CommandTower
               schema: CommandTower::Schema::Auth::PlainText::LoginIdentifierValid::Request
             )
           else
-            schema = CommandTower::Schema::Error::Base.new(status: 400, message: result.msg)
+            status = 400
+            schema = CommandTower::Schema::Error::Base.new(status:, message: result.msg)
             render(json: schema.to_h, status:)
           end
         end

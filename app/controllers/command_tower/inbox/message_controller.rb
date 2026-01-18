@@ -68,11 +68,19 @@ module CommandTower
           status = 200
           schema_succesful!(status:, schema:)
         else
+          error_schema = case type
+                         when CommandTower::InboxService::Message::Modify::VIEWED
+                           CommandTower::Schema::Inbox::Messages::Ack::Request
+                         when CommandTower::InboxService::Message::Modify::DELETE
+                           CommandTower::Schema::Inbox::Messages::Delete::Request
+                         else
+                           CommandTower::Schema::Inbox::Messages::Ack::Request
+                         end
           invalid_arguments!(
             status: 400,
             message: result.msg,
             argument_object: result.invalid_argument_hash,
-            schema: CommandTower::Schema::Inbox::Messages::Ack::Request
+            schema: error_schema
           )
         end
       end

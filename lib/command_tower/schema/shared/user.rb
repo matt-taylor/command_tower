@@ -22,13 +22,7 @@ module CommandTower
             if metadata = ::User.attribute_to_type_mapping[attribute]
               type = metadata[:serialized_type] ? metadata[:serialized_type] : metadata[:base]
               type = JsonSchematize::Boolean if type == "Boolean"
-              begin
               add_field(name: attribute, type:)
-
-              rescue StandardError => e
-                binding.pry
-                raise
-              end
             end
           end
         end

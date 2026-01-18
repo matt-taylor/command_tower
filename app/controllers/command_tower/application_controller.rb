@@ -24,7 +24,15 @@ module CommandTower
         return false
       end
 
-      token = raw_token.split("Bearer ")[1].strip
+      token_parts = raw_token.split("Bearer ")
+      if token_parts.length < 2 || token_parts[1].nil? || token_parts[1].strip.empty?
+        status = 401
+        schema = CommandTower::Schema::Error::Base.new(status:, message: "Invalid Bearer token format")
+        render(json: schema.to_h, status:)
+        return false
+      end
+
+      token = token_parts[1].strip
       with_reset = safe_boolean(value: request.headers[AUTHENTICATION_WITH_RESET])
       result = CommandTower::Jwt::AuthenticateUser.(token:, bypass_email_validation:, with_reset:)
       if result.success?
