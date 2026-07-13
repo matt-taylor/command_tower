@@ -3,6 +3,8 @@ require "command_tower/error"
 require "command_tower/version"
 require "command_tower/engine"
 require "command_tower/configuration/config"
+require "command_tower/jwt/authorization_helper"
+require "command_tower/jwt/csrf_helper"
 
 module CommandTower
   def self.config

@@ -35,16 +35,16 @@ RSpec.describe CommandTower::Auth::PlainTextController, type: :controller do
     expect(response.status).to eq(401)
 
     ####
-    # Sign in via username and validate token
-    post(:login_post, params: { username: fake_user.username, password: })
+    # Sign in via username (using identifier) and validate token
+    post(:login_post, params: { identifier: fake_user.username, password: })
     expect(response.status).to eq(201)
     login_post_response = JSON.parse(response.body)
     login_post_jwt_username = CommandTower::Jwt::AuthenticateUser.(token: login_post_response["token"], bypass_email_validation: true)
     expect(login_post_jwt_username.success?).to be(true)
 
     ####
-    # Sign in via email and validate token
-    post(:login_post, params: { email: fake_user.email, password: })
+    # Sign in via email (using identifier) and validate token
+    post(:login_post, params: { identifier: fake_user.email, password: })
     expect(response.status).to eq(201)
     login_post_response = JSON.parse(response.body)
     login_post_jwt_email = CommandTower::Jwt::AuthenticateUser.(token: login_post_response["token"], bypass_email_validation: true)

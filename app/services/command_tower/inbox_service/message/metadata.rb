@@ -16,6 +16,7 @@ module CommandTower
               id: message.id,
               title: message.title,
               viewed: message.viewed,
+              created_at: message.created_at.iso8601,
             )
           end
 
@@ -28,7 +29,7 @@ module CommandTower
         end
 
         def default_query
-          ::Message.where(user:).select(:id, :title, :viewed)
+          ::Message.where(user:).select(:id, :title, :viewed, :created_at)
         end
       end
     end

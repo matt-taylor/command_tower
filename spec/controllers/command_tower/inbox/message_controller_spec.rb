@@ -25,6 +25,18 @@ RSpec.describe CommandTower::Inbox::MessageController, type: :controller do
       expect(response_body).to include(*CommandTower::Schema::Shared::Inbox::Metadata.introspect.keys)
     end
 
+    it "includes created_at in entities" do
+      metadata
+      entities = response_body["entities"]
+      expect(entities).to be_present
+      entities.each do |entity|
+        expect(entity).to have_key("created_at")
+        expect(entity["created_at"]).to be_a(String)
+        # Verify it's a valid ISO 8601 date string
+        expect { Time.iso8601(entity["created_at"]) }.not_to raise_error
+      end
+    end
+
     context "with pagination" do
       let(:pagination_object) { { page:, limit:, cursor: }.compact }
       let(:page) { nil }
@@ -114,6 +126,11 @@ RSpec.describe CommandTower::Inbox::MessageController, type: :controller do
 
       expect(response_body).to include(*CommandTower::Schema::Entities::Inbox::MessageEntity.introspect.keys)
       expect(response_body["text"]).to eq(record.text)
+      expect(response_body).to have_key("created_at")
+      expect(response_body["created_at"]).to be_a(String)
+      expect(response_body["created_at"]).to eq(record.created_at.iso8601)
+      # Verify it's a valid ISO 8601 date string
+      expect { Time.iso8601(response_body["created_at"]) }.not_to raise_error
     end
 
     context "with incorrect ID" do

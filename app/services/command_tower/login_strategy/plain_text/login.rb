@@ -4,25 +4,18 @@ module CommandTower::LoginStrategy::PlainText
   class Login < CommandTower::ServiceBase
     on_argument_validation :fail_early
 
-    one_of(:login_key, required: true) do
-      validate :username, is_a: String, sensitive: true
-      validate :email, is_a: String, sensitive: true
-    end
+    validate :identifier, is_a: String, required: true, sensitive: true
     validate :password, is_a: String, required: true, sensitive: true
 
     def call
-     identifier_validity = ValidIdentifier.(login_key_key:, login_key:)
-     if identifier_validity.failure?
-       msg = "Unauthorized Access. Incorrect Credentials"
-       invalid_argument_hash = identifier_validity.invalid_argument_hash.dup
-       invalid_argument_hash[login_key_key] = { msg: }
-       invalid_argument_hash[:password] = { msg: }
-       invalid_argument_keys = [login_key_key, :password]
-       context.fail!(msg:, invalid_argument_hash:, invalid_argument_keys:, invalid_arguments: true)
-       return
-     end
+      if user.nil?
+        msg = "Unauthorized Access. Incorrect Credentials"
+        invalid_argument_hash = { identifier: { msg: }, password: { msg: } }
+        invalid_argument_keys = [:identifier, :password]
+        context.fail!(msg:, invalid_argument_hash:, invalid_argument_keys:, invalid_arguments: true)
+        return
+      end
 
-      user = identifier_validity.user
       if user.authenticate(password)
         user.successful_login += 1
         user.password_consecutive_fail = 0
@@ -30,7 +23,7 @@ module CommandTower::LoginStrategy::PlainText
       else
         user.password_consecutive_fail += 1
         user.save
-        log_warn("Valid #{login_key_key}. Incorrect password. Consecutive Password failures: #{user.password_consecutive_fail}")
+        log_warn("Valid identifier. Incorrect password. Consecutive Password failures: #{user.password_consecutive_fail}")
         credential_mismatch!
       end
 
@@ -47,11 +40,11 @@ module CommandTower::LoginStrategy::PlainText
 
     def credential_mismatch!
       msg = "Unauthorized Access. Incorrect Credentials"
-      inline_argument_failure!(errors: { login_key_key => msg, password: msg })
+      inline_argument_failure!(errors: { identifier: msg, password: msg })
     end
 
     def user
-      @user ||= User.where(login_key_key => login_key).first
+      @user ||= User.where(username: identifier).or(User.where(email: identifier)).first
     end
   end
 end

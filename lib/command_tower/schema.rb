@@ -7,6 +7,7 @@ module CommandTower
 
     ## Generic Error Schemas
     require "command_tower/schema/error/base"
+    require "command_tower/schema/error/email_validation_required"
     require "command_tower/schema/error/invalid_argument_response"
 
     ## Auth Controller
@@ -20,6 +21,17 @@ module CommandTower
     require "command_tower/schema/auth/plain_text/email_verify/response"
     require "command_tower/schema/auth/plain_text/email_verify/send_request"
     require "command_tower/schema/auth/plain_text/email_verify/send_response"
+    require "command_tower/schema/auth/plain_text/password_forgot"
+    require "command_tower/schema/auth/plain_text/password_forgot/send/request"
+    require "command_tower/schema/auth/plain_text/password_forgot/send/response"
+    require "command_tower/schema/auth/plain_text/password_forgot/validate/request"
+    require "command_tower/schema/auth/plain_text/password_forgot/validate/response"
+    require "command_tower/schema/auth/plain_text/password_forgot/reset/request"
+    require "command_tower/schema/auth/plain_text/password_forgot/reset/response"
+    require "command_tower/schema/auth/plain_text/change_password"
+    require "command_tower/schema/auth/plain_text/change_password/request"
+    require "command_tower/schema/auth/plain_text/change_password/response"
+    require "command_tower/schema/auth/logout/response"
 
     require "command_tower/schema/shared/admin/users"
 

@@ -3,6 +3,7 @@
 module CommandTower::Secrets
   ALLOWED_SECRET_REASONS = [
     EMAIL_VERIFICIATION = :email_verification,
+    PASSWORD_RESET = :password_reset,
     SSO = :sso,
   ]
 

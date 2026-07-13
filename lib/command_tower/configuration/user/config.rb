@@ -17,7 +17,7 @@ module CommandTower
         ]
 
         ATTRIBUTES_TO_SHOW = [
-          *ATTRIBUTES_TO_CHANGE,
+          *(ATTRIBUTES_TO_CHANGE - [:verifier_token]),
           :created_at,
           :email_validated,
           :id,

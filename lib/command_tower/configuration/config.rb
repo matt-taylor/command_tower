@@ -8,6 +8,7 @@ require "command_tower/configuration/authorization/config"
 require "command_tower/configuration/base"
 require "command_tower/configuration/email/config"
 require "command_tower/configuration/jwt/config"
+require "command_tower/configuration/jwt/cookie/config"
 require "command_tower/configuration/login/config"
 require "command_tower/configuration/otp/config"
 require "command_tower/configuration/pagination/config"
@@ -80,4 +81,3 @@ module CommandTower
     end
   end
 end
-

@@ -22,6 +22,12 @@ RSpec.describe CommandTower::UserController, :with_rbac_setup, type: :controller
       expect(response_body).to include(*CommandTower::Schema::Shared::User.introspect.keys)
     end
 
+    it "does not return verifier_token" do
+      subject
+
+      expect(response_body).to_not have_key("verifier_token")
+    end
+
     include_examples "Invalid/Missing JWT token on required route"
   end
 
@@ -122,6 +128,46 @@ RSpec.describe CommandTower::UserController, :with_rbac_setup, type: :controller
         subject
 
         expect(response_body.keys).to include(*CommandTower::Schema::Shared::User.introspect.keys)
+      end
+
+      it "does not return verifier_token in response" do
+        subject
+
+        expect(response_body).to_not have_key("verifier_token")
+      end
+
+      it "changes verifier_token in database" do
+        original_token = user.reload.verifier_token
+        subject
+
+        expect(user.reload.verifier_token).to_not eq(original_token)
+        expect(user.reload.verifier_token).to be_present
+      end
+
+      it "updates verifier_token_last_reset timestamp" do
+        original_timestamp = user.reload.verifier_token_last_reset
+        subject
+
+        new_timestamp = user.reload.verifier_token_last_reset
+        expect(new_timestamp).to be_present
+        if original_timestamp
+          expect(new_timestamp).to be >= original_timestamp
+        end
+      end
+
+      it "invalidates existing JWT tokens" do
+        # Get the current token before reset
+        old_token = @request.headers[CommandTower::ApplicationController::AUTHENTICATION_HEADER]
+
+        # Reset verifier_token
+        subject
+
+        # Try to use the old token - it should fail
+        @request.headers[CommandTower::ApplicationController::AUTHENTICATION_HEADER] = old_token
+        get :show
+
+        expect(response.status).to eq(401)
+        expect(JSON.parse(response.body)["message"]).to include("Unauthorized")
       end
     end
 

@@ -229,20 +229,18 @@ RSpec.describe CommandTower::Auth::PlainTextController, type: :controller do
 
     let(:params) do
       {
-        username:,
-        email:,
+        identifier:,
         password: password_input,
       }.compact
     end
     let(:user) { create(:user, password:) }
     let(:password) { Faker::Alphanumeric.alpha(number: 20) }
     let(:password_input) { password }
-    let(:username) { nil }
-    let(:email) { nil }
+    let(:identifier) { nil }
 
     context "with correct login" do
-      context "with email" do
-        let(:email) { user.email }
+      context "when identifier is email" do
+        let(:identifier) { user.email }
 
         it "returns success" do
           subject
@@ -254,11 +252,16 @@ RSpec.describe CommandTower::Auth::PlainTextController, type: :controller do
           expect(response_body["message"]).to eq("Successfully logged user in")
           expect(response_body["token"]).to be_present
           expect(response_body["header_name"]).to eq(CommandTower::ApplicationController::AUTHENTICATION_HEADER)
+        end
+
+        it "does not return verifier_token in user object" do
+          subject
+          expect(response_body["user"]).to_not have_key("verifier_token")
         end
       end
 
-      context "with username" do
-        let(:username) { user.username }
+      context "when identifier is username" do
+        let(:identifier) { user.username }
 
         it "returns success" do
           subject
@@ -270,27 +273,24 @@ RSpec.describe CommandTower::Auth::PlainTextController, type: :controller do
           expect(response_body["message"]).to eq("Successfully logged user in")
           expect(response_body["token"]).to be_present
           expect(response_body["header_name"]).to eq(CommandTower::ApplicationController::AUTHENTICATION_HEADER)
+        end
+
+        it "does not return verifier_token in user object" do
+          subject
+          expect(response_body["user"]).to_not have_key("verifier_token")
         end
       end
     end
 
     context "with incorrect arguments" do
-      context "with both login keys provided" do
-        let(:username) { user.username }
-        let(:email) { user.email }
+      context "with missing identifier" do
+        let(:identifier) { nil }
 
-        include_examples "CommandTower::Schema::Error:InvalidArguments examples", 401, "Composite Key failure for login_key", [:login_key]
-      end
-
-      context "when no login key provided" do
-        let(:username) { nil }
-        let(:email) { nil }
-
-        include_examples "CommandTower::Schema::Error:InvalidArguments examples", 401, "Composite Key failure for login_key", [:login_key]
+        include_examples "CommandTower::Schema::Error:InvalidArguments examples", 401, "Parameter [identifier] is required but not present", [:identifier]
       end
 
       context "with missing password" do
-        let(:username) { user.username }
+        let(:identifier) { user.username }
         let(:password_input) { nil }
 
         include_examples "CommandTower::Schema::Error:InvalidArguments examples", 401, "Parameter [password] is required but not present", [:password]
@@ -298,16 +298,571 @@ RSpec.describe CommandTower::Auth::PlainTextController, type: :controller do
     end
 
     context "when failed login" do
-      context "with incorrect login key" do
-        context "with email" do
-          let(:email) { "not a valid email input" }
-          include_examples "CommandTower::Schema::Error:InvalidArguments examples", 401, "Unauthorized Access. Incorrect Credentials", [:email, :password]
+      context "with incorrect identifier" do
+        let(:identifier) { "not a valid identifier" }
+        include_examples "CommandTower::Schema::Error:InvalidArguments examples", 401, "Unauthorized Access. Incorrect Credentials", [:identifier, :password]
+      end
+    end
+  end
+
+  describe "POST: password_forgot_send_post" do
+    subject(:password_forgot_send_post) { post(:password_forgot_send_post, params:) }
+
+    let(:params) { { email: }.compact }
+    let(:email) { Faker::Internet.email }
+    let(:user) { create(:user, email: email) }
+
+    context "with existing user" do
+      before { user }
+
+      it "returns 200" do
+        subject
+        expect(response.status).to eq(200)
+      end
+
+      it "sets message" do
+        subject
+        expect(response_body["message"]).to eq("If an account exists with that email, a password reset link has been sent.")
+      end
+
+      it "sends email" do
+        expect { subject }.to change { ActionMailer::Base.deliveries.count }.by(1)
+      end
+    end
+
+    context "with non-existent user" do
+      let(:email) { "nonexistent@example.com" }
+
+      it "returns 200" do
+        subject
+        expect(response.status).to eq(200)
+      end
+
+      it "sets message" do
+        subject
+        expect(response_body["message"]).to eq("If an account exists with that email, a password reset link has been sent.")
+      end
+
+      it "does not send email" do
+        expect { subject }.not_to change { ActionMailer::Base.deliveries.count }
+      end
+    end
+
+    context "with invalid email" do
+      let(:email) { "not-an-email" }
+
+      include_examples "CommandTower::Schema::Error:InvalidArguments examples", 400, "Invalid email address", :email
+    end
+
+    context "with missing email" do
+      let(:email) { nil }
+
+      include_examples "CommandTower::Schema::Error:InvalidArguments examples", 400, /Parameter \[email\]/, [:email]
+    end
+
+    context "with email delivery failure" do
+      before do
+        user
+        allow_any_instance_of(CommandTower::PasswordResetMailer).to receive(:reset_password).and_raise(StandardError)
+      end
+
+      it "still returns 200" do
+        subject
+        expect(response.status).to eq(200)
+      end
+
+      it "sets message" do
+        subject
+        expect(response_body["message"]).to eq("If an account exists with that email, a password reset link has been sent.")
+      end
+    end
+  end
+
+  describe "POST: password_forgot_validate_post" do
+    subject(:password_forgot_validate_post) { post(:password_forgot_validate_post, params:) }
+
+    let(:user) { create(:user) }
+    let(:token) do
+      result = CommandTower::Secrets::Generate.(
+        user: user,
+        secret_length: 32,
+        reason: CommandTower::Secrets::PASSWORD_RESET,
+        use_count_max: 1,
+        death_time: 1.hour,
+        type: CommandTower::Secrets::ALPHANUMERIC,
+        cleanse: false
+      )
+      result.secret
+    end
+    let(:email) { nil }
+    let(:params) { { token: token, email: email }.compact }
+
+    context "with valid token" do
+      it "returns 200" do
+        subject
+        expect(response.status).to eq(200)
+      end
+
+      it "sets valid to true" do
+        subject
+        expect(response_body["valid"]).to eq(true)
+      end
+
+      it "sets expires_at" do
+        subject
+        expect(response_body["expires_at"]).to be_present
+      end
+    end
+
+    context "with require_email: false (backward compatibility)" do
+      before do
+        allow(CommandTower.config.login.plain_text.password_reset).to receive(:require_email).and_return(false)
+      end
+
+      context "when email is not provided" do
+        let(:email) { nil }
+
+        it "returns 200" do
+          subject
+          expect(response.status).to eq(200)
         end
 
-        context "with username" do
-          let(:username) { "not a valid email input" }
-          include_examples "CommandTower::Schema::Error:InvalidArguments examples", 401, "Unauthorized Access. Incorrect Credentials", [:username, :password]
+        it "sets valid to true" do
+          subject
+          expect(response_body["valid"]).to eq(true)
         end
+      end
+
+      context "when email is provided and matches" do
+        let(:email) { user.email }
+
+        it "returns 200" do
+          subject
+          expect(response.status).to eq(200)
+        end
+
+        it "sets valid to true" do
+          subject
+          expect(response_body["valid"]).to eq(true)
+        end
+      end
+
+      context "when email is provided but does not match" do
+        let(:email) { "wrong@example.com" }
+
+        it "returns 401" do
+          subject
+          expect(response.status).to eq(401)
+        end
+
+        it "sets message" do
+          subject
+          expect(response_body["message"]).to eq("Invalid token")
+        end
+      end
+    end
+
+    context "with require_email: true" do
+      before do
+        allow(CommandTower.config.login.plain_text.password_reset).to receive(:require_email).and_return(true)
+      end
+
+      context "when email is not provided" do
+        let(:email) { nil }
+
+        it "returns 400" do
+          subject
+          expect(response.status).to eq(400)
+        end
+
+        it "sets message" do
+          subject
+          expect(response_body["message"]).to eq("Email is required")
+        end
+      end
+
+      context "when email is provided and matches" do
+        let(:email) { user.email }
+
+        it "returns 200" do
+          subject
+          expect(response.status).to eq(200)
+        end
+
+        it "sets valid to true" do
+          subject
+          expect(response_body["valid"]).to eq(true)
+        end
+      end
+
+      context "when email is provided but does not match" do
+        let(:email) { "wrong@example.com" }
+
+        it "returns 401" do
+          subject
+          expect(response.status).to eq(401)
+        end
+
+        it "sets message" do
+          subject
+          expect(response_body["message"]).to eq("Invalid token")
+        end
+      end
+    end
+
+    context "with invalid token" do
+      let(:token) { "invalid_token_12345" }
+
+      it "returns 401" do
+        subject
+        expect(response.status).to eq(401)
+      end
+
+      it "sets message" do
+        subject
+        expect(response_body["message"]).to eq("Invalid token")
+      end
+    end
+
+    context "with expired token" do
+      let(:token) do
+        result = CommandTower::Secrets::Generate.(
+          user: user,
+          secret_length: 32,
+          reason: CommandTower::Secrets::PASSWORD_RESET,
+          use_count_max: 1,
+          death_time: 1.hour,
+          type: CommandTower::Secrets::ALPHANUMERIC,
+          cleanse: false
+        )
+        secret = result.secret
+        # Manually expire the token by setting death_time in the past
+        user_secret = UserSecret.find_by(secret: secret)
+        user_secret.update!(death_time: 1.hour.ago)
+        secret
+      end
+
+      it "returns 401" do
+        subject
+        expect(response.status).to eq(401)
+      end
+
+      it "sets message" do
+        subject
+        expect(response_body["message"]).to eq("Invalid token")
+      end
+    end
+
+    context "with missing token" do
+      let(:token) { nil }
+
+      include_examples "CommandTower::Schema::Error:InvalidArguments examples", 400, /Parameter \[token\]/, [:token]
+    end
+  end
+
+  describe "POST: password_forgot_reset_post" do
+    subject(:password_forgot_reset_post) { post(:password_forgot_reset_post, params:) }
+
+    let(:user) { create(:user, password: "old_password123") }
+    let(:token) do
+      result = CommandTower::Secrets::Generate.(
+        user: user,
+        secret_length: 32,
+        reason: CommandTower::Secrets::PASSWORD_RESET,
+        use_count_max: 1,
+        death_time: 1.hour,
+        type: CommandTower::Secrets::ALPHANUMERIC,
+        cleanse: false
+      )
+      result.secret
+    end
+    let(:password) { "new_password123" }
+    let(:password_confirmation) { password }
+    let(:email) { nil }
+    let(:params) do
+      {
+        token:,
+        email:,
+        password:,
+        password_confirmation:,
+      }.compact
+    end
+
+    context "with valid token and matching passwords" do
+      it "returns 200" do
+        subject
+        expect(response.status).to eq(200)
+      end
+
+      it "sets message" do
+        subject
+        expect(response_body["message"]).to eq("Password has been successfully reset")
+      end
+
+      it "updates user password" do
+        subject
+        expect(user.reload.authenticate(password)).to be_truthy
+      end
+    end
+
+    context "with password mismatch" do
+      let(:password_confirmation) { "different_password" }
+
+      include_examples "CommandTower::Schema::Error:InvalidArguments examples", 400, "Password and confirmation do not match", :password_confirmation
+    end
+
+    context "with invalid token" do
+      let(:token) { "invalid_token_12345" }
+
+      it "returns 401" do
+        subject
+        expect(response.status).to eq(401)
+      end
+
+      it "sets message" do
+        subject
+        expect(response_body["message"]).to eq("Invalid token")
+      end
+    end
+
+    context "with expired token" do
+      let(:token) do
+        result = CommandTower::Secrets::Generate.(
+          user: user,
+          secret_length: 32,
+          reason: CommandTower::Secrets::PASSWORD_RESET,
+          use_count_max: 1,
+          death_time: 1.hour,
+          type: CommandTower::Secrets::ALPHANUMERIC,
+          cleanse: false
+        )
+        secret = result.secret
+        # Manually expire the token by setting death_time in the past
+        user_secret = UserSecret.find_by(secret: secret)
+        user_secret.update!(death_time: 1.hour.ago)
+        secret
+      end
+
+      it "returns 401" do
+        subject
+        expect(response.status).to eq(401)
+      end
+
+      it "sets message" do
+        subject
+        expect(response_body["message"]).to eq("Invalid token")
+      end
+    end
+
+    context "with missing token" do
+      let(:token) { nil }
+
+      include_examples "CommandTower::Schema::Error:InvalidArguments examples", 400, /Parameter \[token\]/, [:token]
+    end
+
+    context "with missing password" do
+      let(:password) { nil }
+
+      include_examples "CommandTower::Schema::Error:InvalidArguments examples", 400, /Parameter \[password\]/, [:password]
+    end
+
+    context "with require_email: false (backward compatibility)" do
+      before do
+        allow(CommandTower.config.login.plain_text.password_reset).to receive(:require_email).and_return(false)
+      end
+
+      context "when email is not provided" do
+        let(:email) { nil }
+
+        it "returns 200" do
+          subject
+          expect(response.status).to eq(200)
+        end
+
+        it "sets message" do
+          subject
+          expect(response_body["message"]).to eq("Password has been successfully reset")
+        end
+
+        it "updates user password" do
+          subject
+          expect(user.reload.authenticate(password)).to be_truthy
+        end
+      end
+
+      context "when email is provided and matches" do
+        let(:email) { user.email }
+
+        it "returns 200" do
+          subject
+          expect(response.status).to eq(200)
+        end
+
+        it "updates user password" do
+          subject
+          expect(user.reload.authenticate(password)).to be_truthy
+        end
+      end
+
+      context "when email is provided but does not match" do
+        let(:email) { "wrong@example.com" }
+
+        it "returns 401" do
+          subject
+          expect(response.status).to eq(401)
+        end
+
+        it "sets message" do
+          subject
+          expect(response_body["message"]).to eq("Invalid token")
+        end
+      end
+    end
+
+    context "with require_email: true" do
+      before do
+        allow(CommandTower.config.login.plain_text.password_reset).to receive(:require_email).and_return(true)
+      end
+
+      context "when email is not provided" do
+        let(:email) { nil }
+
+        it "returns 400" do
+          subject
+          expect(response.status).to eq(400)
+        end
+
+        it "sets message" do
+          subject
+          expect(response_body["message"]).to eq("Email is required")
+        end
+      end
+
+      context "when email is provided and matches" do
+        let(:email) { user.email }
+
+        it "returns 200" do
+          subject
+          expect(response.status).to eq(200)
+        end
+
+        it "updates user password" do
+          subject
+          expect(user.reload.authenticate(password)).to be_truthy
+        end
+      end
+
+      context "when email is provided but does not match" do
+        let(:email) { "wrong@example.com" }
+
+        it "returns 401" do
+          subject
+          expect(response.status).to eq(401)
+        end
+
+        it "sets message" do
+          subject
+          expect(response_body["message"]).to eq("Invalid token")
+        end
+      end
+    end
+  end
+
+  describe "POST: password_change_post" do
+    subject(:password_change_post) { post(:password_change_post, params:) }
+
+    let(:sentinel_current) { "HttpSentinelCurrent_Aa1!" }
+    let(:sentinel_new) { "HttpSentinelNew_Bb2!" }
+    let(:sentinel_wrong) { "HttpSentinelWrong_Cc3!" }
+
+    let(:user) { create(:user, password: sentinel_current, password_confirmation: sentinel_current) }
+    let(:current_password) { sentinel_current }
+    let(:password) { sentinel_new }
+    let(:password_confirmation) { password }
+    let(:params) do
+      {
+        current_password:,
+        password:,
+        password_confirmation:,
+      }.compact
+    end
+
+    def assert_response_no_secret_leak!
+      body = response.body
+      expect(body).not_to include(sentinel_current)
+      expect(body).not_to include(sentinel_new)
+      expect(body).not_to include(sentinel_wrong)
+      expect(body).not_to include(user.reload.verifier_token) if user.verifier_token.present?
+      expect(response_body).not_to have_key("token")
+      expect(response_body).not_to have_key("verifier_token")
+    end
+
+    include_examples "Invalid/Missing JWT token on required route"
+
+    context "with valid JWT and passwords" do
+      before { set_jwt_token!(user:) }
+
+      let!(:old_jwt) do
+        user.retreive_verifier_token!
+        CommandTower::Jwt::LoginCreate.(user: user.reload).token
+      end
+
+      it "returns 200" do
+        subject
+        expect(response.status).to eq(200)
+        assert_response_no_secret_leak!
+      end
+
+      it "sets message" do
+        subject
+        expect(response_body["message"]).to eq("Password has been successfully changed")
+        assert_response_no_secret_leak!
+      end
+
+      it "updates password and invalidates prior JWT" do
+        subject
+        expect(user.reload.authenticate(sentinel_new)).to be_truthy
+        expect(CommandTower::Jwt::AuthenticateUser.(token: old_jwt).failure?).to eq(true)
+      end
+    end
+
+    context "with incorrect current password" do
+      before { set_jwt_token!(user:) }
+
+      let(:current_password) { sentinel_wrong }
+
+      include_examples "CommandTower::Schema::Error:InvalidArguments examples", 400, "Incorrect current password", :current_password
+
+      it "does not leak secrets" do
+        subject
+        assert_response_no_secret_leak!
+      end
+    end
+
+    context "with password confirmation mismatch" do
+      before { set_jwt_token!(user:) }
+
+      let(:password_confirmation) { sentinel_wrong }
+
+      include_examples "CommandTower::Schema::Error:InvalidArguments examples", 400, "Password and confirmation do not match", :password_confirmation
+
+      it "does not leak secrets" do
+        subject
+        assert_response_no_secret_leak!
+      end
+    end
+
+    context "with password too short" do
+      before { set_jwt_token!(user:) }
+
+      let(:password) { "short" }
+      let(:password_confirmation) { "short" }
+
+      include_examples "CommandTower::Schema::Error:InvalidArguments examples", 400, "Password length must be between", :password
+
+      it "does not leak secrets" do
+        subject
+        assert_response_no_secret_leak!
       end
     end
   end

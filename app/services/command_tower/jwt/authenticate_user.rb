@@ -79,7 +79,7 @@ module CommandTower::Jwt
       result = CommandTower::LoginStrategy::PlainText::EmailVerification::Required.(user:)
 
       if result.required
-        context.fail!(msg: "User's Email must be validated before they can continue")
+        context.fail!(msg: "Email must be verified to continue", status: 412)
       end
     end
   end
