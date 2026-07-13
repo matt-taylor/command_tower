@@ -23,6 +23,7 @@ module CommandTower
             id: message.id,
             text: message.text,
             viewed: message.viewed,
+            created_at: message.created_at.iso8601,
           )
         end
       end

@@ -23,6 +23,70 @@ CommandTower.configure do |config|
   # HMAC is the only algorithm supported. This is the secret key to encrypt he JWT token: [String]
   # config.jwt.hmac_secret = ENV.fetch("SECRET_KEY_BASE","Thi$IsASeccretIwi::CH&ang3")
 
+  # ### Block to configure Cookie ###
+  # HttpOnly cookie configuration for JWT token persistence
+  # When using the block, the enabled flag will automatically get set to true
+  # config.jwt.with_cookie do |cookie_config|
+    # Enable HttpOnly cookie support for JWT tokens. When disabled, cookies are never set, read, or refreshed: [TrueClass, FalseClass]
+    # cookie_config.enabled = false
+
+    # Name of the JWT cookie: [String]
+    # cookie_config.name = "ct_jwt"
+
+    # SameSite attribute for the cookie (:lax, :strict, or :none): [Symbol]
+    # cookie_config.same_site = :lax
+
+    # Secure flag for the cookie (HTTPS only). Defaults to false in development, true in production: [TrueClass, FalseClass]
+    # cookie_config.secure = false
+
+    # HttpOnly flag for the cookie (prevents JavaScript access): [TrueClass, FalseClass]
+    # cookie_config.httponly = true
+
+    # Path for the cookie: [String]
+    # cookie_config.path = "/"
+
+    # Domain for the cookie (nil means host-only): [String, NilClass]
+    # cookie_config.domain = ""
+
+    # Time to live for the cookie (defaults to JWT TTL): [ActiveSupport::Duration]
+    # cookie_config.ttl = 7.days
+
+    # ### Block to configure Csrf ###
+    # Double-submit CSRF protection configuration for cookie-authenticated requests
+    # When using the block, the enabled flag will automatically get set to true
+    # cookie_config.with_csrf do |csrf_config|
+      # Enable double-submit CSRF protection for cookie-authenticated requests: [TrueClass, FalseClass]
+      # csrf_config.enabled = false
+
+      # Name of the CSRF token cookie (must NOT be HttpOnly): [String]
+      # csrf_config.cookie_name = "ct_csrf"
+
+      # Name of the CSRF token header: [String]
+      # csrf_config.header_name = "X-CSRF-Token"
+
+      # Rotate CSRF token on login: [TrueClass, FalseClass]
+      # csrf_config.rotate_on_login = true
+
+      # Rotate CSRF token when JWT token is reset: [TrueClass, FalseClass]
+      # csrf_config.rotate_on_reset = true
+
+      # SameSite attribute for CSRF cookie (nil inherits from JWT cookie): [Symbol, NilClass]
+      # csrf_config.same_site = 
+
+      # Secure flag for CSRF cookie (nil inherits from JWT cookie): [TrueClass, FalseClass, NilClass]
+      # csrf_config.secure = 
+
+      # Path for the CSRF cookie (nil inherits from JWT cookie): [String, NilClass]
+      # csrf_config.path = ""
+
+      # Domain for the CSRF cookie (nil inherits from JWT cookie): [String, NilClass]
+      # csrf_config.domain = ""
+
+      # Time to live for the CSRF cookie: [ActiveSupport::Duration]
+      # csrf_config.ttl = 7.days
+    # end
+  # end
+
   # ###########################
   # #                         #
   # #########  Login  #########
@@ -41,11 +105,11 @@ CommandTower.configure do |config|
     # Enable and change Lockable for User/Password Login strategy.
     # When using the block, the enable flag will automatically get set to true
     # plain_text_config.with_lockable do |lockable_config|
-    #   Disabled by default. When enabled, this adds an additional level of support for brute force attacks on User/Password Logins: [FalseClass, TrueClass]
-    #   lockable_config.enable = false
+      # Disabled by default. When enabled, this adds an additional level of support for brute force attacks on User/Password Logins: [FalseClass, TrueClass]
+      # lockable_config.enable = false
 
-    #   Max failed password attempts before additional verification on account is required.: [Integer]
-    #   lockable_config.password_attempts = 10
+      # Max failed password attempts before additional verification on account is required.: [Integer]
+      # lockable_config.password_attempts = 10
     # end
 
     # ### Block to configure Email Verify ###
@@ -66,6 +130,32 @@ CommandTower.configure do |config|
 
       # The length of the verify code sent via email.: [Integer]
       # email_verify_config.verify_code_length = 6
+
+      # Custom template name to use for the email verification email. Allows using a different view template without creating a custom mailer class. The template should be located at app/views/command_tower/email_verification_mailer/{template_name}.html.erb. Defaults to 'verify_email': [String, NilClass]
+      # email_verify_config.custom_template_name = ""
+    # end
+
+    # ### Block to configure Password Reset ###
+    # Enable and change Password Reset for User/Password Login strategy.
+    # When using the block, the enabled flag will automatically get set to true
+    # plain_text_config.with_password_reset do |password_reset_config|
+      # Password reset feature allows users to request password reset via email. By default this is enabled: [FalseClass, TrueClass]
+      # password_reset_config.enabled = true
+
+      # When the password reset token is sent, how long will that token be valid for. By default, this is set to 1 hour: [ActiveSupport::Duration]
+      # password_reset_config.token_valid_for = 10.minutes
+
+      # The length of the password reset token sent via email.: [Integer]
+      # password_reset_config.token_length = 32
+
+      # Custom template name to use for the password reset email. Allows using a different view template without creating a custom mailer class. The template should be located at app/views/command_tower/password_reset_mailer/{template_name}.html.erb. Defaults to 'reset_password': [String, NilClass]
+      # password_reset_config.custom_template_name = ""
+
+      # When enabled, requires users to provide both token and email when validating or resetting password. This adds an additional security layer to prevent brute force attacks. Defaults to false for backward compatibility.: [FalseClass, TrueClass]
+      # password_reset_config.require_email = false
+
+      # The path (not full URL) to the frontend reset password page. This path will be appended to CommandTower.config.app.composed_url to form the full URL. Used in email template for the reset link. Defaults to '/reset-password': [String]
+      # password_reset_config.reset_password_path = "/reset-password"
     # end
 
     # Max Length for Password: [Integer]
@@ -160,7 +250,7 @@ CommandTower.configure do |config|
   # config.application.url = "http://localhost"
 
   # When composing SSO's or verification URL's, this is the PORT for the application: [String, NilClass]
-  # config.application.port = "7777"
+  # config.application.port = ""
 
   # The fully composed URL including the port number when needed. This Config variable is not needed as it is composed of the `url` and `port` composed values: [String]
   # config.application.composed_url = # Composed String of the URL and PORT. Override this with caution
@@ -189,10 +279,10 @@ CommandTower.configure do |config|
   # config.user.additional_attributes_for_change = []
 
   # [Not Recommended for change] Default attributes that are allowed to change: [Array]
-  # config.user.default_attributes_for_change = email first_name last_name last_known_timezone username verifier_token
+  # config.user.default_attributes_for_change = email first_name last_name username verifier_token
 
   # [Not Recommended for change] Default attributes that are shown to the user: [Array]
-  # config.user.default_attributes = email first_name last_name last_known_timezone username verifier_token id roles created_at
+  # config.user.default_attributes = email first_name last_name username verifier_token created_at email_validated id last_known_timezone roles
 
   # ###########################
   # #                         #

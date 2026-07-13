@@ -40,6 +40,7 @@ module CommandTower
       # current_page = [, 1].max
       # Ensure we cannot go negative when no elements are returned
       remaining_pages = [total_pages - current_page, 0].max
+      has_more = remaining_pages > 0
 
       CommandTower::Schema::Shared::Pagination.new(
         count_available:,
@@ -47,7 +48,7 @@ module CommandTower
         current_page:,
         remaining_pages:,
         current:,
-        next: next_page,
+        next: has_more ? next_page : nil,
       )
     end
 

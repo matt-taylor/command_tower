@@ -9,6 +9,7 @@ module CommandTower
           add_field name: :id, type: Integer
           add_field name: :text, type: String, required: false
           add_field name: :viewed, type: JsonSchematize::Boolean
+          add_field name: :created_at, type: String
         end
       end
     end

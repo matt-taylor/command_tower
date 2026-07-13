@@ -157,6 +157,14 @@ RSpec.describe CommandTower::Jwt::AuthenticateUser do
               expect(call.failure?).to be(true)
             end
 
+            it "sets status to 412" do
+              expect(call.status).to eq(412)
+            end
+
+            it "sets failure message" do
+              expect(call.msg).to eq("Email must be verified to continue")
+            end
+
             it "sets user" do
               expect(call.user.id).to be(user.id)
             end

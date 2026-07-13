@@ -17,7 +17,7 @@ module CommandTower
       else
         json_result = { msg: result.msg }
         json_result[:invalid_arguments] = true if result.invalid_arguments
-        status = 401
+        status = 400
       end
 
       render json: json_result, status: status

@@ -13,7 +13,8 @@ module CommandTower::LoginStrategy::PlainText::EmailVerification
       end
 
       begin
-        CommandTower::EmailVerificationMailer.verify_email(user.email, user, result.secret).deliver
+        template_name = CommandTower.config.login.plain_text.email_verify.custom_template_name
+        CommandTower::EmailVerificationMailer.verify_email(user.email, user, result.secret, template_name: template_name).deliver
       rescue StandardError => e
         log_error("Failed to send message to [#{user.id}]: #{e.message}")
         context.fail!(msg: "Unable to send email. Please try again later", status: 500)

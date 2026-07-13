@@ -8,6 +8,8 @@ Rails.application.routes.draw do
   end
 
   scope "auth" do
+    post "/logout", to: "command_tower/auth/logout#logout_post", as: :"#{append_to_ass}_auth_logout_post"
+
     constraints(->(_req) { CommandTower.config.login.plain_text.enable? }) do
       post "/login", to: "command_tower/auth/plain_text#login_post", as: :"#{append_to_ass}_auth_login_post"
       post "/create", to: "command_tower/auth/plain_text#create_post", as: :"#{append_to_ass}_auth_create_post"
@@ -16,6 +18,18 @@ Rails.application.routes.draw do
         scope "email" do
           post "/verify", to: "command_tower/auth/plain_text#email_verify_post", as: :"#{append_to_ass}_auth_email_verification"
           post "/send", to: "command_tower/auth/plain_text#email_verify_resend_post", as: :"#{append_to_ass}_auth_email_verification_send"
+        end
+      end
+
+      scope "password" do
+        post "/change", to: "command_tower/auth/plain_text#password_change_post", as: :"#{append_to_ass}_auth_password_change_post"
+
+        constraints(->(_req) { CommandTower.config.login.plain_text.password_reset? }) do
+          scope "forgot" do
+            post "/send", to: "command_tower/auth/plain_text#password_forgot_send_post", as: :"#{append_to_ass}_auth_password_forgot_send_post"
+            post "/validate", to: "command_tower/auth/plain_text#password_forgot_validate_post", as: :"#{append_to_ass}_auth_password_forgot_validate_post"
+            post "/reset", to: "command_tower/auth/plain_text#password_forgot_reset_post", as: :"#{append_to_ass}_auth_password_forgot_reset_post"
+          end
         end
       end
     end

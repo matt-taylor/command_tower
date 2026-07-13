@@ -122,5 +122,65 @@ RSpec.describe CommandTower::UserController, type: :controller do
         expect([200, 401]).to include(response.status)
       end
     end
+
+    context "when Authorization header uses lowercase 'bearer' prefix (case-insensitive)" do
+      before do
+        token = CommandTower::Jwt::LoginCreate.(user: user).token
+        @request.headers[CommandTower::ApplicationController::AUTHENTICATION_HEADER] = "bearer #{token}"
+      end
+
+      it "accepts lowercase bearer prefix and processes authentication" do
+        expect { authenticate }.not_to raise_error
+        # Should either succeed (200) or fail with proper JWT validation error (401), but not crash
+        expect([200, 401]).to include(response.status)
+      end
+    end
+
+    context "when Authorization header has multiple spaces after 'Bearer'" do
+      before do
+        token = CommandTower::Jwt::LoginCreate.(user: user).token
+        @request.headers[CommandTower::ApplicationController::AUTHENTICATION_HEADER] = "Bearer    #{token}"
+      end
+
+      it "accepts multiple spaces and processes authentication" do
+        expect { authenticate }.not_to raise_error
+        # Should either succeed (200) or fail with proper JWT validation error (401), but not crash
+        expect([200, 401]).to include(response.status)
+      end
+    end
+
+    context "when Authorization header uses invalid prefix 'Token'" do
+      before do
+        @request.headers[CommandTower::ApplicationController::AUTHENTICATION_HEADER] = "Token some_token_value"
+      end
+
+      it "returns 401 status instead of crashing" do
+        expect { authenticate }.not_to raise_error
+        expect(response.status).to eq(401)
+      end
+
+      it "returns 'Invalid Bearer token format' message" do
+        authenticate
+
+        expect(response_body["message"]).to eq("Invalid Bearer token format")
+      end
+    end
+
+    context "when Authorization header has 'Bearer' but no token (missing token)" do
+      before do
+        @request.headers[CommandTower::ApplicationController::AUTHENTICATION_HEADER] = "Bearer"
+      end
+
+      it "returns 401 status instead of crashing" do
+        expect { authenticate }.not_to raise_error
+        expect(response.status).to eq(401)
+      end
+
+      it "returns 'Invalid Bearer token format' message" do
+        authenticate
+
+        expect(response_body["message"]).to eq("Invalid Bearer token format")
+      end
+    end
   end
 end

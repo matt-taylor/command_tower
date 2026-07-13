@@ -59,6 +59,12 @@ RSpec.describe CommandTower::AdminController, :with_rbac_setup, type: :controlle
       expect(response_body["users"]).to all(include(*CommandTower::Schema::Shared::User.introspect.keys))
     end
 
+    it "does not return verifier_token in user objects" do
+      subject
+
+      expect(response_body["users"]).to all(satisfy { |u| !u.key?("verifier_token") })
+    end
+
     context "with pagination" do
       let(:pagination_object) { { page:, limit:, cursor: }.compact }
       let(:page) { nil }
@@ -237,6 +243,48 @@ RSpec.describe CommandTower::AdminController, :with_rbac_setup, type: :controlle
         expect(response_body.keys).to include(*CommandTower::Schema::Shared::User.introspect.keys)
       end
 
+      it "does not return verifier_token in response" do
+        subject
+
+        expect(response_body).to_not have_key("verifier_token")
+      end
+
+      it "changes verifier_token in database" do
+        original_token = user.reload.verifier_token
+        subject
+
+        expect(user.reload.verifier_token).to_not eq(original_token)
+        expect(user.reload.verifier_token).to be_present
+      end
+
+      it "updates verifier_token_last_reset timestamp" do
+        original_timestamp = user.reload.verifier_token_last_reset
+        subject
+
+        new_timestamp = user.reload.verifier_token_last_reset
+        expect(new_timestamp).to be_present
+        if original_timestamp
+          expect(new_timestamp).to be >= original_timestamp
+        end
+      end
+
+      it "invalidates existing JWT tokens for the modified user" do
+        # Create a token for the user being modified (not the admin)
+        user_token = CommandTower::Jwt::LoginCreate.(user:).token
+
+        # Verify the token works before reset by authenticating with it
+        authenticate_result = CommandTower::Jwt::AuthenticateUser.(token: user_token)
+        expect(authenticate_result.success?).to be(true)
+
+        # Reset verifier_token via admin modify
+        subject
+
+        # Try to authenticate with the old token - it should fail
+        authenticate_result = CommandTower::Jwt::AuthenticateUser.(token: user_token)
+        expect(authenticate_result.failure?).to be(true)
+        expect(authenticate_result.msg).to include("Unauthorized")
+      end
+
       include_examples "with invalid user to modify"
     end
 
@@ -293,6 +341,12 @@ RSpec.describe CommandTower::AdminController, :with_rbac_setup, type: :controlle
       subject
 
       expect(response_body["roles"]).to include(*roles)
+    end
+
+    it "does not return verifier_token in response" do
+      subject
+
+      expect(response_body).to_not have_key("verifier_token")
     end
   end
 end

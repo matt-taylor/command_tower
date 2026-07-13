@@ -10,9 +10,9 @@ RSpec.describe CommandTower::LoginStrategy::PlainText::Login do
   describe ".call" do
     subject(:call) { described_class.(**payload) }
 
-    shared_examples "with incorrect credentials" do |argument|
-      context "with incorrect #{argument}" do
-        let(:payload) { super().merge(argument => "This is an Incorrect Value") }
+    shared_examples "with incorrect credentials" do
+      context "with incorrect identifier" do
+        let(:payload) { super().merge(identifier: "This is an Incorrect Value") }
         let(:message) { "Unauthorized Access. Incorrect Credentials" }
         it "fails" do
           expect(call.failure?).to be(true)
@@ -32,7 +32,7 @@ RSpec.describe CommandTower::LoginStrategy::PlainText::Login do
 
         it "sets invalid_argument_hash" do
           expect(call.invalid_argument_hash).to include(
-            argument => { msg: /#{message}/ }
+            identifier: { msg: /#{message}/ }
           )
         end
       end
@@ -50,12 +50,12 @@ RSpec.describe CommandTower::LoginStrategy::PlainText::Login do
 
         it "sets invalid_argument_hash" do
           expect(call.invalid_argument_hash).to include(
-            argument => { msg: /Unauthorized Access. Incorrect Credentials/ }
+            identifier: { msg: /Unauthorized Access. Incorrect Credentials/ }
           )
         end
 
         it "sets invalid_argument_keys" do
-          expect(call.invalid_argument_keys).to include(argument)
+          expect(call.invalid_argument_keys).to include(:identifier)
         end
 
         it "increases failed count" do
@@ -84,18 +84,20 @@ RSpec.describe CommandTower::LoginStrategy::PlainText::Login do
       end
     end
 
-    context "with username" do
-      let(:payload) { { username:, password: } }
+    context "with identifier" do
+      context "when identifier is username" do
+        let(:payload) { { identifier: username, password: } }
 
-      include_examples "with valid credentials"
-      include_examples "with incorrect credentials", :username
-    end
+        include_examples "with valid credentials"
+        include_examples "with incorrect credentials"
+      end
 
-    context "with email" do
-      let(:payload) { { email:, password: } }
+      context "when identifier is email" do
+        let(:payload) { { identifier: email, password: } }
 
-      include_examples "with valid credentials"
-      include_examples "with incorrect credentials", :email
+        include_examples "with valid credentials"
+        include_examples "with incorrect credentials"
+      end
     end
   end
 end

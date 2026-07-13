@@ -19,6 +19,11 @@ RSpec.describe CommandTower::InboxService::Message::Retrieve do
       expect(call.message.id).to eq(message.id)
       expect(call.message.text).to eq(message.text)
       expect(call.message.viewed).to eq(true)
+      expect(call.message.created_at).to be_present
+      expect(call.message.created_at).to be_a(String)
+      expect(call.message.created_at).to eq(message.created_at.iso8601)
+      # Verify it's a valid ISO 8601 date string
+      expect { Time.iso8601(call.message.created_at) }.not_to raise_error
     end
 
     it "changes viewed" do

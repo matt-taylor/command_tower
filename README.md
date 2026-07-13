@@ -41,6 +41,15 @@ Authentication ensures that we know which user is requesting the action. When th
 
 For more info, check out [Authentication ReadMe](docs/authentication.md)
 
+**Web Applications**: For web apps using cookie-based authentication, see the [Cookie Authentication Guide](docs/cookie_authentication_guide.md) for complete setup instructions including CORS configuration.
+
+Cookie authentication provides secure, HttpOnly cookie support with automatic token management. Key security features include:
+- HttpOnly cookies prevent JavaScript access (XSS protection)
+- SameSite=Lax provides basic CSRF protection
+- Optional double-submit CSRF protection for additional security
+- Automatic cookie invalidation on authentication failures
+- Secure flag automatically enabled in production (HTTPS only)
+
 ## Authorization (RBAC)
 Authorization is only done after authentication. This is the act of ensuring that the user can perform the action it is requesting. Put differently, I know who you are, but I need to validate you have permissions to complete the action. When the engine is unable to authorize the user, a `403` status code is returned.
 

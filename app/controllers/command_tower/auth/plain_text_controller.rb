@@ -4,12 +4,34 @@ module CommandTower
       include CommandTower::SchemaHelper
 
       before_action :authenticate_user_without_email_verification!, only: [:email_verify_post, :email_verify_resend_post]
+      before_action :authenticate_user!, only: [:password_change_post]
 
       # POST /auth/login
       # Login to the application and create/set the JWT token
       def login_post
         result = CommandTower::LoginStrategy::PlainText::Login.(**login_params)
         if result.success?
+          # Set token in response (headers and cookie if enabled)
+          expires_at = CommandTower.config.jwt.ttl.from_now.to_time.to_s
+          CommandTower::Jwt::AuthorizationHelper.set_token(
+            response,
+            result.token,
+            expires_at: expires_at
+          )
+
+          # Handle CSRF cookie issuance/rotation for login flow (rotate-or-ensure model)
+          # CSRF cookie issuance rules:
+          # - CSRF cookie must ALWAYS exist when CSRF is enabled
+          # - rotate_on_login = false means:
+          #   * do NOT force rotation (if cookie exists, keep it)
+          #   * but DO create the cookie if missing
+          # - rotate_on_login = true means: always force rotation (generate new token)
+          if CommandTower::Jwt::CsrfHelper.csrf_enabled?
+            config = CommandTower.config.jwt.cookie.csrf
+            # Always ensure cookie exists; rotate_on_login only controls whether to force rotation
+            CommandTower::Jwt::CsrfHelper.ensure_cookie(request, response, should_rotate: config.rotate_on_login)
+          end
+
           schema = CommandTower::Schema::Auth::PlainText::Login::Response.new(
             token: result.token,
             header_name: AUTHENTICATION_HEADER,
@@ -141,12 +163,117 @@ module CommandTower
         end
       end
 
+      # POST /auth/password/change
+      # Authenticated password change — rotates verifier; does not re-issue JWT
+      def password_change_post
+        result = CommandTower::LoginStrategy::PlainText::ChangePassword.(
+          user: current_user,
+          **password_change_params
+        )
+        if result.success?
+          schema = CommandTower::Schema::Auth::PlainText::ChangePassword::Response.new(
+            message: result.message
+          )
+          status = 200
+          schema_succesful!(status:, schema:)
+        elsif result.invalid_arguments
+          invalid_arguments!(
+            status: 400,
+            message: result.msg,
+            argument_object: result.invalid_argument_hash,
+            schema: CommandTower::Schema::Auth::PlainText::ChangePassword::Request
+          )
+        else
+          status = result.status || 500
+          schema = CommandTower::Schema::Error::Base.new(status:, message: result.msg)
+          render(json: schema.to_h, status:)
+        end
+      end
+
+      # POST /auth/password/forgot/send
+      # Request password reset email
+      def password_forgot_send_post
+        result = CommandTower::LoginStrategy::PlainText::PasswordReset::Send.(**password_forgot_send_params)
+        if result.success?
+          schema = CommandTower::Schema::Auth::PlainText::PasswordForgot::Send::Response.new(
+            message: result.message
+          )
+          status = 200
+          schema_succesful!(status:, schema:)
+        else
+          if result.invalid_arguments
+            invalid_arguments!(
+              status: 400,
+              message: result.msg,
+              argument_object: result.invalid_argument_hash,
+              schema: CommandTower::Schema::Auth::PlainText::PasswordForgot::Send::Request
+            )
+          else
+            schema = CommandTower::Schema::Error::Base.new(status: result.status || 400, message: result.msg)
+            status = result.status || 400
+            render(json: schema.to_h, status:)
+          end
+        end
+      end
+
+      # POST /auth/password/forgot/validate
+      # Validate password reset token
+      def password_forgot_validate_post
+        result = CommandTower::LoginStrategy::PlainText::PasswordReset::Validate.(**password_forgot_validate_params)
+        if result.success?
+          schema = CommandTower::Schema::Auth::PlainText::PasswordForgot::Validate::Response.new(
+            valid: result.valid,
+            expires_at: result.expires_at
+          )
+          status = 200
+          schema_succesful!(status:, schema:)
+        else
+          if result.invalid_arguments
+            invalid_arguments!(
+              status: 400,
+              message: result.msg,
+              argument_object: result.invalid_argument_hash,
+              schema: CommandTower::Schema::Auth::PlainText::PasswordForgot::Validate::Request
+            )
+          else
+            schema = CommandTower::Schema::Error::Base.new(status: result.status || 401, message: result.msg)
+            status = result.status || 401
+            render(json: schema.to_h, status:)
+          end
+        end
+      end
+
+      # POST /auth/password/forgot/reset
+      # Reset password with token
+      def password_forgot_reset_post
+        result = CommandTower::LoginStrategy::PlainText::PasswordReset::Reset.(**password_forgot_reset_params)
+        if result.success?
+          schema = CommandTower::Schema::Auth::PlainText::PasswordForgot::Reset::Response.new(
+            message: result.message
+          )
+          status = 200
+          schema_succesful!(status:, schema:)
+        else
+          if result.invalid_arguments
+            invalid_arguments!(
+              status: 400,
+              message: result.msg,
+              argument_object: result.invalid_argument_hash,
+              schema: CommandTower::Schema::Auth::PlainText::PasswordForgot::Reset::Request
+            )
+          else
+            schema = CommandTower::Schema::Error::Base.new(status: result.status || 401, message: result.msg)
+            status = result.status || 401
+            render(json: schema.to_h, status:)
+          end
+        end
+      end
+
       private
 
       def login_params
         {
-          username: params[:username],
-          email: params[:email],
+          identifier: params[:identifier],
           password: params[:password],
         }
       end
@@ -156,6 +283,36 @@ module CommandTower
           first_name: params[:first_name],
           last_name: params[:last_name],
           username: params[:username],
+          email: params[:email],
+          password: params[:password],
+          password_confirmation: params[:password_confirmation],
+        }
+      end
+
+      def password_change_params
+        {
+          current_password: params[:current_password],
+          password: params[:password],
+          password_confirmation: params[:password_confirmation],
+        }
+      end
+
+      def password_forgot_send_params
+        {
+          email: params[:email],
+        }
+      end
+
+      def password_forgot_validate_params
+        {
+          token: params[:token],
+          email: params[:email],
+        }
+      end
+
+      def password_forgot_reset_params
+        {
+          token: params[:token],
           email: params[:email],
           password: params[:password],
           password_confirmation: params[:password_confirmation],
