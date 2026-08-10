@@ -1,0 +1,90 @@
+---
+# Host-owned RBAC for the dummy application. Engine-owned controllers that sit
+# behind the authorization boundary must be mapped by the host, otherwise
+# AuthorizeRequest fails closed.
+# Note: do not redefine groups that already exist in CommandTower default.yml
+# (e.g. admin) — Role.create_role raises on duplicate names. Add entities here
+# and attach them to default roles in lib/command_tower/authorization/default.yml.
+groups:
+  member:
+    description: Standard authenticated application user
+    entities:
+      - email_verification_send
+      - email_verification_verify
+      - session
+      - me
+      - profile
+      - me_name
+      - me_password
+      - me_inbox
+      - me_preferences
+      - me_phone
+      - me_phone_verification_send
+      - me_phone_verification_verify
+      - me_pushover
+      - me_pushover_verification
+entities:
+  - name: email_verification_send
+    controller: CommandTower::Auth::EmailVerification::SendController
+    only: create
+  - name: email_verification_verify
+    controller: CommandTower::Auth::EmailVerification::VerifyController
+    only: create
+  - name: session
+    controller: CommandTower::Auth::SessionController
+    only: show
+  - name: me
+    controller: CommandTower::MeController
+    only: show
+  - name: profile
+    controller: CommandTower::ProfileController
+    only: show
+  - name: me_name
+    controller: CommandTower::Me::NameController
+    only: update
+  - name: me_password
+    controller: CommandTower::Me::PasswordController
+    only: update
+  - name: me_inbox
+    controller: CommandTower::Me::InboxController
+    only:
+      - index
+      - show
+      - open
+      - archive
+      - destroy
+      - unread_count
+      - bulk_read
+      - bulk_unread
+      - bulk_archive
+      - bulk_restore
+      - bulk_delete
+  - name: me_preferences
+    controller: CommandTower::Me::PreferencesController
+    only:
+      - show
+      - update
+  - name: me_phone
+    controller: CommandTower::Me::PhoneController
+    only:
+      - update
+      - destroy
+  - name: me_phone_verification_send
+    controller: CommandTower::Me::PhoneVerification::VerificationsController
+    only: create
+  - name: me_phone_verification_verify
+    controller: CommandTower::Me::PhoneVerification::VerifyController
+    only: create
+  - name: me_pushover
+    controller: CommandTower::Me::PushoverController
+    only:
+      - show
+      - create
+      - update
+      - destroy
+  - name: me_pushover_verification
+    controller: CommandTower::Me::Pushover::VerificationsController
+    only: create
+  - name: admin_messaging_announcements
+    controller: CommandTower::Admin::Messaging::AnnouncementsController
+    only: create

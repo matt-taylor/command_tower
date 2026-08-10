@@ -3,13 +3,11 @@
 require "jwt"
 
 module CommandTower::Jwt
-  class Encode < CommandTower::ServiceBase
+  class Encode
+    ALGORITHM = "HS256"
 
-    validate :payload, is_a: Hash, required: true
-    validate :header, is_a: Hash, required: false
-
-    def call
-      context.token = JWT.encode(payload, CommandTower.config.jwt.hmac_secret, "HS256", header || {})
+    def self.call(payload:, header: nil)
+      JWT.encode(payload, CommandTower.config.jwt.hmac_secret, ALGORITHM, header || {})
     end
   end
 end

@@ -15,20 +15,6 @@ module CommandTower
           Rails.configuration.action_mailer.public_send(:"#{key}=", value)
         end
 
-        add_composer :user_name,
-          desc: "User Name for email. Defaults to ENV['GMAIL_USER_NAME']",
-          allowed: String,
-          default: ENV.fetch("GMAIL_USER_NAME", ""),
-          default_shown: "ENV[\"GMAIL_USER_NAME\"]",
-          &ASSIGNMENT
-
-        add_composer :password,
-          desc: "Password for email. Defaults to ENV['GMAIL_PASSWORD']. For more info on how to get this for GMAIL...https://support.google.com/accounts/answer/185833",
-          allowed: String,
-          default: ENV.fetch("GMAIL_PASSWORD", ""),
-          default_shown: "ENV[\"GMAIL_PASSWORD\"]",
-          &ASSIGNMENT
-
         add_composer :port,
           allowed: Integer,
           default: 587,
@@ -66,16 +52,13 @@ module CommandTower
           default: true,
           &ACTION_MAILER
 
+        # Non-secret Gmail SMTP behavior helper. Credentials: config.credentials.smtp.* or ENV.
         def gmail!(
-          from: ENV["GMAIL_USER_NAME"],
-          password: ENV["GMAIL_PASSWORD"],
           port: 587,
           address: "smtp.gmail.com",
           authentication: "plain",
           enable_starttls_auto: true
         )
-          method(:from=).call(from)
-          method(:password=).call(password)
           method(:port=).call(port)
           method(:address=).call(address)
           method(:authentication=).call(authentication)

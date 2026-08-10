@@ -8,31 +8,33 @@ RSpec.describe CommandTower::LoginStrategy::PlainText::EmailVerification::Requir
   describe ".call" do
     subject(:call) { described_class.(user:) }
 
-    it "succeeds" do
-      expect(call.success?).to eq(true)
+    it "returns a requirement value object" do
+      expect(call).to be_a(described_class::Requirement)
     end
 
-    it "sets reqired_after_time" do
-      expect(call.reqired_after_time).to be_a(Time)
+    it "sets required_after_time" do
+      expect(call.required_after_time).to be_a(Time)
     end
 
     it "sets required false" do
       expect(call.required).to eq(false)
+      expect(call).not_to be_required
     end
 
-    context "when invalid" do
+    context "when the grace period has passed" do
       let(:created_at) { 5.minutes.ago }
 
-      it "succeeds" do
-        expect(call.success?).to eq(true)
+      it "returns a requirement value object" do
+        expect(call).to be_a(described_class::Requirement)
       end
 
-      it "sets reqired_after_time" do
-        expect(call.reqired_after_time).to be_a(Time)
+      it "sets required_after_time" do
+        expect(call.required_after_time).to be_a(Time)
       end
 
       it "sets required true" do
         expect(call.required).to eq(true)
+        expect(call).to be_required
       end
     end
   end

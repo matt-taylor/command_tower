@@ -42,6 +42,11 @@ module CommandTower
               default: 6,
               validator: -> (val) { (val <= 10) && (val >= 4) },
               invalid_message: ->(val) { "Provided #{val}. Value must be less than or equal to 10 and greater than or equal to 4." }
+
+            add_composer :custom_template_name,
+              desc: "Custom template name to use for the email verification email. Allows using a different view template without creating a custom mailer class. The template should be located at app/views/command_tower/email_verification_mailer/{template_name}.html.erb. Defaults to 'verify_email'",
+              allowed: [String, NilClass],
+              default: nil
           end
         end
       end
