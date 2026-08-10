@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 RSpec.describe CommandTower::Jwt::Decode do
-  let(:token) { CommandTower::Jwt::Encode.(payload:, header:).token }
+  let(:token) { CommandTower::Jwt::Encode.(payload:, header:) }
   let(:header) { { "header" => "value" } }
   let(:payload) { { "user" => "payload" } }
 
@@ -12,8 +12,16 @@ RSpec.describe CommandTower::Jwt::Decode do
       expect(call.success?).to eq(true)
     end
 
+    it "is not a failure" do
+      expect(call.failure?).to eq(false)
+    end
+
     it "returns payload" do
       expect(call.payload).to eq(payload)
+    end
+
+    it "returns payload with indifferent access" do
+      expect(call.payload[:user]).to eq("payload")
     end
 
     it "returns header" do
@@ -25,6 +33,18 @@ RSpec.describe CommandTower::Jwt::Decode do
 
       it "fails" do
         expect(call.success?).to eq(false)
+      end
+
+      it "is a failure" do
+        expect(call.failure?).to eq(true)
+      end
+
+      it "sets failure message" do
+        expect(call.msg).to eq("Invalid Token")
+      end
+
+      it "has no payload" do
+        expect(call.payload).to be_nil
       end
     end
   end

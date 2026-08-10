@@ -1,8 +1,17 @@
 require "command_tower/error"
+require "command_tower/current"
 
 require "command_tower/version"
 require "command_tower/engine"
 require "command_tower/configuration/config"
+require "command_tower/install/baseline"
+require "command_tower/install/doctor"
+require "command_tower/credential_resolution"
+require "command_tower/jwt/authorization_helper"
+require "command_tower/jwt/csrf_helper"
+require "command_tower/password_recovery/authorization_helper"
+require "command_tower/redis_connection"
+require "command_tower/signup/authorization_helper"
 
 module CommandTower
   def self.config
@@ -11,12 +20,23 @@ module CommandTower
 
   def self.configure
     yield(config)
+    CredentialResolution::SmtpActionMailerBridge.apply!
   end
 
   def self.config=(configuration)
     raise ArgumentError, "Expected Configuration::Config. Given #{configuration.class}" unless Configuration::Config === configuration
 
     @config = configuration
+  end
+
+  # Optional custom credential resolver (#resolve(provider) → typed credentials).
+  # Precedence: config.credentials.* → credential_resolver → ENV.
+  def self.credential_resolver
+    @credential_resolver
+  end
+
+  def self.credential_resolver=(resolver)
+    @credential_resolver = resolver
   end
 
   def self.app_name

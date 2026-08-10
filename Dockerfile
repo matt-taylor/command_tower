@@ -1,5 +1,5 @@
 # ./Dockerfile
-FROM ruby:3.3.6 as base
+FROM ruby:4.0.1 as base
 
 # set some default ENV values for the image
 ENV RAILS_LOG_TO_STDOUT 1
@@ -22,10 +22,9 @@ RUN apt-get install -y --no-install-recommends \
   redis-tools
 
 # install bundler
-ARG BUNDLER_VERSION=2.5.3
+ARG BUNDLER_VERSION=4.0.4
 RUN gem install bundler -v "${BUNDLER_VERSION}"
 RUN gem install annotate
 RUN bundle config set force_ruby_platform true
 
 COPY . $APP_HOME
-

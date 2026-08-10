@@ -21,12 +21,12 @@ module CommandTower
 
         add_composer :url,
           allowed: String,
-          default: ENV.fetch("command_tower_URL", "http://localhost"),
+          default: ENV.fetch("COMMAND_TOWER_FRONTEND_URL", "http://localhost"),
           desc: "When composing SSO's or verification URL's, this is the URL for the application"
 
         add_composer :port,
           allowed: [String, NilClass],
-          default: ENV.fetch("command_tower_PORT", nil),
+          default: ENV.fetch("COMMAND_TOWER_FRONTEND_PORT", nil),
           desc: "When composing SSO's or verification URL's, this is the PORT for the application"
 
         add_composer :composed_url,

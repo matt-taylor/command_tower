@@ -1,34 +1,34 @@
-# Authorization via RBAC
+# Authorization (RBAC)
 
-Some users will have different permissions than others. RBAC based permissions can be route specific or controller specific.
+Authorization establishes **permission** after authentication. Failed authorization returns `403`.
 
-## Integrate Authorization
-Authorization requires routes that have a `current_user` defined. Current User is defined by default via [Authentication](authentication.md) but you can also define it yourself.
+Host `rbac_groups.yml` is a **required integration step** (Step 4) — see [Host integration](host_integration_guide.md#step-4--host-rbac-required). Without it, authenticated Me/Auth calls fail closed.
 
-After defining the role, set the before_action
+## Quick usage (host provisional)
+
 ```ruby
-# Order is important here
-# authorize_user! depends on current_user being defined via authentication
+# Order matters: authorize depends on current_user from authentication
 before_action :authenticate_user!
 before_action :authorize_user!
 ```
 
-## Default roles
-Default roles are statically defined in [lib/command_tower/authorization/default.yml](../lib/command_tower/authorization/default.yml).
+Engine controllers use `authorize_request!` instead (AuthorizationBoundary) and return the application envelope on failure.
 
-Roles include:
-- `owner`: Users defined as owner will have access to every route regardless of required roles
-- `admin`: Users defined as admin will have full access to all actions on the `AdminController`. This includes the ability to change settings on other users and impersonate other users
-- `admin-without-impersonation`: Users defined with this role can hit all AdminController actions except `impersonate`
-- `admin-read-only`: Users defined with this role can only hit the index page for viewing existing users and their settings.
+## Roles and host mapping
 
+Engine defaults in `lib/command_tower/authorization/default.yml`:
 
-## Creating new Roles
+- `owner` — full access (`entities: true`)
+- `admin` — `admin_messaging_announcements` only
 
-### From Config File
-Additional roles can be defined via a separate yml file that you can define from the [Initializer Config option](initializing.md) `CommandTower.config.authorization.rbac_group_path` (By default we will look in `config/rbac_groups.yml`)
+Hosts **must** map Me/Auth controller actions in host YAML (`CommandTower.config.authorization.rbac_group_path`, default `config/rbac_groups.yml`) or authorization fails closed. See dummy host `rails_app/config/rbac_groups.yml` (`member` entities).
 
-### From Code File
-Defining code files is only recommended if you require complex user authorization. For more details check out the Spec tests
-[/spec/lib/command_tower/authorization/role_spec.rb](/spec/lib/command_tower/authorization/role_spec.rb) (`with custom authorized entity`)
+## Where to go next
 
+| Need | Guide |
+|------|-------|
+| Full RBAC entities, roles, failure shapes | [Authentication & authorization guide](authentication_authorization_guide.md) |
+| Authentication | [Authentication](authentication.md) |
+| Install / config | [Initializing](initializing.md) |
+
+Back to [README](../README.md).

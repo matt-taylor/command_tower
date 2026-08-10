@@ -2,6 +2,7 @@
 
 require "command_tower/configuration/login/strategy/plain_text/lockable"
 require "command_tower/configuration/login/strategy/plain_text/email_verify"
+require "command_tower/configuration/login/strategy/plain_text/password_reset"
 
 module CommandTower
   module Configuration
@@ -25,6 +26,11 @@ module CommandTower
               desc: "Enable and change Email Verification for User/Password Login strategy.",
               composer_class: EmailVerify,
               enable_attr: :enable
+
+            add_composer_blocking :password_reset,
+              desc: "Enable and change Password Reset for User/Password Login strategy.",
+              composer_class: PasswordReset,
+              enable_attr: :enabled
 
             add_composer :password_length_max,
               desc: "Max Length for Password",

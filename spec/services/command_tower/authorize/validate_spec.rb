@@ -10,12 +10,13 @@ RSpec.describe CommandTower::Authorize::Validate do
   after do
     CommandTower::Authorization::Role.roles_reset!
     CommandTower::Authorization::Entity.entities_reset!
+    CommandTower::Authorization.default_defined!
   end
 
   describe ".call" do
     subject(:call) { described_class.call(user:, controller:, method:) }
-    let(:controller) { CommandTower::AdminController }
-    let(:method) { "show" }
+    let(:controller) { CommandTower::Admin::Messaging::AnnouncementsController }
+    let(:method) { "create" }
 
     let(:user) { create(:user, :role_admin) }
 
@@ -29,8 +30,8 @@ RSpec.describe CommandTower::Authorize::Validate do
     end
 
     context "with action that does not require authorization" do
-      let(:controller) { CommandTower::UsernameController }
-      let(:method) { "username_availability" }
+      let(:controller) { CommandTower::Auth::LogoutController }
+      let(:method) { "create" }
 
       it "succeeds" do
         expect(call.success?).to be(true)

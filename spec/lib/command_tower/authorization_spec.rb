@@ -11,6 +11,7 @@ RSpec.describe CommandTower::Authorization do
     described_class::Role.roles_reset!
     described_class::Entity.entities_reset!
     described_class.mapped_controllers_reset!
+    described_class.default_defined!
   end
 
   describe ".provision_rbac_default!" do
@@ -26,25 +27,21 @@ RSpec.describe CommandTower::Authorization do
       expect(described_class::Role.roles["admin"]).to be_present
     end
 
-    it "creates admin-without-impersonation" do
+    it "does not create retired legacy admin roles" do
       subject
-      expect(described_class::Role.roles["admin-without-impersonation"]).to be_present
-    end
-
-    it "creates admin-read-only" do
-      subject
-      expect(described_class::Role.roles["admin-read-only"]).to be_present
+      expect(described_class::Role.roles["admin-without-impersonation"]).to be_nil
+      expect(described_class::Role.roles["admin-read-only"]).to be_nil
     end
   end
 
   describe ".add_mapping!" do
     subject(:add_mapping) { described_class.add_mapping!(role:) }
 
-    let(:only_entity) { build(:entity, :additional_methods, :only)}
-    let(:except_entity) { build(:entity, :additional_methods, :except)}
+    let(:only_entity) { build(:authorization_entity, :additional_methods, :only)}
+    let(:except_entity) { build(:authorization_entity, :additional_methods, :except)}
 
-    let(:only_role) { build(:role, entities: only_entity) }
-    let(:except_role) { build(:role, entities: except_entity) }
+    let(:only_role) { build(:authorization_role, entities: only_entity) }
+    let(:except_role) { build(:authorization_role, entities: except_entity) }
 
     context "when except_role" do
       let(:role) { except_role }
@@ -71,10 +68,10 @@ RSpec.describe CommandTower::Authorization do
     context "with multiple roles on same controller" do
       before { described_class.add_mapping!(role: only_role) }
 
-      let(:full_entity) { build(:entity, :additional_methods, controller:)}
-      let(:only_entity) { build(:entity, :additional_methods, :only, controller:)}
+      let(:full_entity) { build(:authorization_entity, :additional_methods, controller:)}
+      let(:only_entity) { build(:authorization_entity, :additional_methods, :only, controller:)}
       let(:controller) { Class.new(::CommandTower::ApplicationController) }
-      let(:role) { build(:role, entities: [full_entity, only_entity]) }
+      let(:role) { build(:authorization_role, entities: [full_entity, only_entity]) }
 
       it "includes all methods on controller" do
         expect { add_mapping }.to_not raise_error
