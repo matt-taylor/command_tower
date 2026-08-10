@@ -1,51 +1,37 @@
 # Authentication
 
-Authentication is backed by JWT tokens. There are many options to the JWT configuration. Check out [Initializing](initializing.md) to understand where to find the config.
+Authentication establishes **who** is calling. Failed authentication returns `401`.
 
-## Usage
-Authenticating a User is straightforward via Rails actions. In each controller that you want to authenticate, add the following
+## Engine controllers
+
+Modern engine controllers use the authentication boundary:
+
+```ruby
+# via AuthenticationBoundary
+before_action :authenticate_request!
+```
+
+Token extraction checks `Authorization: Bearer {token}` first, then an HttpOnly cookie when cookie auth is enabled. Failures use the application envelope (`{ data, meta, errors }`).
+
+## Host controllers (provisional)
+
 ```ruby
 before_action :authenticate_user!
+# current_user is set when authentication succeeds
 ```
 
-This action will authenticate the user and set `current_user` to the user passed in via the JWT token.
+Failure JSON may still use older `Schema::Error` shapes — not identical to the engine envelope. See the deep guide.
 
-Every API request will return a header that indicates when the current token will expire:
-```
-X-Authentication-Expire="2025-01-16 04:36:29 +0000"
-```
+Configure secrets and JWT options during install — see [Initializing](initializing.md).
 
-### Header Token
-For routes that expect user authentication, the client must set the Header value:
-```
-Authentication="Bearer: {token value}"
-```
+## Where to go next
 
-### How to get the JWT Token
-Each Authentication strategy has a `/login` route. This route will return to you a valid token that can then be used for subsequent API Calls
+| Need | Guide |
+|------|-------|
+| Full authn + RBAC design | [Authentication & authorization guide](authentication_authorization_guide.md) |
+| Cookie / CORS / CSRF | [Cookie authentication](cookie_authentication_guide.md) |
+| HTTP contracts | [API reference](api_reference.md) |
+| Session invalidation | [Sensitive changes](sensitive_routes.md) |
+| Authorization (RBAC) | [Authorization](authorization.md) |
 
-### Regenerate JWT token on the fly
-The token can be refreshed in any API call when provided an existing JWT token. To refresh the token, simply add the following Header value to a request:
-
-```
-X-Authentication-Reset=true
-```
-
-The request will return the following header:
-```
-X-Authentication-Reset="Regenerated token"
-```
-
-**Use Caution** when regenerating the JWT token. While nothing is stopping you from regenerating on every request, it will add some latency that is may not be needed.
-
-## Encryption
-JWT tokens are encrypted at rest. The Encryption key is delivered as the `hmac_secret` in the configuration or set as an ENV variable `SECRET_KEY_BASE`.
-
-## Default JWT Payload's
-JWT can hold a payload. This payload is encrypted and is sent as part of the encrypted header
-
-### Expires At
-The `expires_at` payload is a timestamp for when the token must be regenerated. After the token "expires", the User will no longer be authenticated to actions and a `401` is returned.
-
-### Verifier Token
-Each user has a `verifier_token` encrypted into the payload of the JWT token. This token must match what is on the User's Record. If it does not match, a 403 is returned. A User or and Admin can reset the versifier token any time they want to log out of all sessions.
+Back to [README](../README.md).
