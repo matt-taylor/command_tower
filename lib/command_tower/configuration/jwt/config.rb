@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "command_tower/configuration/jwt/cookie/config"
+
 module CommandTower
   module Configuration
     module Jwt
@@ -16,6 +18,11 @@ module CommandTower
           allowed: String,
           default: ENV.fetch("SECRET_KEY_BASE","Thi$IsASeccretIwi::CH&ang3"),
           default_shown: "ENV.fetch(\"SECRET_KEY_BASE\",\"Thi$IsASeccretIwi::CH&ang3\")"
+
+        add_composer_blocking :cookie,
+          desc: "HttpOnly cookie configuration for JWT token persistence",
+          composer_class: Cookie::Config,
+          enable_attr: :enabled
       end
     end
   end

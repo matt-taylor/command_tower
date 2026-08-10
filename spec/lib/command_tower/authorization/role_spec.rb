@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
 RSpec.describe CommandTower::Authorization::Role do
-  let(:entity) { build(:entity)}
-  let(:entity_only) { build(:entity, :only)}
-  let(:entity_except) { build(:entity, :except)}
+  let(:entity) { build(:authorization_entity)}
+  let(:entity_only) { build(:authorization_entity, :only)}
+  let(:entity_except) { build(:authorization_entity, :except)}
   let(:params) do
     {
       name:,
@@ -26,6 +26,9 @@ RSpec.describe CommandTower::Authorization::Role do
 
     after do
       described_class.roles_reset!
+      CommandTower::Authorization::Entity.entities_reset!
+      CommandTower::Authorization.mapped_controllers_reset!
+      CommandTower::Authorization.default_defined!
     end
 
     context "with duplicate role" do
@@ -56,7 +59,7 @@ RSpec.describe CommandTower::Authorization::Role do
     end
 
     context "with customized entity" do
-      let(:attributes) { attributes_for(:entity, :only) }
+      let(:attributes) { attributes_for(:authorization_entity, :only) }
       let(:entity) { custom_entity.new(**attributes) }
       let(:custom_entity) do
         Class.new(CommandTower::Authorization::Entity) do
@@ -79,7 +82,7 @@ RSpec.describe CommandTower::Authorization::Role do
     end
 
     context "with entity array" do
-      let(:entities) { build_list(:entity, count) }
+      let(:entities) { build_list(:authorization_entity, count) }
       let(:count) { 5 }
 
       it "creates role with multiple entities" do
@@ -133,7 +136,7 @@ RSpec.describe CommandTower::Authorization::Role do
     end
 
     context "when entity returns false" do
-      let(:entity) { build(:entity, :only) }
+      let(:entity) { build(:authorization_entity, :only) }
 
       it "returns authorized false" do
         is_expected.to include(
@@ -149,7 +152,7 @@ RSpec.describe CommandTower::Authorization::Role do
     end
 
     context "when entity returns true" do
-      let(:entity) { build(:entity, :only) }
+      let(:entity) { build(:authorization_entity, :only) }
       let(:method) { entity.only.sample }
 
       it "returns authorized true" do
@@ -162,7 +165,7 @@ RSpec.describe CommandTower::Authorization::Role do
       end
 
       context "with full controller" do
-        let(:entity) { build(:entity) }
+        let(:entity) { build(:authorization_entity) }
         let(:method) { "method does not matter"}
 
         it "returns authorized true" do
@@ -176,7 +179,7 @@ RSpec.describe CommandTower::Authorization::Role do
       end
 
       context "with custom authorized entity" do
-        let(:attributes) { attributes_for(:entity, :only) }
+        let(:attributes) { attributes_for(:authorization_entity, :only) }
         let(:entity) { custom_entity.new(**attributes) }
         let(:custom_entity) do
           Class.new(CommandTower::Authorization::Entity) do
@@ -226,7 +229,7 @@ RSpec.describe CommandTower::Authorization::Role do
     let(:method_name) { Faker::Lorem.unique.word }
 
     context "with only" do
-      let(:entity) { build(:entity, :only, method_name:, additional_methods:) }
+      let(:entity) { build(:authorization_entity, :only, method_name:, additional_methods:) }
 
       it "contains only" do
         expect(guards[entity.controller]).to eq([method_name].map(&:to_sym))
@@ -234,7 +237,7 @@ RSpec.describe CommandTower::Authorization::Role do
     end
 
     context "with except" do
-      let!(:entity) { build(:entity, :except, method_name:, additional_methods:) }
+      let!(:entity) { build(:authorization_entity, :except, method_name:, additional_methods:) }
 
       # This test is incredibly flaky due to Faker and unique words
       # Skip this for now and come back later
@@ -248,7 +251,7 @@ RSpec.describe CommandTower::Authorization::Role do
     end
 
     context "when entire controller is added" do
-      let(:entity) { build(:entity,  additional_methods:) }
+      let(:entity) { build(:authorization_entity,  additional_methods:) }
 
       it "contains all methods" do
         expect(guards[entity.controller].sort).to eq(entity.controller.instance_methods(false).sort)

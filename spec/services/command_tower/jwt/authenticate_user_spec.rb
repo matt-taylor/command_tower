@@ -49,7 +49,7 @@ RSpec.describe CommandTower::Jwt::AuthenticateUser do
     end
 
     context "with invalid user" do
-      let(:token) { CommandTower::Jwt::Encode.(payload:).token }
+      let(:token) { CommandTower::Jwt::Encode.(payload:) }
       let(:user_id) { 123456 }
 
       it "fails" do
@@ -74,7 +74,7 @@ RSpec.describe CommandTower::Jwt::AuthenticateUser do
     end
 
     context "with generated_at failure" do
-      let(:token) { CommandTower::Jwt::Encode.(payload:).token }
+      let(:token) { CommandTower::Jwt::Encode.(payload:) }
 
       context "with missing param" do
         let(:generated_at) { nil }
@@ -114,7 +114,7 @@ RSpec.describe CommandTower::Jwt::AuthenticateUser do
     end
 
     context "with mismatched verifier token" do
-      let(:token) { CommandTower::Jwt::Encode.(payload:).token }
+      let(:token) { CommandTower::Jwt::Encode.(payload:) }
       let(:verifier_token) { SecureRandom.alphanumeric(32) }
 
       it "fails" do
@@ -128,6 +128,10 @@ RSpec.describe CommandTower::Jwt::AuthenticateUser do
 
     context "with email_verify" do
       before { CommandTower.config.login.plain_text.email_verify.enable = email_verify }
+
+      # The gate is global config; leaving it off strands every later example that
+      # depends on email verification (including the Engine route gate).
+      after { CommandTower.config.login.plain_text.email_verify.enable = true }
 
       context "when enabled" do
         let(:email_verify) { true }
@@ -155,6 +159,14 @@ RSpec.describe CommandTower::Jwt::AuthenticateUser do
 
             it "fails" do
               expect(call.failure?).to be(true)
+            end
+
+            it "sets status to 412" do
+              expect(call.status).to eq(412)
+            end
+
+            it "sets failure message" do
+              expect(call.msg).to eq("Email must be verified to continue")
             end
 
             it "sets user" do

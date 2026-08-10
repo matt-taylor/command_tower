@@ -1,26 +1,74 @@
-<p>Hello <%= @user.full_name %>!</p>
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f7fa; padding: 40px 20px;">
+  <tr>
+    <td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); overflow: hidden;">
+        <!-- Header -->
+        <tr>
+          <td style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px 30px; text-align: center;">
+            <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 600; letter-spacing: -0.5px;">
+              Welcome to <%= CommandTower.config.app.communication_name %>!
+            </h1>
+          </td>
+        </tr>
 
-<p>
-  Welcome to <%= CommandTower.config.app.communication_name %>.
-</p>
-<p>
-  Please provide the following verification code to confirm your email address.
-</p>
-<p></p>
-<p></p>
-<p>
-  <h1>
-    <%= @code %>
-  </h1>
-</p>
+        <!-- Content -->
+        <tr>
+          <td style="padding: 40px 30px;">
+            <p style="margin: 0 0 20px 0; color: #4a5568; font-size: 16px; line-height: 1.6;">
+              Hello <strong style="color: #2d3748;"><%= @user.full_name %></strong>,
+            </p>
 
-<p></p>
-<p></p>
+            <p style="margin: 0 0 30px 0; color: #4a5568; font-size: 16px; line-height: 1.6;">
+              Thank you for joining us! To complete your registration and verify your email address, please use the verification code below:
+            </p>
 
-<p>
-  Best wishes, <%= CommandTower.config.app.communication_name %> team
-</p>
-<p></p>
-<p></p>
+            <!-- Verification Code Box -->
+            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 30px 0;">
+              <tr>
+                <td align="center" style="padding: 30px; background: linear-gradient(135deg, #f6f8fb 0%, #e9ecef 100%); border-radius: 8px; border: 2px dashed #cbd5e0;">
+                  <div style="font-size: 36px; font-weight: 700; letter-spacing: 8px; color: #667eea; font-family: 'Courier New', monospace; text-align: center;">
+                    <%= @code %>
+                  </div>
+                  <p style="margin: 15px 0 0 0; color: #718096; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">
+                    Verification Code
+                  </p>
+                </td>
+              </tr>
+            </table>
 
-Visit us at <a href="<%= CommandTower.config.app.composed_url %>" target="_blank"><%= CommandTower.config.app.composed_url %></a>
+            <p style="margin: 30px 0 20px 0; color: #718096; font-size: 14px; line-height: 1.6;">
+              <strong style="color: #4a5568;">Important:</strong> This code will expire in <%= CommandTower.config.login.plain_text.email_verify.verify_code_link_valid_for.inspect %>. If you didn't request this code, please ignore this email.
+            </p>
+          </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td style="padding: 30px; background-color: #f7fafc; border-top: 1px solid #e2e8f0;">
+            <p style="margin: 0 0 15px 0; color: #4a5568; font-size: 14px; text-align: center; line-height: 1.6;">
+              Best regards,<br>
+              <strong style="color: #667eea;"><%= CommandTower.config.app.communication_name %> Team</strong>
+            </p>
+
+            <p style="margin: 0; text-align: center;">
+              <a href="<%= CommandTower.config.app.composed_url %>" target="_blank" style="color: #667eea; text-decoration: none; font-size: 14px; font-weight: 500;">
+                Visit <%= CommandTower.config.app.communication_name %>
+              </a>
+            </p>
+          </td>
+        </tr>
+      </table>
+
+      <!-- Bottom Spacing -->
+      <table width="600" cellpadding="0" cellspacing="0" border="0" style="margin-top: 20px;">
+        <tr>
+          <td style="text-align: center; padding: 20px 0;">
+            <p style="margin: 0; color: #a0aec0; font-size: 12px; line-height: 1.5;">
+              This is an automated message. Please do not reply to this email.
+            </p>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>

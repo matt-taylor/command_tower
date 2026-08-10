@@ -1,5 +1,8 @@
-RSpec.describe CommandTower::Auth::PlainTextController, type: :controller do
+# frozen_string_literal: true
 
+# Service-layer journey: register → login → email verify.
+# HTTP contracts live under spec/requests/command_tower/auth/ (register, login, email_verification).
+RSpec.describe "Plain text auth email verification journey" do
   before do
     # create some users in the system
     10.times { create(:user) }
@@ -20,80 +23,55 @@ RSpec.describe CommandTower::Auth::PlainTextController, type: :controller do
 
   it "create user, login, and validate email" do
     ####
-    # Create a new user with missing params
-    post(:create_post, params: {})
-    expect(response.status).to eq(400)
+    # Register
+    missing = CommandTower::Services::Auth::Register.call(**user_params.transform_values { nil })
+    expect(missing.failure?).to be(true)
+
+    created = CommandTower::Services::Auth::Register.call(**user_params)
+    expect(created.success?).to be(true)
 
     ####
-    # Create a new user
-    post(:create_post, params: user_params)
-    expect(response.status).to eq(201)
-
-    ####
-    # Request Email verification without signing in
-    post(:email_verify_resend_post)
-    expect(response.status).to eq(401)
-
-    ####
-    # Sign in via username and validate token
-    post(:login_post, params: { username: fake_user.username, password: })
-    expect(response.status).to eq(201)
-    login_post_response = JSON.parse(response.body)
-    login_post_jwt_username = CommandTower::Jwt::AuthenticateUser.(token: login_post_response["token"], bypass_email_validation: true)
+    # Sign in via username
+    login_username = CommandTower::Services::Auth::PlainText::Login.call(
+      identifier: fake_user.username,
+      password:
+    )
+    expect(login_username.success?).to be(true)
+    login_post_jwt_username = CommandTower::Jwt::AuthenticateUser.(
+      token: login_username.data[:token],
+      bypass_email_validation: true
+    )
     expect(login_post_jwt_username.success?).to be(true)
 
     ####
-    # Sign in via email and validate token
-    post(:login_post, params: { email: fake_user.email, password: })
-    expect(response.status).to eq(201)
-    login_post_response = JSON.parse(response.body)
-    login_post_jwt_email = CommandTower::Jwt::AuthenticateUser.(token: login_post_response["token"], bypass_email_validation: true)
+    # Sign in via email
+    login_email = CommandTower::Services::Auth::PlainText::Login.call(
+      identifier: fake_user.email,
+      password:
+    )
+    expect(login_email.success?).to be(true)
+    login_post_jwt_email = CommandTower::Jwt::AuthenticateUser.(
+      token: login_email.data[:token],
+      bypass_email_validation: true
+    )
     expect(login_post_jwt_email.success?).to be(true)
 
     ####
     # Users returned via username login and email login are the same
     expect(login_post_jwt_email.user).to eq(login_post_jwt_username.user)
-
-    # They are the same so reduce for simplicity
-    login_post_jwt = login_post_jwt_email
-
-    ####
-    # Request Email verification without passing in JWT token
-    unset_jwt_token!
-    user = login_post_jwt.user
-    post(:email_verify_resend_post)
-    expect(response.status).to eq(401)
+    user = login_post_jwt_email.user
+    expect(user.email_validated).to be(false)
 
     ####
-    # Request Email verification and pass in JWT token
-    user = login_post_jwt.user
-    set_jwt_token!(user:, token: login_post_response["token"])
-    post(:email_verify_resend_post)
-    expect(response.status).to eq(201)
+    # Request email verification
+    send_result = CommandTower::Services::Auth::EmailVerification::Send.call(user:)
+    expect(send_result.success?).to be(true)
 
     ####
-    # Sets the Expire Time on the header
-    expire_time = response.headers[CommandTower::ApplicationController::AUTHENTICATION_EXPIRE_HEADER.downcase]
-    expect(Time.parse(expire_time)).to be_within(1.second).of(CommandTower.config.jwt.ttl.from_now)
-
-    unset_jwt_token!
-
-    ####
-    # Validate Email using code fails after unsetting jwt token
+    # Validate email using code
     code = UserSecret.last.secret
-    post(:email_verify_post, params: { code: })
-    expect(response.status).to eq(401)
-
-    ####
-    # Validate Email using code fails after unsetting jwt token
-    set_jwt_token!(user:, token: login_post_response["token"])
-    code = UserSecret.last.secret
-    post(:email_verify_post, params: { code: })
-    expect(response.status).to eq(201)
-
-    ####
-    # Sets the Expire Time on the header
-    expire_time = response.headers[CommandTower::ApplicationController::AUTHENTICATION_EXPIRE_HEADER.downcase]
-    expect(Time.parse(expire_time)).to be_within(1.second).of(CommandTower.config.jwt.ttl.from_now)
+    verify_result = CommandTower::Services::Auth::EmailVerification::Verify.call(user:, code:)
+    expect(verify_result.success?).to be(true)
+    expect(user.reload.email_validated).to be(true)
   end
 end
