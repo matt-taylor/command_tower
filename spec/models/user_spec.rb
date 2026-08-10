@@ -26,7 +26,6 @@
 #
 #  index_users_on_username  (username) UNIQUE
 #
-require 'rails_helper'
 
 RSpec.describe User, type: :model do
 end

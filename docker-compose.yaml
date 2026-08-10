@@ -19,7 +19,7 @@ x-common-environment: &common-environment
   SESSION_TIMEOUT_WARNING: "true"
   RAILS_MAX_THREADS: "1"
   REDIS_URL: "redis://redis"
-  BUNDLER_RAILS_VERSION: "~> 7"
+  BUNDLER_RAILS_VERSION: "~> 8"
 
 services:
   mysql:

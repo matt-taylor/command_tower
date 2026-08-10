@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
 FactoryBot.define do
-  factory :role, class: CommandTower::Authorization::Role do
-    name { Faker::Lorem.word }
+  factory :authorization_role, class: CommandTower::Authorization::Role do
+    name { "role_#{SecureRandom.hex(4)}" }
     allow_everything { false }
-    description { Faker::Lorem.sentence }
-    entities { build_list(:entity, rand(1..10)) }
+    description { "Authorization role for tests" }
+    entities { build_list(:authorization_entity, 2) }
 
     trait :allow_everything do
       allow_everything { true }
@@ -17,7 +17,6 @@ FactoryBot.define do
         with_create_role { true }
       end
     end
-
 
     initialize_with do
       if defined?(with_create_role)

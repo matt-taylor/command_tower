@@ -972,7 +972,7 @@ RSpec.describe CommandTower::ServiceBase do
 
       context "with inheritance" do
         let(:metadata) { super().merge({ is_a: [ActionController::Base, ActionController::API] }) }
-        let(:value) { CommandTower::AdminController }
+        let(:value) { CommandTower::ProtectedFixtureController }
         let(:failure) { 5 }
 
         include_examples "sharable validations"

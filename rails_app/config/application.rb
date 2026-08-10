@@ -28,5 +28,16 @@ module RailsApp
 
     # Don't generate system test files.
     config.generators.system_tests = nil
+
+    # FoundationProof lifecycle proof classes (dummy host only; not CommandTower runtime).
+    config.autoload_paths << Rails.root.join("app/workflows")
+    config.autoload_paths << Rails.root.join("app/services")
+    config.autoload_paths << Rails.root.join("app/deserializers")
+    config.autoload_paths << Rails.root.join("app/serializers")
+    config.eager_load_paths << Rails.root.join("app/workflows")
+    config.eager_load_paths << Rails.root.join("app/services")
+    config.eager_load_paths << Rails.root.join("app/deserializers")
+    config.eager_load_paths << Rails.root.join("app/serializers")
   end
 end
+

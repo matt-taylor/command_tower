@@ -1,8 +1,20 @@
 Description:
-    Creates a default Configuration file for the ApiBaseEngine.
+    Creates a default CommandTower initializer and optionally mounts the engine.
+
+    Prefer the productized install entry point for new hosts:
+
+        bin/rails command_tower:install
+        bin/rails db:migrate
+
+    This generator is still available for initializer/route scaffolding alone.
 
 Example:
     bin/rails generate command_tower:configure
+    bin/rails generate command_tower:configure --skip-routes
+    bin/rails generate command_tower:configure --force
 
-    This will create:
+    This will create (unless already present without --force):
         config/initializers/command_tower.rb
+
+    And mount (unless --skip-routes or already mounted):
+        mount CommandTower::Engine => "/"
