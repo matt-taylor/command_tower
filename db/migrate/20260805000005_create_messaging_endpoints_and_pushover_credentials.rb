@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-class CreateMessagingEndpointsAndPushoverCredentials < ActiveRecord::Migration[8.1]
+class CreateMessagingEndpointsAndPushoverCredentials < ActiveRecord::Migration[7.2]
   def change
     create_table :messaging_endpoints do |t|
       t.timestamps

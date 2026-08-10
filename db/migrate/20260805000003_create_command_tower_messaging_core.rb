@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-class CreateCommandTowerMessagingCore < ActiveRecord::Migration[8.1]
+class CreateCommandTowerMessagingCore < ActiveRecord::Migration[7.2]
   def change
     create_table :messaging_communications do |t|
       t.timestamps

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-class CreateMessagingNotificationPreferences < ActiveRecord::Migration[8.1]
+class CreateMessagingNotificationPreferences < ActiveRecord::Migration[7.2]
   def change
     create_table :messaging_notification_preferences do |t|
       t.timestamps

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-class CreateCommandTowerUserSecrets < ActiveRecord::Migration[8.1]
+class CreateCommandTowerUserSecrets < ActiveRecord::Migration[7.2]
   def change
     create_table :user_secrets do |t|
       t.references :user, null: false, foreign_key: true
