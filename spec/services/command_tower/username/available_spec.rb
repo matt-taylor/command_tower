@@ -46,8 +46,8 @@ RSpec.describe CommandTower::Username::Available do
     end
 
     context "when username is available" do
-      it "succeeds" do
-        expect(call.success?).to eq(true)
+      it "returns an availability value object" do
+        expect(call).to be_a(described_class::Availability)
       end
 
       it "sets available" do
@@ -57,8 +57,8 @@ RSpec.describe CommandTower::Username::Available do
       context "when username is not valid" do
         let(:username) { "Invalid.invalid" }
 
-        it "succeeds" do
-          expect(call.success?).to eq(true)
+        it "returns an availability value object" do
+          expect(call).to be_a(described_class::Availability)
         end
 
         it "sets valid to false" do
@@ -79,8 +79,8 @@ RSpec.describe CommandTower::Username::Available do
         CommandTower.config.username.realtime_username_check.local_cache.clear
       end
 
-      it "succeeds" do
-        expect(call.success?).to eq(true)
+      it "returns an availability value object" do
+        expect(call).to be_a(described_class::Availability)
       end
 
       it "sets available to false" do
@@ -91,8 +91,8 @@ RSpec.describe CommandTower::Username::Available do
         let!(:user) { create(:user, username:) }
         let(:username) { "Invalid.invalid" }
 
-        it "succeeds" do
-          expect(call.success?).to eq(true)
+        it "returns an availability value object" do
+          expect(call).to be_a(described_class::Availability)
         end
 
         it "sets valid to false" do

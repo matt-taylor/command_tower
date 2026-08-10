@@ -18,11 +18,10 @@ abort("The Rails environment is running in <#{Rails.env}> mode!") unless Rails.e
 require "rspec/rails"
 
 # Add additional requires below this line. Rails is not loaded until this point!
-require "pry"
 require "null_logger"
-require "rails-controller-testing"
-Rails::Controller::Testing.install
 require "database_cleaner/active_record"
+
+Dir[File.expand_path("support/**/*.rb", __dir__)].sort.each { |file| require file }
 
 begin
   ActiveRecord::Migration.maintain_test_schema!
@@ -48,6 +47,7 @@ RSpec.configure do |config|
       CommandTower::Authorization::Role.roles_reset!
       CommandTower::Authorization::Entity.entities_reset!
       CommandTower::Authorization.mapped_controllers_reset!
+      CommandTower::Authorization.default_defined!
     else
       example.run
     end
@@ -64,6 +64,7 @@ RSpec.configure do |config|
       CommandTower::Authorization::Role.roles_reset!
       CommandTower::Authorization::Entity.entities_reset!
       CommandTower::Authorization.mapped_controllers_reset!
+      CommandTower::Authorization.default_defined!
     else
       example.run
     end

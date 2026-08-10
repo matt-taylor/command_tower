@@ -23,10 +23,10 @@ module CommandTower
     # @return [Hash] Hash with :token, :cookie_value, and :cookie_header
     def get_login_token_and_cookie(user:, password:)
       # Authenticate user first
-      result = CommandTower::LoginStrategy::PlainText::Login.(identifier: user.username, password:)
-      raise "Login failed: #{result.msg}" unless result.success?
+      result = CommandTower::Services::Auth::PlainText::Login.(identifier: user.username, password:)
+      raise "Login failed: #{result.errors.map(&:code).join(", ")}" unless result.success?
 
-      token = result.token
+      token = result.data[:token]
       expires_at = CommandTower.config.jwt.ttl.from_now.to_time.to_s
       cookie_name = CommandTower.config.jwt.cookie.name
 

@@ -7,7 +7,6 @@ gem "puma"
 
 gem "sprockets-rails"
 
-gem "pry"
 
 # Start debugger with binding.b [https://github.com/ruby/debug]
 # gem "debug", ">= 1.0.0"
@@ -24,7 +23,6 @@ gem "database_cleaner-active_record"
 gem "factory_bot"
 gem "faker"
 gem "null-logger", require: "null_logger"
-gem "rails-controller-testing"
 gem "simplecov", require: false
 gem "timecop"
 

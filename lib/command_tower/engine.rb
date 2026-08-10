@@ -10,13 +10,16 @@ module CommandTower
     # Run after Rails loads the initializes and environment files
     # Ensures User has already set their desired config before we lock this down
     config.after_initialize do
-      db_rake_task = defined?(Rake) && (Rake.application.top_level_tasks.any? { |task| task =~ /db:|install:migrations/ } rescue nil)
+      db_rake_task = defined?(Rake) && (Rake.application.top_level_tasks.any? { |task|
+        task =~ /db:|install:migrations|command_tower:install\z|command_tower:doctor/
+      } rescue nil)
       if db_rake_task
         # Because we call the Database during configuration setup,
         # We want to skip calling the DB during a DB migration
       else
         # ensure defaults are instantiated and all variables are assigned
         CommandTower.config.class_composer_assign_defaults!(children: true)
+        CommandTower::CredentialResolution::SmtpActionMailerBridge.apply!
 
         unless Rails.env.test?
           # Now that we can confirm all variables are defined, freeze all objects an their children

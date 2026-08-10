@@ -26,7 +26,7 @@ module CommandTower
         ]
 
         ATTRIBUTES_CHANGE_EXECUTE = Proc.new do |key, value|
-          CommandTower::UserAttributes::Modify.assign!
+          CommandTower::UserAttributes::Mutate.assign!
         end
 
         ATTRIBUTES_SHOWN_EXECUTE = Proc.new do |key, value|

@@ -1,14 +1,14 @@
 # frozen_string_literal: true
 
 FactoryBot.define do
-  factory :entity, class: CommandTower::Authorization::Entity do
+  factory :authorization_entity, class: CommandTower::Authorization::Entity do
     controller { Class.new(::CommandTower::ApplicationController) }
-    name { Faker::Lorem.unique.word }
+    sequence(:name) { |n| "entity_#{n}" }
 
     transient do
       additional_method_count { 5 }
       additional_methods { [] }
-      method_name { Faker::Lorem.unique.word }
+      method_name { "action_#{SecureRandom.hex(3)}" }
     end
 
     trait :only do
@@ -20,7 +20,9 @@ FactoryBot.define do
     end
 
     trait :additional_methods do
-      additional_methods { Faker::Lorem.unique.words(number: additional_method_count) }
+      additional_methods do
+        Array.new(additional_method_count) { |i| "extra_#{i}_#{SecureRandom.hex(2)}" }
+      end
     end
 
     initialize_with do

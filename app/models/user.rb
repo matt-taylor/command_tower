@@ -40,7 +40,10 @@ class User < CommandTower::ApplicationRecord
   # Serialize the roles column to check for inclusion easily
   serialize :roles, coder: JSON, type: Array
 
-  has_many :messages
+  has_many :messaging_communications,
+           class_name: "CommandTower::Messaging::Communication",
+           inverse_of: :user,
+           foreign_key: :user_id
 
   def full_name
     "#{first_name} #{last_name}"

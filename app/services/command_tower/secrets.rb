@@ -5,6 +5,7 @@ module CommandTower::Secrets
     EMAIL_VERIFICIATION = :email_verification,
     PASSWORD_RESET = :password_reset,
     SSO = :sso,
+    PHONE_VERIFICATION = :phone_verification,
   ]
 
   ALLOWED_SECRET_TYPES = [

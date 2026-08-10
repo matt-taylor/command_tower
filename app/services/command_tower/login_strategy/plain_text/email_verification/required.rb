@@ -1,20 +1,22 @@
 # frozen_string_literal: true
 
 module CommandTower::LoginStrategy::PlainText::EmailVerification
-  class Required < CommandTower::ServiceBase
-    validate :user, is_a: User, required: true
-
-    def call
-      context.reqired_after_time = reqired_after_time
-      context.required = Time.now > reqired_after_time
+  # Decides whether an unverified account has passed its grace period and must
+  # verify before it can keep authenticating.
+  class Required
+    Requirement = Data.define(:required, :required_after_time) do
+      def required? = required
     end
 
-    def reqired_after_time
-      user.created_at + email_verify.verify_email_required_within
+    def self.call(user:)
+      required_after_time = user.created_at + email_verify.verify_email_required_within
+
+      Requirement.new(required: Time.now > required_after_time, required_after_time:)
     end
 
-    def email_verify
+    def self.email_verify
       CommandTower.config.login.plain_text.email_verify
     end
+    private_class_method :email_verify
   end
 end

@@ -1,14 +1,23 @@
 # CommandTower Models
 
+Core models live in the root / CommandTower namespaces and support authentication, authorization, and messaging ledger associations.
+
+Back to [README](../README.md).
+
 ## User
-The User model is the core model behind any user facing application.
 
-Through the User model, this engine is able to provide base competencies such as [Authentication via JWT](authentication.md) and [Authorization via RBAC](authorization.md).
+`User` is the primary identity model for host applications.
 
+It underpins [Authentication](authentication.md) and [Authorization](authorization.md), and participates in messaging via associations such as `messaging_communications`.
 
-Sometimes, you may want to add additional methods to the User Class. While we advocate for adding additional logic into Service objects, this may be unavoidable. To ReOpen the User Class simple do the following
+Sensitive session invalidation uses the user’s verifier token — see [Sensitive changes](sensitive_routes.md).
+
+### Reopening `User` in the host
+
+Prefer services/workflows for new behavior. When you must reopen the class:
+
 ```ruby
-require CommandTower::Engine.root.join("app","models", "user.rb")
+require CommandTower::Engine.root.join("app", "models", "user.rb")
 
 class User
   def self.my_class_method; end
@@ -17,14 +26,26 @@ end
 ```
 
 ## UserSecret
-This model helps back some of the validation components. For example, it backs the Email validation via PlaintText authentication. Additionally, it backs the core competency of [Sensitive Changes](sensitive_routes.md).
 
-Sometimes, you may want to add additional methods to the UserSecret Class. While we advocate for adding additional logic into Service objects, this may be unavoidable. To ReOpen the UserSecret Class simple do the following
+`UserSecret` backs validation and recovery-related secrets (for example plain-text email validation flows). It complements [Sensitive changes](sensitive_routes.md).
+
+### Reopening `UserSecret` in the host
+
 ```ruby
-require CommandTower::Engine.root.join("app","models", "user_secret.rb")
+require CommandTower::Engine.root.join("app", "models", "user_secret.rb")
 
 class UserSecret
   def self.my_class_method; end
   def my_instance_method; end
 end
 ```
+
+## Messaging models
+
+Engine-owned messaging persistence (communications, endpoints, preferences, and related records) ships with CommandTower. Prefer platform services/workflows for mutations; do not dual-author schema in the host ([Initializing](initializing.md)).
+
+## Related
+
+- [Architecture](architecture.md)
+- [Sensitive changes](sensitive_routes.md)
+- [Testing](testing.md) — shared factories for CT-owned models

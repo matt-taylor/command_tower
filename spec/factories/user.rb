@@ -2,24 +2,22 @@
 
 FactoryBot.define do
   factory :user do
-    first_name { Faker::Name.first_name }
-    last_name  { Faker::Name.last_name }
-    password { Faker::Alphanumeric.alpha(number: 20) }
+    sequence(:email) { |n| "user#{n}-#{SecureRandom.hex(4)}@example.com" }
+    sequence(:username) { |n| "user#{n}#{SecureRandom.hex(3)}" }
+    first_name { "Test" }
+    last_name { "User" }
+    password { "password1234" }
     password_confirmation { password }
     email_validated { true }
-    email { Faker::Internet.email }
     roles { [] }
-    username do
-      min = CommandTower.config.username.username_length_min
-      max = CommandTower.config.username.username_length_max
-
-      Faker::Lorem.characters(number: rand(min...max))
-    end
-
-    created_at { Time.now }
 
     trait :unvalidated_email do
       email_validated { false }
+    end
+
+    # Alias for hosts that previously used this name (e.g. DoubleFloor Me).
+    trait :unverified do
+      unvalidated_email
     end
 
     trait :verifier_token do
@@ -31,7 +29,7 @@ FactoryBot.define do
     end
 
     trait :admin_roles do
-      roles { ["admin-without-impersonation", "admin-read-only", "admin"] }
+      roles { ["admin"] }
     end
 
     trait :role_admin do
@@ -40,6 +38,16 @@ FactoryBot.define do
 
     trait :role_owner do
       roles { ["owner"] }
+    end
+
+    trait :without_phone do
+      phone_number { nil }
+      phone_number_validated { false }
+    end
+
+    trait :with_unverified_phone do
+      sequence(:phone_number) { |n| format("+1415555%04d", n % 10_000) }
+      phone_number_validated { false }
     end
   end
 end

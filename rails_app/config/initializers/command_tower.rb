@@ -171,18 +171,27 @@ CommandTower.configure do |config|
     # plain_text_config.email_length_min = 8
   # end
 
+  # ################################
+  # #                              #
+  # #########  Credentials  ########
+  # #                              #
+  # ################################
+  # ## Deployment provider credentials (Credential Resolution). Typed per provider.
+  # ## Prefer config.credentials.* over ENV for explicit host supply.
+  # ## Default ENV fallback: TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN, GMAIL_USER_NAME / GMAIL_PASSWORD.
+  # ## Optional: CommandTower.credential_resolver = MyResolver.new
+
+  # config.credentials.twilio.account_sid = ""
+  # config.credentials.twilio.auth_token = ""
+  # config.credentials.smtp.user_name = ""
+  # config.credentials.smtp.password = ""
+
   # ###########################
   # #                         #
   # #########  Email  #########
   # #                         #
   # ###########################
-  # ## Email configuration for the app sending Native Rails emails via ActiveMailer. Config changed here will update the Rails Configuration as well
-
-  # User Name for email. Defaults to ENV['GMAIL_USER_NAME']: [String]
-  # config.email.user_name = ENV["GMAIL_USER_NAME"]
-
-  # Password for email. Defaults to ENV['GMAIL_PASSWORD']. For more info on how to get this for GMAIL...https://support.google.com/accounts/answer/185833: [String]
-  # config.email.password = ENV["GMAIL_PASSWORD"]
+  # ## Non-secret Email / SMTP behavior (ActionMailer knobs). SMTP credentials: config.credentials.smtp.* above.
 
   # config.email.port = 587
 
@@ -199,6 +208,21 @@ CommandTower.configure do |config|
   # config.email.perform_deliveries = true
 
   # config.email.raise_delivery_errors = true
+
+  # ##############################
+  # #                            #
+  # ########  Messaging  #########
+  # #                            #
+  # ##############################
+  # ## Platform testing/development execution override (NOT provider configuration).
+  # ## When true, Execution selects FakeAdapter for any channel.
+  # ## Separate from config.messaging.sms.adapter / pushover.adapter.
+  # ## Precedence: injected executor → allow_fake_adapter → normal provider selection.
+  # ## Default false (fail-closed). Do not enable in production.
+  # config.messaging.allow_fake_adapter = false
+
+  # config.messaging.sms.adapter = "disabled"
+  # config.messaging.pushover.adapter = "disabled"
 
   # ##############################
   # #                            #

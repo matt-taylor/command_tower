@@ -1,31 +1,37 @@
 # frozen_string_literal: true
 
-RSpec.describe CommandTower::Auth::PlainTextController, type: :controller do
+# Journey coverage through the service layer (register → send → validate → reset → login).
+# HTTP contracts: spec/requests/command_tower/auth/password_reset_*_spec.rb
+# Edge cases (unknown email, invalid/expired token): service + request unit specs.
+RSpec.describe "Plain text password reset journey" do
   let(:fake_user) { build(:user, password:) }
   let(:password) { Faker::Alphanumeric.alpha(number: 20) }
   let(:new_password) { Faker::Alphanumeric.alpha(number: 20) }
   let(:email) { fake_user.email }
+  let(:non_enumerating_message) { CommandTower::Services::Auth::PasswordReset::Send::SENT_MESSAGE }
 
-  it "complete password reset workflow" do
-    ####
-    # Create a new user
-    post(:create_post, params: {
+  def register!
+    result = CommandTower::Services::Auth::Register.call(
       first_name: fake_user.first_name,
       last_name: fake_user.last_name,
       username: fake_user.username,
       email: fake_user.email,
       password: password,
-      password_confirmation: password,
-    })
-    expect(response.status).to eq(201)
+      password_confirmation: password
+    )
+    expect(result).to be_success
 
-    user = User.find_by(email: email)
+    result.data[:user]
+  end
+
+  it "complete password reset workflow" do
+    user = register!
 
     ####
     # Request password reset email
-    post(:password_forgot_send_post, params: { email: email })
-    expect(response.status).to eq(200)
-    expect(JSON.parse(response.body)["message"]).to eq("If an account exists with that email, a password reset link has been sent.")
+    send_result = CommandTower::Services::Auth::PasswordReset::Send.call(email:)
+    expect(send_result).to be_success
+    expect(send_result.data[:message]).to eq(non_enumerating_message)
 
     ####
     # Verify email was sent
@@ -39,124 +45,40 @@ RSpec.describe CommandTower::Auth::PlainTextController, type: :controller do
 
     ####
     # Validate the token
-    post(:password_forgot_validate_post, params: { token: token })
-    expect(response.status).to eq(200)
-    validate_response = JSON.parse(response.body)
-    expect(validate_response["valid"]).to eq(true)
-    expect(validate_response["expires_at"]).to be_present
+    validate_result = CommandTower::Services::Auth::PasswordReset::Validate.call(token:)
+    expect(validate_result).to be_success
+    expect(validate_result.data[:valid]).to eq(true)
+    expect(validate_result.data[:expires_at]).to be_present
 
     ####
     # Reset password with token
-    post(:password_forgot_reset_post, params: {
-      token: token,
+    reset_result = CommandTower::Services::Auth::PasswordReset::Reset.call(
+      token:,
       password: new_password,
-      password_confirmation: new_password,
-    })
-    expect(response.status).to eq(200)
-    expect(JSON.parse(response.body)["message"]).to eq("Password has been successfully reset")
+      password_confirmation: new_password
+    )
+    expect(reset_result).to be_success
+    expect(reset_result.data[:message]).to eq(CommandTower::Services::Auth::PasswordReset::Reset::RESET_MESSAGE)
 
     ####
     # Verify old password no longer works
-    post(:login_post, params: {
-      identifier: email,
-      password: password,
-    })
-    expect(response.status).to eq(401)
+    old_login = CommandTower::Services::Auth::PlainText::Login.call(identifier: email, password: password)
+    expect(old_login).to be_failure
 
     ####
     # Verify new password works
-    post(:login_post, params: {
-      identifier: email,
-      password: new_password,
-    })
-    expect(response.status).to eq(201)
-    login_response = JSON.parse(response.body)
-    expect(login_response["token"]).to be_present
+    new_login = CommandTower::Services::Auth::PlainText::Login.call(identifier: email, password: new_password)
+    expect(new_login).to be_success
+    expect(new_login.data[:token]).to be_present
 
     ####
     # Verify token cannot be reused
-    post(:password_forgot_reset_post, params: {
-      token: token,
+    reuse_result = CommandTower::Services::Auth::PasswordReset::Reset.call(
+      token:,
       password: "another_password123",
-      password_confirmation: "another_password123",
-    })
-    expect(response.status).to eq(401)
-    expect(JSON.parse(response.body)["message"]).to eq("Invalid token")
-  end
-
-  it "password reset with non-existent email returns 200" do
-    ####
-    # Request password reset for non-existent email
-    post(:password_forgot_send_post, params: { email: "nonexistent@example.com" })
-    expect(response.status).to eq(200)
-    expect(JSON.parse(response.body)["message"]).to eq("If an account exists with that email, a password reset link has been sent.")
-
-    ####
-    # Verify no email was sent
-    expect(ActionMailer::Base.deliveries.count).to eq(0)
-  end
-
-  it "password reset with invalid token returns 401" do
-    ####
-    # Try to validate invalid token
-    post(:password_forgot_validate_post, params: { token: "invalid_token_12345" })
-    expect(response.status).to eq(401)
-    expect(JSON.parse(response.body)["message"]).to eq("Invalid token")
-
-    ####
-    # Try to reset password with invalid token
-    post(:password_forgot_reset_post, params: {
-      token: "invalid_token_12345",
-      password: "new_password123",
-      password_confirmation: "new_password123",
-    })
-    expect(response.status).to eq(401)
-    expect(JSON.parse(response.body)["message"]).to eq("Invalid token")
-  end
-
-  it "password reset with expired token returns 401" do
-    ####
-    # Create a user
-    post(:create_post, params: {
-      first_name: fake_user.first_name,
-      last_name: fake_user.last_name,
-      username: fake_user.username,
-      email: fake_user.email,
-      password: password,
-      password_confirmation: password,
-    })
-    user = User.find_by(email: email)
-
-    ####
-    # Generate an expired token
-    result = CommandTower::Secrets::Generate.(
-      user: user,
-      secret_length: 32,
-      reason: CommandTower::Secrets::PASSWORD_RESET,
-      use_count_max: 1,
-      death_time: 1.hour,
-      type: CommandTower::Secrets::ALPHANUMERIC,
-      cleanse: false
+      password_confirmation: "another_password123"
     )
-    expired_token = result.secret
-    # Manually expire the token by setting death_time in the past
-    user_secret = UserSecret.find_by(secret: expired_token)
-    user_secret.update!(death_time: 1.hour.ago)
-
-    ####
-    # Try to validate expired token
-    post(:password_forgot_validate_post, params: { token: expired_token })
-    expect(response.status).to eq(401)
-    expect(JSON.parse(response.body)["message"]).to eq("Invalid token")
-
-    ####
-    # Try to reset password with expired token
-    post(:password_forgot_reset_post, params: {
-      token: expired_token,
-      password: "new_password123",
-      password_confirmation: "new_password123",
-    })
-    expect(response.status).to eq(401)
-    expect(JSON.parse(response.body)["message"]).to eq("Invalid token")
+    expect(reuse_result).to be_failure
+    expect(reuse_result.errors.first).to be_a(CommandTower::Errors::Auth::PasswordResetInvalidTokenError)
   end
 end

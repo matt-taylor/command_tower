@@ -2,21 +2,12 @@
 
 module CommandTower
   module Auth
-    class LogoutController < ::CommandTower::ApplicationController
-      include CommandTower::SchemaHelper
+    class LogoutController < CommandTower::ApplicationController
+      include CommandTower::Api::ApplicationResponseRenderer
 
-      # POST /auth/logout
-      # Logs out the current browser session by clearing the JWT cookie
-      # Does NOT modify verifier_token (browser-only logout)
-      def logout_post
-        # Clear cookie if cookie auth is enabled
-        CommandTower::Jwt::AuthorizationHelper.clear_token(response)
-
-        schema = CommandTower::Schema::Auth::Logout::Response.new(
-          message: "Logged out"
-        )
-        status = 200
-        schema_succesful!(status:, schema:)
+      def create
+        result = CommandTower::Workflows::Auth::LogoutWorkflow.call
+        render_application_result(result)
       end
     end
   end

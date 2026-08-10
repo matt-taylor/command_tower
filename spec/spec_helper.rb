@@ -1,12 +1,13 @@
 # frozen_string_literal: true
 
 require "factory_bot"
+require "command_tower/testing"
 
 RSpec.configure do |config|
   config.include FactoryBot::Syntax::Methods
 
   config.before(:suite) do
-    FactoryBot.find_definitions
+    CommandTower::Testing.install!
   end
 
   config.expect_with :rspec do |expectations|

@@ -1,21 +1,20 @@
 # frozen_string_literal: true
 
 module CommandTower::Jwt
-  class LoginCreate < CommandTower::ServiceBase
-    on_argument_validation :fail_early
+  class LoginCreate
+    IssuedToken = Data.define(:token)
 
-    validate :user, is_a: User, required: true
-
-    def call
-      context.token = Encode.(payload:).token
+    def self.call(user:)
+      IssuedToken.new(token: Encode.(payload: payload_for(user)))
     end
 
-    def payload
+    def self.payload_for(user)
       {
         generated_at: Time.now.to_i,
         user_id: user.id,
         verifier_token: user.retreive_verifier_token!,
       }
     end
+    private_class_method :payload_for
   end
 end

@@ -7,11 +7,11 @@ RSpec.describe CommandTower::Jwt::LoginCreate do
     subject(:call) { described_class.(user:) }
 
     it do
-      expect(call.success?).to eq true
+      expect(call.token).to be_a String
     end
 
-    it do
-      expect(call.token).to be_a String
+    it "issues a token carrying the user identity" do
+      expect(CommandTower::Jwt::Decode.(token: call.token).payload[:user_id]).to eq(user.id)
     end
 
     it "sets verifier token" do
@@ -22,10 +22,6 @@ RSpec.describe CommandTower::Jwt::LoginCreate do
 
     context "when verify token is present" do
       let(:user) { create(:user, :verifier_token) }
-
-      it do
-        expect(call.success?).to eq true
-      end
 
       it do
         expect(call.token).to be_a String

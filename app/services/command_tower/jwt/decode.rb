@@ -3,19 +3,38 @@
 require "jwt"
 
 module CommandTower::Jwt
-  class Decode < CommandTower::ServiceBase
+  class Decode
+    ALGORITHM = "HS256"
 
-    validate :token, is_a: String, required: true, sensitive: true
+    DecodeOutcome = Data.define(:success, :payload, :headers, :msg) do
+      def self.success(payload:, headers: nil)
+        new(success: true, payload:, headers:, msg: nil)
+      end
 
-    def call
-      data = JWT.decode(token, CommandTower.config.jwt.hmac_secret, true, { algorithm: "HS256" })
+      def self.failure(msg:)
+        new(success: false, payload: nil, headers: nil, msg:)
+      end
 
-      context.payload = data[0].with_indifferent_access
-      context.headers = data[1].with_indifferent_access
+      def success?
+        success
+      end
+
+      def failure?
+        !success
+      end
+    end
+
+    def self.call(token:)
+      data = JWT.decode(token, CommandTower.config.jwt.hmac_secret, true, { algorithm: ALGORITHM })
+
+      DecodeOutcome.success(
+        payload: data[0].with_indifferent_access,
+        headers: data[1].with_indifferent_access
+      )
     rescue JWT::DecodeError => e
-      log_error(e)
+      Rails.logger.warn { "[#{name}] Failed to decode token: #{e.class.name}" }
 
-      context.fail!(msg: "Invalid Token")
+      DecodeOutcome.failure(msg: "Invalid Token")
     end
   end
 end

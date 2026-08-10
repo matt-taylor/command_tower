@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
-# Test ApplicationController's authenticate_user! method through UserController
-# UserController inherits from ApplicationController and uses authenticate_user! as a before_action
+# Test ApplicationController's authenticate_user! method through ProtectedFixtureController.
+# ProtectedFixtureController inherits from ApplicationController and uses authenticate_user! as a before_action.
 # This allows us to test the authentication header parsing edge cases
-RSpec.describe CommandTower::UserController, type: :controller do
+RSpec.describe CommandTower::ProtectedFixtureController, :protected_fixture, type: :controller do
   let(:response_body) { JSON.parse(response.body) }
-  let(:user) { create(:user) }
+  let(:user) { create(:user, :role_admin) }
 
   describe "ApplicationController#authenticate_user! with malformed Authorization headers" do
     subject(:authenticate) { get(:show) }
