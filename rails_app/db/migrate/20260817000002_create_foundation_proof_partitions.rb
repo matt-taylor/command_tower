@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-class CreateFoundationProofPartitions < ActiveRecord::Migration[7.1]
+class CreateFoundationProofPartitions < ActiveRecord::Migration[7.2]
   def change
     create_table :foundation_proof_partitions do |t|
       t.string :slug, null: false
