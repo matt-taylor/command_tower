@@ -6,7 +6,7 @@ RSpec.describe CommandTower::Install::Doctor do
   after { FileUtils.rm_rf(host_root) }
 
   let(:with_installed_migrations) do
-    lambda do |count: 5|
+    lambda do |count: CommandTower::Install::Baseline::ENGINE_MIGRATION_BASENAMES.size|
       migrate = File.join(host_root, "db", "migrate")
       FileUtils.mkdir_p(migrate)
       count.times do |i|

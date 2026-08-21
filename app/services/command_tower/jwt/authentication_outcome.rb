@@ -4,10 +4,10 @@ module CommandTower::Jwt
   # Narrow value object describing the result of AuthenticateUser only.
   # This is deliberately not a platform result type — do not reuse it elsewhere.
   class AuthenticationOutcome
-    attr_reader :user, :expires_at, :generated_token, :status, :msg
+    attr_reader :user, :expires_at, :generated_token, :status, :msg, :impersonation_session_id
 
-    def self.success(user:, expires_at:, generated_token: nil)
-      new(success: true, user:, expires_at:, generated_token:)
+    def self.success(user:, expires_at:, generated_token: nil, impersonation_session_id: nil)
+      new(success: true, user:, expires_at:, generated_token:, impersonation_session_id:)
     end
 
     # `user` is carried on failures so callers can distinguish a known user who
@@ -16,13 +16,14 @@ module CommandTower::Jwt
       new(success: false, msg:, status:, user:)
     end
 
-    def initialize(success:, user: nil, expires_at: nil, generated_token: nil, status: nil, msg: nil)
+    def initialize(success:, user: nil, expires_at: nil, generated_token: nil, status: nil, msg: nil, impersonation_session_id: nil)
       @success = success
       @user = user
       @expires_at = expires_at
       @generated_token = generated_token
       @status = status
       @msg = msg
+      @impersonation_session_id = impersonation_session_id
     end
 
     def success?

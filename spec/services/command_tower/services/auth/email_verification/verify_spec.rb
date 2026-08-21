@@ -31,6 +31,21 @@ RSpec.describe CommandTower::Services::Auth::EmailVerification::Verify do
 
         expect(user.reload.email_validated).to be(true)
       end
+
+      context "when persisting the audit fact" do
+        before do
+          CommandTower.with_execution(source: :http, user_id: user.id, effective_user_id: user.id) do
+            described_class.call(user: user, code: code)
+          end
+        end
+
+        let(:row) { CommandTower::Audit::Event.find_by!(action: "email_verified") }
+
+        it "persists email_verified" do
+          expect(row.affected_user_id).to eq(user.id)
+          expect(row.attribution_mode).to eq("self_service")
+        end
+      end
     end
 
     context "with an incorrect code" do
@@ -49,6 +64,10 @@ RSpec.describe CommandTower::Services::Auth::EmailVerification::Verify do
       it "short circuits idempotently" do
         expect(result).to be_success
         expect(result.data[:message]).to eq("Email is already verified")
+      end
+
+      it "does not persist email_verified" do
+        expect { result }.not_to change { CommandTower::Audit::Event.where(action: "email_verified").count }
       end
     end
   end

@@ -19,6 +19,8 @@ class CommandTower::ServiceBase
   include Interactor
   include CommandTower::ServiceLogging
   include CommandTower::ArgumentValidation
+  include CommandTower::Execution::ContextAccess
+  include CommandTower::Logging::LifecycleDeclaration
 
   ON_ARGUMENT_VALIDATION = [
     DEFAULT_VALIDATION = :raise,
@@ -27,11 +29,10 @@ class CommandTower::ServiceBase
   ]
 
   def self.inherited(subclass)
-    # Add the base logging to the subclass.
-    # Since this is done at inheritance time it should always be the first and last hook to run.
-    subclass.around(:service_base_logging)
     subclass.around(:internal_validate)
     subclass.after(:sanitize_params)
+    # Registered last so Interactor treats it as the outermost around (reverse nest).
+    subclass.around(:command_tower_lifecycle)
   end
 
   def validate!
@@ -39,51 +40,37 @@ class CommandTower::ServiceBase
   end
 
   def internal_validate(interactor)
-    # call validate that is overridden from child
-    begin
-      validate! # custom validations defined on the child class
-      run_validations! # ArgumentValidation's based on defined settings on child
-    rescue StandardError => e
-      log_error("Error during validation. #{e.message}")
-      raise
-    end
-
-    # call interactor
+    validate! # custom validations defined on the child class
+    run_validations! # ArgumentValidation's based on defined settings on child
     interactor.call
   end
 
-  def service_base_logging(interactor)
-    beginning_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+  def command_tower_lifecycle(interactor)
+    CommandTower::Events.around_execution(layer: :service, subject: self.class.name, log_lifecycle: self.class.lifecycle_loggable?) do |record|
+      begin
+        interactor.call
+        record[:result] = :success
+      rescue ::Interactor::Failure
+        record[:result] = :failure
+        record[:error_codes] = service_lifecycle_error_codes
+        record[:log_level] = service_lifecycle_log_level
+        raise
+      rescue ::Exception => e
+        record[:unexpected] = e
+        raise
+      end
+    end
+  end
 
-    # Pre processing stats
-    log_info("Start")
+  def service_lifecycle_error_codes
+    error = context.application_error if context.respond_to?(:application_error)
+    return [error.code] if error.respond_to?(:code)
 
-    # Run the job!
-    interactor.call
+    nil
+  end
 
-    # Set status for use in ensure block
-    status = :complete
-
-  # Capture Interactor::Failure for logging purposes, then reraise
-  rescue ::Interactor::Failure
-    # set status for use in ensure block
-    status = :failure
-
-    # Re-raise to let the core Interactor handle this
-    raise
-  # Capture exception explicitly for logging purposes, then reraise
-  rescue ::Exception => e
-    # set status for use in ensure block
-    status = :error
-
-    # Log error
-    log_error("Error #{e.class.name}")
-
-    raise
-  ensure
-    # Always log how long it took along with a status
-    finished_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-    elapsed = ((finished_time - beginning_time) * 1000).round(2)
-    log_info("Finished with [#{status}]...elapsed #{elapsed}ms")
+  def service_lifecycle_log_level
+    error = context.application_error if context.respond_to?(:application_error)
+    error.log_level if error.respond_to?(:log_level)
   end
 end

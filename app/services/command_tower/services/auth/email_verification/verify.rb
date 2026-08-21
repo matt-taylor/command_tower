@@ -31,6 +31,8 @@ module CommandTower
 
             user.update(email_validated: true)
 
+            audit(:email_verified, subject: user, affected_user: user, changes: {})
+
             context.user = user.reload
             context.message = VERIFIED_MESSAGE
           end

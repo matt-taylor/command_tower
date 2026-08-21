@@ -5,6 +5,7 @@ module CommandTower
     module Me
       class UpdateNameWorkflow < CommandTower::Workflows::ApplicationWorkflow
         retry_strategy :none
+        impersonation_activity!
 
         def call(current_user:, first_name:, last_name:, auth_context: nil)
           update_result = CommandTower::Services::Me::UpdateName.call(

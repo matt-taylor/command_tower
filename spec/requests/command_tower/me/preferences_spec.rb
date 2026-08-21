@@ -191,5 +191,25 @@ RSpec.describe "Me preferences", :with_rbac_setup, :messaging_preferences, type:
 
       expect(response).to have_http_status(:unprocessable_entity)
     end
+
+    context "when the caller is impersonating the member" do
+      let(:operator) { create(:user, :role_impersonation_operator) }
+      let!(:session) { create(:impersonation_session, actor: operator, target: user) }
+      let(:headers) { authenticate_impersonation_with_bearer!(operator, session) }
+      let!(:idle_before) { session.idle_expires_at }
+
+      before do
+        patch "/me/preferences/booking_confirmation",
+          headers: headers,
+          params: { preferences: { inboxEnabled: false, channels: { email: false } } },
+          as: :json
+      end
+
+      it { expect(response).to have_http_status(:ok) }
+
+      it "does not refresh idle" do
+        expect(session.reload.idle_expires_at.to_i).to eq(idle_before.to_i)
+      end
+    end
   end
 end

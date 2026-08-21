@@ -1,4 +1,8 @@
+# frozen_string_literal: true
+
 ENV["RAILS_ENV"] = "test"
+
+require File.expand_path("../rails_app/lib/foundation_proof/admin_scope", __dir__)
 
 if ENV["CI"] == "true"
   require "simplecov"
@@ -90,5 +94,6 @@ RSpec.configure do |config|
   config.after(:each) do
     DatabaseCleaner.clean
     Timecop.return
+    CommandTower::Current.reset
   end
 end

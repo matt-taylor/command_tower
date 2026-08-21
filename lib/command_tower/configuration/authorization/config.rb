@@ -18,6 +18,12 @@ module CommandTower
           allowed: String,
           dynamic_default: ->(_) { Rails.root.join("config","rbac_groups.yml").to_s },
           default_shown: "Rails.root.join(\"config\",\"rbac_groups.yml\")"
+
+        add_composer :default_membership_role,
+          desc: "Optional role name assigned atomically when a user is registered. " \
+                "nil disables assignment. Must exist in the composed RBAC graph at boot.",
+          allowed: [String, NilClass],
+          default: nil
       end
     end
   end

@@ -14,6 +14,11 @@ module CommandTower
                    data: result.payload,
                    meta: result.meta
                  )
+               elsif result.deferred?
+                 CommandTower::Serializers::Application::EnvelopeSerializer.success(
+                   data: result.payload,
+                   meta: result.meta.merge(reason: result.reason, retry_after: result.retry_after)
+                 )
                else
                  serialized_errors = result.errors.map do |error|
                    CommandTower::Serializers::Application::ErrorEntrySerializer.serialize(error)

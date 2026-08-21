@@ -4,16 +4,8 @@ RSpec.describe CommandTower::Messaging::Contract::Communications, "structured lo
   let(:user) { create(:user) }
   let(:log_entries) { [] }
 
-  let(:parse_json) do
-    lambda do |message|
-      JSON.parse(message)
-    rescue JSON::ParserError
-      nil
-    end
-  end
-
   let(:messaging_entries) do
-    log_entries.select { |entry| entry[:payload]&.dig("component") == "command_tower.messaging" }
+    log_entries.select { |entry| entry[:payload]["event"].to_s.start_with?("command_tower.messaging") }
   end
 
   let(:events) do
@@ -26,16 +18,16 @@ RSpec.describe CommandTower::Messaging::Contract::Communications, "structured lo
 
   before do
     CommandTower::Current.reset
-    %i[info warn error].each do |level|
+    %i[debug info warn error].each do |level|
       allow(Rails.logger).to receive(level) do |message|
-        log_entries << { level:, payload: parse_json.call(message) }
+        next unless message.is_a?(Hash)
+
+        log_entries << { level:, payload: message.stringify_keys }
       end
     end
   end
 
-  after do
-    CommandTower::Current.reset
-  end
+  after { CommandTower::Current.reset }
 
   describe ".find" do
     let!(:communication) do
@@ -51,14 +43,16 @@ RSpec.describe CommandTower::Messaging::Contract::Communications, "structured lo
     context "when the find succeeds" do
       before { described_class.find(request) }
 
-      let(:succeeded_payload) { payloads.find { |p| p["event"].end_with?(".succeeded") } }
+      let(:succeeded_payload) do
+        payloads.find { |payload| payload["event"].end_with?(".succeeded") }
+      end
 
       it "emits started and succeeded events" do
         expect(events).to eq(
           %w[
-            messaging.communications.find.started
-            messaging.communications.find.succeeded
-          ],
+            command_tower.messaging.communications.find.started
+            command_tower.messaging.communications.find.succeeded
+          ]
         )
       end
 
@@ -66,25 +60,23 @@ RSpec.describe CommandTower::Messaging::Contract::Communications, "structured lo
         expect(succeeded_payload).to include(
           "communication_id" => communication.id,
           "recipient_id" => user.id,
-          "duration_ms" => a_kind_of(Integer),
+          "duration_ms" => a_kind_of(Integer)
         )
       end
 
-      it "includes required envelope fields" do
+      it "includes Execution Context identifiers" do
         payloads.each do |payload|
           expect(payload).to include(
-            "component" => "command_tower.messaging",
             "correlation_id" => a_string_matching(/.+/),
             "messaging_operation" => "communications.find",
-            "event" => a_string_matching(/\Amessaging\.communications\.find\./),
-            "level" => "info",
-            "timestamp" => a_string_matching(/.+/),
+            "event" => a_string_matching(/\Acommand_tower\.messaging\.communications\.find\./)
           )
         end
+        expect(messaging_entries.map { |entry| entry[:level] }.uniq).to eq([:info])
       end
 
       it "uses a stable generated correlation_id within the call" do
-        expect(payloads.map { |p| p["correlation_id"] }.uniq.size).to eq(1)
+        expect(payloads.map { |payload| payload["correlation_id"] }.uniq.size).to eq(1)
       end
     end
 
@@ -95,7 +87,7 @@ RSpec.describe CommandTower::Messaging::Contract::Communications, "structured lo
       end
 
       it "propagates the ambient request_id as correlation_id" do
-        expect(payloads.map { |p| p["correlation_id"] }).to all(eq("req_test_123"))
+        expect(payloads.map { |payload| payload["correlation_id"] }).to all(eq("req_test_123"))
       end
     end
 
@@ -113,11 +105,13 @@ RSpec.describe CommandTower::Messaging::Contract::Communications, "structured lo
       rescue CommandTower::Messaging::Contract::NotFoundError
       end
 
-      let(:failed_payload) { payloads.find { |p| p["event"].end_with?(".failed") } }
+      let(:failed_payload) { payloads.find { |payload| payload["event"].end_with?(".failed") } }
+
+      let(:failed_entry) { messaging_entries.find { |entry| entry[:payload]["event"].end_with?(".failed") } }
 
       it "emits failed at warn and re-raises NotFoundError" do
         expect { invoke }.to raise_error(CommandTower::Messaging::Contract::NotFoundError)
-        expect(failed_payload["level"]).to eq("warn")
+        expect(failed_entry[:level]).to eq(:warn)
         expect(failed_payload["error_code"]).to eq("not_found")
       end
     end
@@ -125,6 +119,7 @@ RSpec.describe CommandTower::Messaging::Contract::Communications, "structured lo
     context "when the logger raises" do
       before do
         allow(Rails.logger).to receive(:info).and_raise(StandardError, "logger down")
+        allow(Rails.logger).to receive(:error)
       end
 
       subject(:result) { described_class.find(request) }

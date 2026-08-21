@@ -11,7 +11,7 @@ module CommandTower
             channel_key:,
             reason_codes:
           )
-            Contract::Observability::StructuredLogger.info(
+            Contract::Observability::Publisher.info(
               event: "messaging.planner.readiness_excluded",
               correlation_id: Contract::Observability::Correlation.resolve,
               messaging_operation: "planner",

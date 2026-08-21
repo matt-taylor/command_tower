@@ -36,6 +36,7 @@ module CommandTower
 
               locked.update!(phone_number_validated: true)
               CommandTower::Secrets::Cleanse.(user: locked, reason: CommandTower::Secrets::PHONE_VERIFICATION)
+              audit(:phone_verified, subject: locked, affected_user: locked, changes: {})
               context.user = locked.reload
               context.already_verified = false
             end

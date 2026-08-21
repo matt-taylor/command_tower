@@ -30,6 +30,17 @@ module CommandTower
               )
             end
 
+            audit(
+              :announcement_produced,
+              changes: {},
+              metadata: {
+                campaign_identity: input.campaign_identity,
+                notification_type_key: input.notification_type_key,
+                recipient_count: user_ids.size
+              },
+              attribution_mode: :admin_direct
+            )
+
             success(
               payload: CommandTower::Serializers::Admin::Messaging::AnnouncementResponseSerializer.serialize(
                 result.data

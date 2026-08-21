@@ -15,6 +15,8 @@ module CommandTower
 
             if login_result.success?
               data = login_result.data
+              CommandTower::Execution::IdentityEnrichment.from_user(data[:user])
+              audit(:session_created, affected_user: data[:user], changes: {})
               return success(
                 payload: CommandTower::Serializers::Auth::LoginResponseSerializer.serialize(
                   user: data[:user],

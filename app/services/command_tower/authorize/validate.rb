@@ -46,21 +46,24 @@ module CommandTower::Authorize
 
     def call
       unless authorization_required?
-        log_info("controller:#{controller}; method:#{action} -- No Authorization required")
+        log_debug("controller:#{controller}; method:#{action} -- No Authorization required")
         return Decision.authorized(user:, authorization_required: false, msg: NOT_REQUIRED_MSG)
       end
 
       # At this point we know authorization on the route is required
       # Iterate through the users roles to find a matching role that allows authorization
       # If at least 1 of the users roles passes validation, we can allow access to the path
-      log_info("User Roles: #{user.roles}")
+      log_debug("User Roles: #{user.roles}")
       authorized = user_role_objects.any? do |_role_name, role_object|
         result = role_object.authorized?(controller:, method: action, user:)
-        log_info("Role:#{result[:role]};Authorized:[#{result[:authorized]}];Reason:[#{result[:reason]}]")
+        log_debug("Role:#{result[:role]};Authorized:[#{result[:authorized]}];Reason:[#{result[:reason]}]")
         result[:authorized] == true
       end
 
-      return Decision.denied(user:, msg: UNAUTHORIZED_MSG) unless authorized
+      unless authorized
+        log_warn("controller:#{controller}; method:#{action} -- #{UNAUTHORIZED_MSG}")
+        return Decision.denied(user:, msg: UNAUTHORIZED_MSG)
+      end
 
       Decision.authorized(user:, authorization_required: true, msg: AUTHORIZED_MSG)
     end

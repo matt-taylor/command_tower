@@ -42,11 +42,23 @@ module CommandTower
 
             begin
               user.reset_verifier_token!
+              CommandTower::Services::Impersonation::TerminateOpenSessions.call(
+                actor_user_id: user.id,
+                reason: "revoked"
+              )
             rescue StandardError => e
               log_error("Failed to rotate session verifier for user [#{user.id}]: #{e.class}")
               infrastructure_failure = true
               raise ActiveRecord::Rollback
             end
+
+            audit(
+              :password_changed,
+              subject: user,
+              affected_user: user,
+              changes: {},
+              metadata: { mechanism: "authenticated_change" }
+            )
           end
 
           if persistence_errors

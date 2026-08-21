@@ -15,31 +15,64 @@ module CommandTower
             )
           end
 
-          register_result = CommandTower::Services::Auth::Register.call(
-            first_name: input.first_name,
-            last_name: input.last_name,
-            username: input.username,
-            email: input.email,
-            password: input.password,
-            password_confirmation: input.password_confirmation
-          )
+          user = nil
+          result = transaction do
+            register_result = CommandTower::Services::Auth::Register.call(
+              first_name: input.first_name,
+              last_name: input.last_name,
+              username: input.username,
+              email: input.email,
+              password: input.password,
+              password_confirmation: input.password_confirmation
+            )
+            unless register_result.success?
+              fail_transaction!(
+                failure(
+                  errors: register_result.errors,
+                  http_status: SignupErrorStatus.http_status_for(register_result.errors.first)
+                )
+              )
+            end
 
-          unless register_result.success?
-            return failure(
-              errors: register_result.errors,
-              http_status: SignupErrorStatus.http_status_for(register_result.errors.first)
+            user = register_result.data[:user]
+            audit(
+              :user_registered,
+              subject: user,
+              affected_user: user,
+              changes: {}
+            )
+
+            roles_before = Array(user.roles)
+            assign_result = CommandTower::Services::Auth::AssignDefaultMembershipRole.call(user: user)
+            unless assign_result.success?
+              fail_transaction!(
+                failure(
+                  errors: assign_result.errors,
+                  http_status: :unprocessable_entity
+                )
+              )
+            end
+
+            user = assign_result.data[:user]
+            assigned_roles = Array(user.roles) - roles_before
+            if assigned_roles.any?
+              audit(
+                :role_assigned,
+                subject: user,
+                affected_user: user,
+                changes: { role: { from: nil, to: assigned_roles.first.to_s } }
+              )
+            end
+            success(
+              payload: CommandTower::Serializers::Auth::RegisterResponseSerializer.serialize(
+                user: user
+              ),
+              http_status: :created
             )
           end
 
-          user = register_result.data[:user]
-          emit_welcome(user)
-
-          success(
-            payload: CommandTower::Serializers::Auth::RegisterResponseSerializer.serialize(
-              user: user
-            ),
-            http_status: :created
-          )
+          emit_welcome(user) if result.success? && user.present?
+          result
         end
 
         private
@@ -69,13 +102,12 @@ module CommandTower
 
         def log_welcome_failure(user, error)
           payload = {
-            event: "messaging.welcome_produce_failed",
             user_id: user.id,
             error_class: error.class.name,
+            log_level: :error
           }
           payload[:error_code] = error.code if error.respond_to?(:code)
-          payload[:error_message] = error.message if error.respond_to?(:message)
-          Rails.logger.error(payload.to_json)
+          publish_event(category: :messaging, name: :welcome_produce_failed, payload:)
         end
       end
     end

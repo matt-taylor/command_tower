@@ -1,8 +1,9 @@
 # frozen_string_literal: true
 
 # Pragmatic structural guards for Phase 5.7.1–5.7.4 / testing.mdc.
-# Excludes: integration_test/** (project exemption), Class.new/controller bodies,
-# HEREDOC string contents. This file is excluded from self-scan.
+# Excludes: integration_test/** (project exemption), architecture/** (Dir/source
+# scans naturally assign in examples), Class.new/controller bodies, HEREDOC
+# string contents. This file is excluded from self-scan.
 RSpec.describe "CommandTower test standards", :aggregate_failures do
   let(:engine_spec_root) { CommandTower::Engine.root.join("spec") }
   let(:guard_relpath) { "architecture/test_standards_spec.rb" }
@@ -14,6 +15,7 @@ RSpec.describe "CommandTower test standards", :aggregate_failures do
   def non_integration_spec_files
     spec_files.reject do |path|
       path.include?("/integration_test/") ||
+        path.include?("/architecture/") ||
         Pathname.new(path).relative_path_from(engine_spec_root).to_s == guard_relpath
     end
   end

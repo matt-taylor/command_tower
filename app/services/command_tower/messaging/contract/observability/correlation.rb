@@ -8,7 +8,9 @@ module CommandTower
           module_function
 
           def resolve
-            CommandTower::Current.request_id.presence || SecureRandom.uuid
+            CommandTower::Current.correlation_id.presence ||
+              CommandTower::Current.request_id.presence ||
+              SecureRandom.uuid
           end
         end
       end

@@ -299,7 +299,7 @@ module CommandTower
         end
 
         def log_evaluation(result)
-          Contract::Observability::StructuredLogger.info(
+          Contract::Observability::Publisher.info(
             event: "messaging.recipient_readiness.evaluated",
             recipient_id: @recipient_id,
             channel_key: result.channel_key,

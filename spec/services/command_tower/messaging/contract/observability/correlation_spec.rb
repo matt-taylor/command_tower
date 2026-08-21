@@ -6,6 +6,17 @@ RSpec.describe CommandTower::Messaging::Contract::Observability::Correlation do
   describe ".resolve" do
     subject(:resolve) { described_class.resolve }
 
+    context "when Current.correlation_id and Current.request_id are present" do
+      before do
+        CommandTower::Current.correlation_id = "corr-id"
+        CommandTower::Current.request_id = "ambient-id"
+      end
+
+      it "prefers correlation_id" do
+        expect(resolve).to eq("corr-id")
+      end
+    end
+
     context "when Current.request_id is present" do
       before { CommandTower::Current.request_id = "ambient-id" }
 

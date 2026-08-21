@@ -41,6 +41,50 @@ RSpec.describe CommandTower::Services::Auth::PlainText::Login do
           an_instance_of(CommandTower::Errors::Auth::InvalidCredentialsError)
         )
       end
+
+      context "when login_failed is enabled" do
+        before { CommandTower.config.registry.audit.set_enabled!(:login_failed, true) }
+
+        it "persists login_failed for a known user without the identifier" do
+          expect { result }.to change { CommandTower::Audit::Event.where(action: "login_failed").count }.by(1)
+        end
+
+        context "when inspecting the login_failed row" do
+          before { result }
+
+          let(:row) { CommandTower::Audit::Event.find_by!(action: "login_failed") }
+
+          it "records the known user without the identifier" do
+            expect(row.affected_user_id).to eq(user.id)
+            expect(row.attribution_mode).to eq("system")
+            expect(row.metadata).to eq("outcome" => "invalid_password")
+            expect(row.metadata.values.join).not_to include(user.email)
+            expect(row.metadata.values.join).not_to include(identifier)
+          end
+        end
+      end
+    end
+
+    context "with an unknown identifier" do
+      subject(:result) { described_class.call(identifier: "nobody@example.com", password: "wrong-password") }
+
+      before { CommandTower.config.registry.audit.set_enabled!(:login_failed, true) }
+
+      it "persists login_failed without an affected user or identifier" do
+        expect { result }.to change { CommandTower::Audit::Event.where(action: "login_failed").count }.by(1)
+      end
+
+      context "when inspecting the unknown-identifier row" do
+        before { result }
+
+        let(:row) { CommandTower::Audit::Event.find_by!(action: "login_failed") }
+
+        it "omits affected user and identifier" do
+          expect(row.affected_user_id).to be_nil
+          expect(row.metadata).to eq("outcome" => "unknown_identifier")
+          expect(row.metadata.values.join).not_to include("nobody@example.com")
+        end
+      end
     end
   end
 end

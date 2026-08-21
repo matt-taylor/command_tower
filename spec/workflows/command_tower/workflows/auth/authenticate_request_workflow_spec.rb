@@ -39,14 +39,28 @@ RSpec.describe CommandTower::Workflows::Auth::AuthenticateRequestWorkflow do
       end
     end
 
-    context "with an unverified email" do
+    context "with an unverified email over cookie" do
       let!(:user) { create(:user, :unvalidated_email) }
-      let(:request) { build_auth_rack_request(path: "/auth/session", headers: { authorization: "Bearer #{login_token_for(user)}" }) }
+      let(:request) do
+        build_auth_rack_request(path: "/auth/session", cookies: { jwt_cookie_name => login_token_for(user) })
+      end
 
-      it "fails with precondition_failed" do
+      before do
+        CommandTower.configure do |config|
+          config.jwt.cookie.enabled = true
+        end
+      end
+
+      after do
+        CommandTower.configure do |config|
+          config.jwt.cookie.enabled = false
+        end
+      end
+
+      it "fails with precondition_failed and keeps the auth cookie" do
         expect(result).to be_failure
         expect(result.http_status).to eq(:precondition_failed)
-        expect(result.errors.first).to be_a(CommandTower::Errors::Auth::EmailVerificationRequiredError)
+        expect(result.response_effects).to be_nil
       end
     end
 

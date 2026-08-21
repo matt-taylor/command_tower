@@ -11,6 +11,9 @@ module CommandTower
         20260805000003_create_command_tower_messaging_core.rb
         20260805000004_create_messaging_notification_preferences.rb
         20260805000005_create_messaging_endpoints_and_pushover_credentials.rb
+        20260816000001_create_command_tower_audit_events.rb
+        20260817000001_add_scope_columns_to_command_tower_audit_events.rb
+        20260817000003_create_command_tower_impersonation_sessions.rb
       ].freeze
 
       module_function

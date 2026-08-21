@@ -15,7 +15,7 @@ module CommandTower
         class << self
           def lifecycle_changed(operation:, item:, bulk: false)
             event = EVENT_BY_OPERATION.fetch(operation)
-            Contract::Observability::StructuredLogger.info(
+            Contract::Observability::Publisher.info(
               event:,
               messaging_operation: "inbox",
               operation: operation.to_s,

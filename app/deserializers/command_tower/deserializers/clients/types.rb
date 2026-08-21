@@ -22,6 +22,10 @@ module CommandTower
           BooleanType.instance
         end
 
+        def float
+          FloatType.instance
+        end
+
         def array(element_type)
           ArrayType.new(normalize(element_type))
         end
@@ -124,6 +128,29 @@ module CommandTower
 
           def expected_label
             "boolean"
+          end
+        end
+
+        class FloatType < Type
+          include Singleton
+
+          def call(value, path:)
+            return value if value.is_a?(Float)
+            return value.to_f if value.is_a?(Integer)
+
+            if value.is_a?(String)
+              begin
+                return Float(value)
+              rescue ArgumentError
+                reject!(path, value, "float", "not a numeric string")
+              end
+            end
+
+            reject!(path, value, "float", "expected Float")
+          end
+
+          def expected_label
+            "float"
           end
         end
 

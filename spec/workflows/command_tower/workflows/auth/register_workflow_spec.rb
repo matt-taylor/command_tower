@@ -43,18 +43,91 @@ RSpec.describe CommandTower::Workflows::Auth::RegisterWorkflow, :messaging_accep
       allow(CommandTower.config.messaging).to receive(:platform_enabled_channels).and_return(-> { [] })
     end
 
-    it "returns the created user without exposing a token" do
-      expect(result).to be_success
-      expect(result.http_status).to eq(:created)
-      expect(result.payload[:user]).to include(
-        email: email,
-        username: username,
-        firstName: "Jane",
-        lastName: "Member",
-        emailValidated: false
-      )
-      expect(result.payload[:message]).to eq("Account created successfully")
-      expect(result.payload).not_to have_key(:token)
+      it "returns the created user without exposing a token" do
+        expect(result).to be_success
+        expect(result.http_status).to eq(:created)
+        expect(result.payload[:user]).to include(
+          email: email,
+          username: username,
+          firstName: "Jane",
+          lastName: "Member",
+          emailValidated: false
+        )
+        expect(result.payload[:message]).to eq("Account created successfully")
+        expect(result.payload).not_to have_key(:token)
+      end
+
+      it "persists user_registered as a system fact" do
+        expect { result }.to change { CommandTower::Audit::Event.where(action: "user_registered").count }.by(1)
+      end
+
+      context "when inspecting the user_registered row" do
+        before { result }
+
+        let(:row) { CommandTower::Audit::Event.find_by!(action: "user_registered") }
+
+        it "records system attribution for the new user" do
+          expect(row.attribution_mode).to eq("system")
+          expect(row.actor_user_id).to be_nil
+          expect(row.affected_user_id).to eq(User.find_by!(email: email).id)
+        end
+      end
+
+      it "does not persist role_assigned when no default role is written" do
+        expect { result }.not_to change { CommandTower::Audit::Event.where(action: "role_assigned").count }
+      end
+
+    context "when default_membership_role is nil" do
+      it "does not assign a default role" do
+        expect(result).to be_success
+        expect(User.find_by!(email: email).roles).to eq([])
+      end
+    end
+
+    context "when default_membership_role is member" do
+      before do
+        CommandTower::Authorization.default_defined!
+        allow(CommandTower.config.authorization).to receive(:default_membership_role).and_return("member")
+      end
+
+      it "assigns member atomically on success" do
+        expect(result).to be_success
+        expect(User.find_by!(email: email).roles).to eq(["member"])
+      end
+
+      it "persists role_assigned for the written default role" do
+        expect { result }.to change { CommandTower::Audit::Event.where(action: "role_assigned").count }.by(1)
+      end
+
+      context "when inspecting the role_assigned row" do
+        before { result }
+
+        let(:row) { CommandTower::Audit::Event.find_by!(action: "role_assigned") }
+
+        it "records the assigned default role" do
+          expect(row.change_set).to eq("role" => { "from" => nil, "to" => "member" })
+          expect(row.affected_user_id).to eq(User.find_by!(email: email).id)
+        end
+      end
+    end
+
+    context "when default membership assignment fails after persist" do
+      before do
+        allow(CommandTower::Services::Auth::AssignDefaultMembershipRole).to receive(:call).and_return(
+          CommandTower::Services::ServiceResult.failure(
+            errors: [CommandTower::Errors::Auth::DefaultMembershipAssignmentError.new]
+          )
+        )
+      end
+
+      it "rolls back the user" do
+        expect(result).to be_failure
+        expect(User.find_by(email: email)).to be_nil
+      end
+
+      it "rolls back user_registered" do
+        expect { result }.not_to change { CommandTower::Audit::Event.where(action: "user_registered").count }
+      end
     end
 
     context "when producing welcome inbox content" do
@@ -96,9 +169,8 @@ RSpec.describe CommandTower::Workflows::Auth::RegisterWorkflow, :messaging_accep
       before do
         allow(CommandTower.config.messaging).to receive(:welcome_content).and_return(-> { nil })
         allow(CommandTower::Services::Messaging::Communications::Produce).to receive(:call)
+        result
       end
-
-      before { result }
 
       it "skips Produce" do
         expect(result).to be_success

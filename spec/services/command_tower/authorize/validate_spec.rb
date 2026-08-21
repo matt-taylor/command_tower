@@ -70,5 +70,36 @@ RSpec.describe CommandTower::Authorize::Validate do
         expect(call.msg).to eq("Unauthorized Access. Incorrect User Privileges")
       end
     end
+
+    describe "diagnostic events" do
+      let(:log_events) { [] }
+      let(:log_subscriber) do
+        events = log_events
+        ActiveSupport::Notifications.subscribe(/\Acommand_tower\.log\./) do |name, _s, _f, _id, payload|
+          events << { name:, message: payload[:message] }
+        end
+      end
+
+      before { log_subscriber }
+      after { unsubscribe_notifications(log_subscriber) }
+
+      it "publishes authorization success diagnostics at debug" do
+        call
+        expect(log_events.map { |event| event[:name] }).to include("command_tower.log.debug")
+        expect(log_events.map { |event| event[:name] }).not_to include("command_tower.log.info")
+        expect(log_events.map { |event| event[:message] }.join).to include("User Roles")
+      end
+
+      context "when user does not have correct authorization" do
+        let(:user) { create(:user) }
+
+        it "publishes a warning on denial" do
+          call
+          expect(log_events).to include(
+            a_hash_including(name: "command_tower.log.warn", message: a_string_matching(/Unauthorized Access/))
+          )
+        end
+      end
+    end
   end
 end

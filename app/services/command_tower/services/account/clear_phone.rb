@@ -13,9 +13,17 @@ module CommandTower
             return
           end
 
+          previous = user.phone_number
           user.phone_number = nil
           user.phone_number_validated = false
           user.save!
+
+          audit(
+            :phone_cleared,
+            subject: user,
+            affected_user: user,
+            changes: { phone: { from: previous, to: nil } }
+          )
 
           context.user = user
         end

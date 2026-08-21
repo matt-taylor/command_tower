@@ -10,7 +10,11 @@ module CommandTower
 
         def for_auth_failure(metadata)
           effects = {}
-          if metadata[:cookie_authenticated] && metadata[:authentication_failed]
+          # 412 email verification is a live session that still needs the JWT
+          # cookie so the client can send/verify the code.
+          if metadata[:cookie_authenticated] && metadata[:authentication_failed] &&
+              !metadata[:email_verification_required] &&
+              !metadata[:impersonation_session_expired]
             effects[:clear_auth_cookie] = true
           end
           effects

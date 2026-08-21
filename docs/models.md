@@ -44,6 +44,10 @@ end
 
 Engine-owned messaging persistence (communications, endpoints, preferences, and related records) ships with CommandTower. Prefer platform services/workflows for mutations; do not dual-author schema in the host ([Initializing](initializing.md)).
 
+## Audit ledger
+
+`CommandTower::Audit::Event` is the append-only platform ledger (`command_tower_audit_events`). Only `CommandTower::Audit::Persistence::Subscriber` writes rows. There are no foreign keys to users. Envelope `changes` persist as `change_set`. See [Audit](audit.md).
+
 ## Related
 
 - [Architecture](architecture.md)

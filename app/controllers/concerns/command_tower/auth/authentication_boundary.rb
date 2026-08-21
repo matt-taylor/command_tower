@@ -13,11 +13,12 @@ module CommandTower
 
       private
 
-      def authenticate_request!(bypass_email_validation: false)
+      def authenticate_request!(bypass_email_validation: false, overlay_mode: :enforce)
         result = CommandTower::Workflows::Auth::AuthenticateRequestWorkflow.call(
           request: request,
           response: response,
-          bypass_email_validation: bypass_email_validation
+          bypass_email_validation: bypass_email_validation,
+          overlay_mode: overlay_mode
         )
 
         unless result.success?

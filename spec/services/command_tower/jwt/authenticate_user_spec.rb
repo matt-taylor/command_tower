@@ -46,6 +46,16 @@ RSpec.describe CommandTower::Jwt::AuthenticateUser do
       it "sets generated_token" do
         expect(call.generated_token).to be_a(String)
       end
+
+      context "when the original token carries an impersonation overlay" do
+        let(:session) { create(:impersonation_session, actor: user, target: create(:user)) }
+        let(:token) { impersonation_token_for(user, session) }
+
+        it "preserves the overlay claim on reset" do
+          expect(CommandTower::Jwt::Decode.call(token: call.generated_token).payload[:impersonation_session_id]).to eq(session.id)
+          expect(CommandTower::Jwt::Decode.call(token: call.generated_token).payload[:user_id]).to eq(user.id)
+        end
+      end
     end
 
     context "with invalid user" do

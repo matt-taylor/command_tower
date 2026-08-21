@@ -352,4 +352,17 @@ CommandTower.configure do |config|
 
   # Sometimes a user is just a tad slow. This allows a small drift behind to allow codes within drift to be accepted: [ActiveSupport::Duration]
   # config.otp.allowed_drift_behind = 15.seconds
+
+  config.registry.admin_workspace.tool :dummy_admin_example do |tool|
+    tool.label = "Dummy example"
+    tool.description = "Example host Admin tool for registry and manifest proofs."
+    tool.route = "/admin/dummy-example"
+    tool.group = :operations
+    tool.sort_order = 900
+    tool.required_entity = :dummy_admin_example
+    tool.icon = "beaker"
+  end
+
+  # Host-additive principal capability proof (1:1 with host RBAC entity).
+  config.registry.principal_capabilities.capability :dummy_admin_example
 end

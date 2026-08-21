@@ -24,6 +24,20 @@ Failure JSON may still use older `Schema::Error` shapes — not identical to the
 
 Configure secrets and JWT options during install — see [Initializing](initializing.md).
 
+## Impersonation (session overlay)
+
+Impersonation is a **CommandTower session primitive**, not a User mutation. The administrator JWT stays the credential (`user_id` is always the actor). An optional `impersonation_session_id` claim locates a server-authoritative `command_tower_impersonation_sessions` row. Product identity (`current_user`, `Current.user_id`) becomes the target while the overlay is valid.
+
+- Start: `POST /admin/users/:id/impersonation-sessions` (RBAC `admin_impersonation`)
+- Stop / return-to-self: `DELETE /auth/impersonation-session` (valid administrator JWT; not `admin_impersonation` on the target)
+- Timeouts: `config.impersonation.idle_timeout` (default 10 minutes) and `config.impersonation.absolute_timeout` (default 1 hour). Idle refresh is **workflow-declared** (`impersonation_activity!`); HTTP activity alone does not refresh idle.
+- Concurrent independent sessions are allowed. Nested impersonation is forbidden.
+- Expired overlay on a product request: `401` `impersonation_session_expired` without clearing the auth cookie.
+- Admin resource endpoints other than `GET /admin/workspace` return **418** `admin_unavailable_during_impersonation` while overlaying. Workspace remains allowed and projects every tool `availability.enabled: false`.
+- Target visibility for start is **only** Phase 5.4 Admin Resource Scoping (`ScopeResolution` + Admin Users Show). Unscoped hosts omit `adminScope`.
+
+See [API reference](api_reference.md#impersonation) and [Authorization](authorization.md).
+
 ## Where to go next
 
 | Need | Guide |

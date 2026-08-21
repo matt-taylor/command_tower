@@ -6,6 +6,7 @@ module CommandTower
       class AuthenticateSession < CommandTower::Services::ApplicationService
         validate :request_context, is_a: CommandTower::Auth::RequestContext, required: true
         validate :bypass_email_validation, is_one: [true, false], default: false
+        validate :overlay_mode, is_a: [Symbol, String, NilClass], required: false
 
         def call
           request = request_context.request
@@ -39,7 +40,23 @@ module CommandTower
             bypass_email_validation:
           )
           if auth_result.success?
-            context.user = auth_result.user
+            established = CommandTower::Impersonation::EstablishIdentity.call(
+              actor: auth_result.user,
+              impersonation_session_id: auth_result.impersonation_session_id,
+              mode: resolved_overlay_mode
+            )
+            if established.expired?
+              fail_authentication!(
+                CommandTower::Errors::Auth::ImpersonationSessionExpiredError.new,
+                token_source:,
+                impersonation_session_expired: true
+              )
+              return
+            end
+
+            context.user = established.user
+            context.actor_user = established.actor
+            context.impersonation_session_id = auth_result.impersonation_session_id
             context.token_expires_at = auth_result.expires_at
             context.generated_token = auth_result.generated_token if with_reset
             context.service_metadata = observation_metadata(
@@ -53,7 +70,8 @@ module CommandTower
           if auth_result.status == 412
             fail_authentication!(
               CommandTower::Errors::Auth::EmailVerificationRequiredError.new,
-              token_source:
+              token_source:,
+              email_verification_required: true
             )
             return
           end
@@ -63,22 +81,31 @@ module CommandTower
 
         private
 
-        def fail_authentication!(error, token_source:)
+        def fail_authentication!(error, token_source:, email_verification_required: false, impersonation_session_expired: false)
           context.service_metadata = observation_metadata(
             token_source:,
             authentication_failed: true,
-            cookie_authenticated: token_source == :cookie
+            cookie_authenticated: token_source == :cookie,
+            email_verification_required:,
+            impersonation_session_expired:
           )
           context.fail!(application_error: error)
         end
 
-        def observation_metadata(token_source:, authentication_failed:, cookie_authenticated: nil)
+        def observation_metadata(token_source:, authentication_failed:, cookie_authenticated: nil, email_verification_required: false, impersonation_session_expired: false)
           {
             token_source:,
             authentication_mechanism: :jwt,
             authentication_failed:,
-            cookie_authenticated: cookie_authenticated.nil? ? token_source == :cookie : cookie_authenticated
+            cookie_authenticated: cookie_authenticated.nil? ? token_source == :cookie : cookie_authenticated,
+            email_verification_required:,
+            impersonation_session_expired:
           }
+        end
+
+        def resolved_overlay_mode
+          mode = overlay_mode.nil? ? :enforce : overlay_mode.to_sym
+          %i[enforce capture].include?(mode) ? mode : :enforce
         end
 
         def csrf_error_for(message)

@@ -50,6 +50,32 @@ RSpec.describe CommandTower::Deserializers::Clients::Types do
     end
   end
 
+  describe ".float" do
+    subject(:type) { described_class.float }
+
+    it "accepts Float" do
+      expect(type.call(6.5, path: "spread")).to eq(6.5)
+    end
+
+    it "coerces Integer" do
+      expect(type.call(230, path: "moneyLine")).to eq(230.0)
+    end
+
+    it "coerces numeric strings" do
+      expect(type.call("-110", path: "american")).to eq(-110.0)
+    end
+
+    context "when the value is not numeric" do
+      subject(:invoke) { type.call("cin", path: "spread") }
+
+      it "raises DeserializationError" do
+        expect { invoke }.to raise_error(CommandTower::Clients::Errors::DeserializationError) do |error|
+          expect(error.details).to include(path: "spread", expected: "float", rule: "type")
+        end
+      end
+    end
+  end
+
   describe ".boolean" do
     subject(:type) { described_class.boolean }
 

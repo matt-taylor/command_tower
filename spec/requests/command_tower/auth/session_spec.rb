@@ -31,6 +31,10 @@ RSpec.describe "GET /auth/session", :with_rbac_setup, type: :request do
       expect(response.parsed_body["data"]["tokenExpiresAt"]).to be_present
     end
 
+    it "omits impersonation when no overlay is active" do
+      expect(response.parsed_body["data"]).not_to have_key("impersonation")
+    end
+
     it "sets the expire header" do
       expect(response.headers[expire_header]).to be_present
     end
@@ -59,6 +63,34 @@ RSpec.describe "GET /auth/session", :with_rbac_setup, type: :request do
 
     it "returns a refreshed token header" do
       expect(response.headers["X-Authorization-Reset"]).to be_present
+    end
+  end
+
+  context "with an unverified email over cookie" do
+    let(:user) { create(:user, :unvalidated_email, roles: ["member"]) }
+    let(:cookie_name) { CommandTower.config.jwt.cookie.name }
+
+    before do
+      CommandTower.configure do |config|
+        config.jwt.cookie.enabled = true
+        config.login.plain_text.email_verify.enable = true
+      end
+      cookies[cookie_name] = login_token_for(user)
+      make_request
+    end
+
+    after do
+      CommandTower.configure do |config|
+        config.jwt.cookie.enabled = false
+      end
+    end
+
+    let(:set_cookie) { Array(response.headers["Set-Cookie"]).join }
+
+    it { expect(response).to have_http_status(:precondition_failed) }
+
+    it "does not expire the JWT cookie" do
+      expect(set_cookie).not_to match(/#{Regexp.escape(cookie_name)}=;/)
     end
   end
 end

@@ -2,6 +2,8 @@
 
 module CommandTower
   class ApplicationController < ActionController::API
+    include CommandTower::Execution::HttpBoundary
+
     AUTHENTICATION_HEADER = CommandTower::Jwt::AuthorizationHelper::AUTHENTICATION_HEADER
     AUTHENTICATION_EXPIRE_HEADER = CommandTower::Jwt::AuthorizationHelper::AUTHENTICATION_EXPIRE_HEADER
     AUTHENTICATION_WITH_RESET = CommandTower::Jwt::AuthorizationHelper::AUTHENTICATION_WITH_RESET
@@ -46,7 +48,21 @@ module CommandTower
       with_reset = CommandTower::Jwt::AuthorizationHelper.get_with_reset_flag(request)
       result = CommandTower::Jwt::AuthenticateUser.(token:, bypass_email_validation:, with_reset:)
       if result.success?
-        @current_user = result.user
+        established = CommandTower::Impersonation::EstablishIdentity.call(
+          actor: result.user,
+          impersonation_session_id: result.impersonation_session_id
+        )
+        if established.expired?
+          status = 401
+          schema = CommandTower::Schema::Error::Base.new(
+            status:,
+            message: CommandTower::Errors::Auth::ImpersonationSessionExpiredError.new.message
+          )
+          render(json: schema.to_h, status:)
+          return false
+        end
+
+        @current_user = established.user
         if with_reset
           # Use helper to set both headers and cookie (if enabled)
           CommandTower::Jwt::AuthorizationHelper.set_token(

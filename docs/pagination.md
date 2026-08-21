@@ -1,6 +1,6 @@
 # Pagination
 
-CommandTower exposes one live HTTP list contract that returns pagination metadata: **Me Inbox**.
+CommandTower exposes live HTTP list contracts that return pagination metadata: **Me Inbox**, **audit event lists** (`GET /me/audit-events`, `GET /admin/audit-events`), and **Admin Users** (`GET /admin/users`). These lists reuse the Inbox `limit` / `offset` / `totalCount` contract.
 
 Back to [README](../README.md).
 
@@ -38,7 +38,7 @@ CommandTower.configure do |c|
 end
 ```
 
-There is no engine admin list endpoint and no `pagination=true` / `page` / `cursor` query API on current engine HTTP surfaces.
+There is no `pagination=true` / `page` / `cursor` query API on current engine HTTP surfaces. Admin audit list uses the same limit/offset contract as Inbox.
 
 ## Related
 

@@ -38,11 +38,13 @@ RSpec.describe CommandTower::Authorization::Entity do
     end
 
     context "when already exists" do
-      it "overrides entity with warning" do
-        expect(described_class.entities.keys).to eq([])
-        described_class.create_entity(**params)
-        described_class.create_entity(**params)
-        expect(described_class.entities.keys).to include(name)
+      before { described_class.create_entity(**params) }
+
+      it "raises rather than last-write-wins" do
+        expect { described_class.create_entity(**params) }.to raise_error(
+          CommandTower::Authorization::Error,
+          /already exists/
+        )
       end
     end
   end

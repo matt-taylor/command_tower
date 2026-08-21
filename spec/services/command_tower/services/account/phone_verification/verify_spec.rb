@@ -30,6 +30,21 @@ RSpec.describe CommandTower::Services::Account::PhoneVerification::Verify do
         expect(user.reload.phone_number_validated).to eq(true)
       end
 
+      context "when persisting the audit fact" do
+        before do
+          CommandTower.with_execution(source: :http, user_id: user.id, effective_user_id: user.id) do
+            described_class.call(user:, code:)
+          end
+        end
+
+        let(:row) { CommandTower::Audit::Event.find_by!(action: "phone_verified") }
+
+        it "persists phone_verified" do
+          expect(row.affected_user_id).to eq(user.id)
+          expect(row.attribution_mode).to eq("self_service")
+        end
+      end
+
       it "clears outstanding challenges once verified" do
         result
 
@@ -45,6 +60,10 @@ RSpec.describe CommandTower::Services::Account::PhoneVerification::Verify do
       it "is idempotent when already verified" do
         expect(result).to be_success
         expect(result.data[:already_verified]).to eq(true)
+      end
+
+      it "does not persist phone_verified" do
+        expect { result }.not_to change { CommandTower::Audit::Event.where(action: "phone_verified").count }
       end
     end
 
