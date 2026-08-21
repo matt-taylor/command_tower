@@ -72,26 +72,26 @@ RSpec.describe "Admin Audit scoping", :with_rbac_setup, type: :request do
     context "when scoped to scope-a" do
       before { get "/admin/audit-events", params: { partition: "scope-a" }, headers: headers }
 
+      subject(:event_names) do
+        response.parsed_body.fetch("data").map { |row| row.fetch("eventName") }
+      end
+
       it { expect(response).to have_http_status(:ok) }
 
       it "includes host-scoped events for scope-a" do
-        actions = response.parsed_body.fetch("data").map { |row| row.fetch("eventName") }
-        expect(actions).to include("host.partition_action")
+        expect(event_names).to include("host.partition_action")
       end
 
       it "includes eligible global events for in-scope users" do
-        actions = response.parsed_body.fetch("data").map { |row| row.fetch("eventName") }
-        expect(actions).to include("user_registered")
+        expect(event_names).to include("user_registered")
       end
 
       it "excludes ineligible global events" do
-        actions = response.parsed_body.fetch("data").map { |row| row.fetch("eventName") }
-        expect(actions).not_to include("session_created")
+        expect(event_names).not_to include("session_created")
       end
 
       it "excludes legacy events" do
-        actions = response.parsed_body.fetch("data").map { |row| row.fetch("eventName") }
-        expect(actions).not_to include("legacy_fact")
+        expect(event_names).not_to include("legacy_fact")
       end
     end
   end

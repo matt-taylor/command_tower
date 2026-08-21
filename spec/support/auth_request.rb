@@ -41,6 +41,9 @@ module AuthRequestSpecHelpers
   def authenticate_request_with_cookie!(user)
     cookies[CommandTower.config.jwt.cookie.name] = login_token_for(user)
   end
+  def response_error_code
+    response.parsed_body.dig("errors", 0, "code")
+  end
 end
 
 RSpec.configure do |config|

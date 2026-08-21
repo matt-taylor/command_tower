@@ -165,9 +165,8 @@ RSpec.describe CommandTower::Services::Audit::Events::List do
       end
 
       it "includes host-scoped and eligible global events only" do
-        ids = result.data[:events].map(&:id)
-        expect(ids).to include(host_scoped.id, eligible_global.id)
-        expect(ids).not_to include(other_user.id)
+        expect(result.data[:events].map(&:id)).to include(host_scoped.id, eligible_global.id)
+        expect(result.data[:events].map(&:id)).not_to include(other_user.id)
       end
     end
 

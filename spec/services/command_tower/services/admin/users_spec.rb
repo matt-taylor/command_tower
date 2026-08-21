@@ -51,9 +51,8 @@ RSpec.describe CommandTower::Services::Admin::Users::List do
       end
 
       it "narrows before pagination and count" do
-        ids = result.data[:users].map(&:id)
-        expect(ids).to include(admin.id, member_a.id)
-        expect(ids).not_to include(member_b.id)
+        expect(result.data[:users].map(&:id)).to include(admin.id, member_a.id)
+        expect(result.data[:users].map(&:id)).not_to include(member_b.id)
         expect(result.data[:pagination][:total_count]).to eq(2)
       end
     end

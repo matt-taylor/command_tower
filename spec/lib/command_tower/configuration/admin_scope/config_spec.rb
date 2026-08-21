@@ -4,22 +4,8 @@ RSpec.describe CommandTower::Configuration::AdminScope::Config do
   subject(:config) { described_class.new }
 
   let(:noop) { ->(*) {} }
-
-  describe "#register" do
-    it "stores a validated registration for a known tool" do
-      registration = config.register(:users) do |entry|
-        entry.options = noop
-        entry.validate = noop
-        entry.availability = noop
-        entry.narrow_users = noop
-        entry.narrow_audit = noop
-        entry.affected_users_in_scope = noop
-      end
-
-      expect(config.fetch(:users)).to eq(registration)
-    end
-
-    it "rejects duplicate registrations" do
+  let(:register_users!) do
+    lambda do
       config.register(:users) do |entry|
         entry.options = noop
         entry.validate = noop
@@ -28,45 +14,56 @@ RSpec.describe CommandTower::Configuration::AdminScope::Config do
         entry.narrow_audit = noop
         entry.affected_users_in_scope = noop
       end
+    end
+  end
 
-      expect do
-        config.register(:users) do |entry|
-          entry.options = noop
-          entry.validate = noop
-          entry.availability = noop
-          entry.narrow_users = noop
-          entry.narrow_audit = noop
-          entry.affected_users_in_scope = noop
-        end
-      end.to raise_error(CommandTower::AdminScope::DuplicateRegistrationError)
+  describe "#register" do
+    context "when registering a known tool" do
+      subject(:registration) { register_users!.call }
+
+      it "stores a validated registration" do
+        expect(config.fetch(:users)).to eq(registration)
+      end
     end
 
-    it "rejects registrations after finalize" do
-      config.finalize!
+    context "when registering a duplicate" do
+      before { register_users!.call }
 
-      expect do
-        config.register(:users) do |entry|
-          entry.options = noop
-          entry.validate = noop
-          entry.availability = noop
-          entry.narrow_users = noop
-          entry.narrow_audit = noop
-          entry.affected_users_in_scope = noop
-        end
-      end.to raise_error(CommandTower::AdminScope::FrozenRegistryError)
+      subject(:invoke) { register_users!.call }
+
+      it "rejects duplicate registrations" do
+        expect { invoke }.to raise_error(CommandTower::AdminScope::DuplicateRegistrationError)
+      end
+    end
+
+    context "when the registry is finalized" do
+      before { config.finalize! }
+
+      subject(:invoke) { register_users!.call }
+
+      it "rejects registrations after finalize" do
+        expect { invoke }.to raise_error(CommandTower::AdminScope::FrozenRegistryError)
+      end
     end
   end
 
   describe "#validate_scoped_tools!" do
-    it "requires admin_scope registration for scope_required tools" do
-      definition = CommandTower.config.registry.admin_workspace.fetch(:users)
-      original_required = definition.scope_required
-      definition.scope_required = true
+    context "when a platform tool requires scope without registration" do
+      before do
+        CommandTower.config.registry.admin_workspace.configure_tool(:users) do |tool|
+          tool.scope_required = true
+          tool.scope_parameter = "partition"
+          tool.scope_label = "Partition"
+        end
+      end
 
-      expect { config.validate_scoped_tools! }
-        .to raise_error(CommandTower::AdminScope::MissingRegistrationError)
-    ensure
-      definition.scope_required = original_required
+      after { CommandTower.config.registry.admin_workspace.reset_platform_tool_scope_config! }
+
+      subject(:invoke) { config.validate_scoped_tools! }
+
+      it "requires admin_scope registration for scope_required tools" do
+        expect { invoke }.to raise_error(CommandTower::AdminScope::MissingRegistrationError)
+      end
     end
   end
 end

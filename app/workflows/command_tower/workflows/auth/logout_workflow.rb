@@ -42,12 +42,7 @@ module CommandTower
           target = User.find_by(id: session.target_user_id)
           return if target.nil?
 
-          CommandTower::Current.set(
-            user_id: outcome.user.id,
-            effective_user_id: outcome.user.id,
-            originating_administrator_id: nil,
-            impersonation_active: false
-          ) do
+          CommandTower::Impersonation::ClearOverlayForAudit.call(actor_user_id: outcome.user.id) do
             audit(
               :impersonation_ended,
               subject: target,

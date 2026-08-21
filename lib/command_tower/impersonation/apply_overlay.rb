@@ -71,19 +71,16 @@ module CommandTower
         target = User.find_by(id: session.target_user_id)
         return if target.nil?
 
-        CommandTower::Current.user_id = session.actor_user_id
-        CommandTower::Current.effective_user_id = session.actor_user_id
-        CommandTower::Current.originating_administrator_id = nil
-        CommandTower::Current.impersonation_active = false
-
-        CommandTower::Audit::Emit.call(
-          name: :impersonation_ended,
-          subject: target,
-          affected_user: target,
-          changes: { reason: { from: nil, to: reason } },
-          metadata: { impersonation_session_id: session.id },
-          attribution_mode: :admin_direct
-        )
+        CommandTower::Impersonation::ClearOverlayForAudit.call(actor_user_id: session.actor_user_id) do
+          CommandTower::Audit::Emit.call(
+            name: :impersonation_ended,
+            subject: target,
+            affected_user: target,
+            changes: { reason: { from: nil, to: reason } },
+            metadata: { impersonation_session_id: session.id },
+            attribution_mode: :admin_direct
+          )
+        end
       end
       private_class_method :emit_ended
     end

@@ -32,10 +32,11 @@ RSpec.describe "PATCH /admin/users/:id identity mutations", :with_rbac_setup, ty
     context "when the update is valid" do
       before { patch "/admin/users/#{member.id}/name", params: params, headers: headers, as: :json }
 
+      subject(:body) { response.parsed_body }
+
       it { expect(response).to have_http_status(:ok) }
 
       it "returns the Show user envelope" do
-        body = response.parsed_body
         expect(body.keys).to contain_exactly("data", "meta", "errors")
         expect(body.fetch("errors")).to eq([])
         expect(body.fetch("data").keys).to match_array(user_keys)
@@ -51,10 +52,11 @@ RSpec.describe "PATCH /admin/users/:id identity mutations", :with_rbac_setup, ty
         patch "/admin/users/#{member.id}/name", params: { firstName: "" }, headers: headers, as: :json
       end
 
+      subject(:body) { response.parsed_body }
+
       it { expect(response).to have_http_status(:unprocessable_entity) }
 
       it "returns a validation envelope" do
-        body = response.parsed_body
         expect(body.fetch("data")).to be_nil
         expect(body.dig("errors", 0, "code")).to eq("validation_failed")
       end

@@ -27,12 +27,13 @@ RSpec.describe "Admin Users scoping", :with_rbac_setup, type: :request do
     context "when scoped to scope-a" do
       before { get "/admin/users", params: { partition: "scope-a" }, headers: headers }
 
+      subject(:user_ids) { response.parsed_body.fetch("data").map { |row| row.fetch("id") } }
+
       it { expect(response).to have_http_status(:ok) }
 
       it "returns only users in scope-a" do
-        ids = response.parsed_body.fetch("data").map { |row| row.fetch("id") }
-        expect(ids).to include(admin.id, member_a.id)
-        expect(ids).not_to include(member_b.id)
+        expect(user_ids).to include(admin.id, member_a.id)
+        expect(user_ids).not_to include(member_b.id)
       end
 
       it "counts only scoped users" do
@@ -45,11 +46,12 @@ RSpec.describe "Admin Users scoping", :with_rbac_setup, type: :request do
         get "/admin/users", params: { partition: "scope-a", search: "member-b" }, headers: headers
       end
 
+      subject(:user_ids) { response.parsed_body.fetch("data").map { |row| row.fetch("id") } }
+
       it { expect(response).to have_http_status(:ok) }
 
       it "does not surface out-of-scope matches" do
-        ids = response.parsed_body.fetch("data").map { |row| row.fetch("id") }
-        expect(ids).not_to include(member_b.id)
+        expect(user_ids).not_to include(member_b.id)
       end
     end
   end

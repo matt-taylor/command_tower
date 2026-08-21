@@ -21,32 +21,37 @@ RSpec.describe "GET /admin/users", :with_rbac_setup, type: :request do
     it { expect(response).to have_http_status(:forbidden) }
   end
 
-  it "lists users with safe fields and pagination meta" do
-    get "/admin/users", headers: headers
+  context "when listing users" do
+    before { get "/admin/users", headers: headers }
 
-    expect(response).to have_http_status(:ok)
-    body = response.parsed_body
-    expect(body.fetch("data").map { |row| row.fetch("id") }).to include(admin.id, member.id)
-    row = body.fetch("data").find { |item| item.fetch("id") == member.id }
-    expect(row.keys).to contain_exactly(
-      "id", "firstName", "lastName", "fullName", "username", "email",
-      "emailValidated", "phoneNumber", "phoneNumberValidated", "roles", "createdAt"
-    )
-    expect(response.body).not_to include("password_digest")
-    expect(response.body).not_to include("verifier_token")
-    expect(body.dig("meta", "totalCount")).to be >= 2
-    expect(body.dig("meta")).to include("limit", "offset", "totalCount")
+    subject(:body) { response.parsed_body }
+    subject(:member_row) { body.fetch("data").find { |item| item.fetch("id") == member.id } }
+
+    it { expect(response).to have_http_status(:ok) }
+
+    it "lists users with safe fields and pagination meta" do
+      expect(body.fetch("data").map { |row| row.fetch("id") }).to include(admin.id, member.id)
+      expect(member_row.keys).to contain_exactly(
+        "id", "firstName", "lastName", "fullName", "username", "email",
+        "emailValidated", "phoneNumber", "phoneNumberValidated", "roles", "createdAt"
+      )
+      expect(response.body).not_to include("password_digest")
+      expect(response.body).not_to include("verifier_token")
+      expect(body.dig("meta", "totalCount")).to be >= 2
+      expect(body.dig("meta")).to include("limit", "offset", "totalCount")
+    end
   end
 
   context "when searching by email fragment" do
     before { get "/admin/users", params: { search: "member-search" }, headers: headers }
 
+    subject(:user_ids) { response.parsed_body.fetch("data").map { |row| row.fetch("id") } }
+
     it { expect(response).to have_http_status(:ok) }
 
     it "returns only matching users" do
-      ids = response.parsed_body.fetch("data").map { |row| row.fetch("id") }
-      expect(ids).to include(member.id)
-      expect(ids).not_to include(admin.id)
+      expect(user_ids).to include(member.id)
+      expect(user_ids).not_to include(admin.id)
     end
   end
 

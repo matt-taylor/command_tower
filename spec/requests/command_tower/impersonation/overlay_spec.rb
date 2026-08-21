@@ -37,9 +37,8 @@ RSpec.describe "Impersonation session overlay", :with_rbac_setup, type: :request
     end
 
     it "echoes authoritative clocks only after idle refresh" do
-      meta = response.parsed_body.dig("meta", "impersonation")
-      expect(meta.fetch("idleExpiresAt")).to be_present
-      expect(meta.fetch("absoluteExpiresAt")).to be_present
+      expect(response.parsed_body.dig("meta", "impersonation").fetch("idleExpiresAt")).to be_present
+      expect(response.parsed_body.dig("meta", "impersonation").fetch("absoluteExpiresAt")).to be_present
     end
   end
 
@@ -72,16 +71,15 @@ RSpec.describe "Impersonation session overlay", :with_rbac_setup, type: :request
     end
 
     it "projects impersonation clocks without idle-refresh meta" do
-      impersonation = response.parsed_body.dig("data", "impersonation")
-      expect(impersonation).to include(
+      expect(response.parsed_body.dig("data", "impersonation")).to include(
         "active" => true,
         "sessionId" => session.id,
         "actorUserId" => operator.id,
         "actorDisplayName" => "Admin Actor",
         "targetUserId" => target.id
       )
-      expect(impersonation["idleExpiresAt"]).to be_present
-      expect(impersonation["absoluteExpiresAt"]).to be_present
+      expect(response.parsed_body.dig("data", "impersonation", "idleExpiresAt")).to be_present
+      expect(response.parsed_body.dig("data", "impersonation", "absoluteExpiresAt")).to be_present
       expect(response.parsed_body.dig("meta", "impersonation")).to be_nil
     end
   end

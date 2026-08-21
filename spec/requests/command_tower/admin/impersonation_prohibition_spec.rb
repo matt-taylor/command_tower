@@ -7,10 +7,6 @@ RSpec.describe "Admin prohibition during impersonation", :with_rbac_setup, type:
   let!(:session) { create(:impersonation_session, actor: operator, target: admin_target) }
   let(:headers) { authenticate_impersonation_with_bearer!(operator, session) }
 
-  def error_code
-    response.parsed_body.dig("errors", 0, "code")
-  end
-
   it "allows ordinary admin access without overlay" do
     get "/admin/users", headers: authenticate_request_with_bearer!(operator)
 
@@ -21,7 +17,7 @@ RSpec.describe "Admin prohibition during impersonation", :with_rbac_setup, type:
     get "/admin/users", headers: headers
 
     expect(response).to have_http_status(418)
-    expect(error_code).to eq("admin_unavailable_during_impersonation")
+    expect(response_error_code).to eq("admin_unavailable_during_impersonation")
   end
 
   context "when the overlay actor can mutate identity" do
@@ -33,7 +29,7 @@ RSpec.describe "Admin prohibition during impersonation", :with_rbac_setup, type:
         headers: headers
 
       expect(response).to have_http_status(418)
-      expect(error_code).to eq("admin_unavailable_during_impersonation")
+      expect(response_error_code).to eq("admin_unavailable_during_impersonation")
     end
   end
 
@@ -48,14 +44,14 @@ RSpec.describe "Admin prohibition during impersonation", :with_rbac_setup, type:
 
     it { expect(response).to have_http_status(418) }
 
-    it { expect(error_code).to eq("admin_unavailable_during_impersonation") }
+    it { expect(response_error_code).to eq("admin_unavailable_during_impersonation") }
   end
 
   it "rejects impersonated GET /admin/audit-events with 418" do
     get "/admin/audit-events", headers: headers
 
     expect(response).to have_http_status(418)
-    expect(error_code).to eq("admin_unavailable_during_impersonation")
+    expect(response_error_code).to eq("admin_unavailable_during_impersonation")
   end
 
   it "rejects impersonated POST /admin/messaging/announcements with 418" do
@@ -64,7 +60,7 @@ RSpec.describe "Admin prohibition during impersonation", :with_rbac_setup, type:
       headers: headers
 
     expect(response).to have_http_status(418)
-    expect(error_code).to eq("admin_unavailable_during_impersonation")
+    expect(response_error_code).to eq("admin_unavailable_during_impersonation")
   end
 
   context "when the effective target could otherwise start impersonation" do
@@ -74,7 +70,7 @@ RSpec.describe "Admin prohibition during impersonation", :with_rbac_setup, type:
       post "/admin/users/#{member_target.id}/impersonation-sessions", headers: headers
 
       expect(response).to have_http_status(418)
-      expect(error_code).to eq("admin_unavailable_during_impersonation")
+      expect(response_error_code).to eq("admin_unavailable_during_impersonation")
     end
   end
 
@@ -86,7 +82,7 @@ RSpec.describe "Admin prohibition during impersonation", :with_rbac_setup, type:
       get "/admin/users", headers: headers
 
       expect(response).to have_http_status(418)
-      expect(error_code).to eq("admin_unavailable_during_impersonation")
+      expect(response_error_code).to eq("admin_unavailable_during_impersonation")
     end
   end
 
@@ -94,9 +90,8 @@ RSpec.describe "Admin prohibition during impersonation", :with_rbac_setup, type:
     get "/admin/workspace", headers: headers
 
     expect(response).to have_http_status(:ok)
-    tools = response.parsed_body.dig("data", "tools")
-    expect(tools).to be_present
-    expect(tools).to all(
+    expect(response.parsed_body.dig("data", "tools")).to be_present
+    expect(response.parsed_body.dig("data", "tools")).to all(
       include(
         "availability" => include(
           "enabled" => false,
@@ -127,7 +122,7 @@ RSpec.describe "Admin prohibition during impersonation", :with_rbac_setup, type:
       get "/admin/users", headers: headers
 
       expect(response).to have_http_status(:unauthorized)
-      expect(error_code).to eq("impersonation_session_expired")
+      expect(response_error_code).to eq("impersonation_session_expired")
     end
   end
 end
