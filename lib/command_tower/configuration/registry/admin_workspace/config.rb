@@ -134,6 +134,15 @@ module CommandTower
           def reset_host_definitions!
             thaw_for_test!
             @definitions.delete_if { |_name, definition| definition.owner == :host }
+            restore_platform_tools!
+            self
+          end
+
+          # Spec cleanup: re-seed unfrozen platform tools (scope_required defaults false).
+          # finalize! freezes ToolDefinition composers; thaw alone does not unfreeze them.
+          def reset_platform_tool_scope_config!
+            thaw_for_test!
+            restore_platform_tools!
             self
           end
 
@@ -151,6 +160,11 @@ module CommandTower
                 definition.icon = attrs[:icon]
               end
             end
+          end
+
+          def restore_platform_tools!
+            PLATFORM_TOOLS.each_key { |name| @definitions.delete(name.to_s) }
+            seed_platform_tools!
           end
 
           def thaw_for_test!

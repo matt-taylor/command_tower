@@ -4,8 +4,6 @@ require "foundation_proof/admin_scope"
 
 module CommandTower
   module FoundationProofScopedAdminHelper
-    PLATFORM_TOOL_IDS = %w[users audit].freeze
-
     def register_foundation_proof_scoped_admin!
       FoundationProof::AdminScope.register!
     end
@@ -13,14 +11,9 @@ module CommandTower
     def reset_platform_tool_scope_config!
       return unless CommandTower.config.respond_to?(:registry)
 
-      PLATFORM_TOOL_IDS.each do |tool_id|
-        next unless CommandTower.config.registry.admin_workspace.registered?(tool_id)
-
-        definition = CommandTower.config.registry.admin_workspace.fetch(tool_id)
-        definition.scope_required = false
-        definition.scope_parameter = ""
-        definition.scope_label = ""
-      end
+      # Re-seed unfrozen platform tools. Mutating frozen ToolDefinitions after
+      # finalize! raises ClassComposer::Error and poisons order-random suites.
+      CommandTower.config.registry.admin_workspace.reset_platform_tool_scope_config!
     end
 
     def seed_foundation_proof_partitions!(admin:, member_a:, member_b:)

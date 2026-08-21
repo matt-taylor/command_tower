@@ -223,6 +223,38 @@ RSpec.describe CommandTower::Configuration::Registry::AdminWorkspace::Config do
     end
   end
 
+  describe "#reset_platform_tool_scope_config!" do
+    context "when resetting after finalize with scoped platform tools" do
+      before do
+        CommandTower.config.registry.admin_workspace.configure_tool(:users) do |tool|
+          tool.scope_required = true
+          tool.scope_parameter = "partition"
+          tool.scope_label = "Partition"
+        end
+        CommandTower.config.registry.admin_workspace.finalize!
+        CommandTower.config.registry.admin_workspace.reset_platform_tool_scope_config!
+      end
+
+      subject(:users) { CommandTower.config.registry.admin_workspace.fetch(:users) }
+
+      it "restores unfrozen default scope attributes" do
+        expect(users.scope_required?).to eq(false)
+        expect(users.scope_parameter).to eq("")
+        expect(users.scope_label).to eq("")
+      end
+
+      it "allows configure_tool after reset" do
+        expect {
+          CommandTower.config.registry.admin_workspace.configure_tool(:users) do |tool|
+            tool.scope_required = true
+            tool.scope_parameter = "partition"
+            tool.scope_label = "Partition"
+          end
+        }.not_to raise_error
+      end
+    end
+  end
+
   describe "#validate_required_entities!" do
     context "when a required entity is not in the RBAC graph" do
       before do
