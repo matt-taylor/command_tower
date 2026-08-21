@@ -61,6 +61,7 @@ Paths are engine-relative. Full request/response shapes: [api_reference.md](api_
 | Session | `GET /auth/session` |
 | Logout | `POST /auth/logout` |
 | Current account | `GET /me`, `GET /profile` |
+| Principal capabilities | `GET /auth/principal-capabilities` |
 | Name | `PATCH /me/name` |
 | Password change | `PATCH /me/password` |
 | Identity policy | `GET /auth/identity-policy` |
@@ -92,25 +93,24 @@ Validate/reset use the emailed reset token in the body (public). See [password_r
 
 `lib/command_tower/authorization/default.yml`:
 
-- **`owner`** — `entities: true` (full access)
-- **`admin`** — entity `admin_messaging_announcements` on `Admin::Messaging::AnnouncementsController#create`
+- **`owner`** — `entities: true` (full access). Explicit top-level authority; distinct from host operational Admin roles.
 
-There are no engine default roles named `admin-read-only`, `admin-without-impersonation`, or impersonation APIs.
+There is **no** CommandTower operational `admin` role. Admin capabilities are CT-owned **entities** (`admin_workspace`, `admin_users`, `admin_impersonation`, `admin_audit_events`, `admin_messaging_announcements`, …) that hosts grant to their own roles. Impersonation start is `admin_impersonation`; it is not included in dummy `admin` / `operations_admin`. Nested impersonation is forbidden at HTTP **418** while overlaying (workflow nested 403 if reached). Stop is a session primitive (`DELETE /auth/impersonation-session`), not an Admin Users mutation. Other Admin resource endpoints return **418** `admin_unavailable_during_impersonation` during overlay except `GET /admin/workspace` (tools disabled).
 
 ### Host RBAC file (required for Me/Auth)
 
-`AuthorizeRequest` fails closed when controller actions lack entity mappings. Hosts must supply RBAC YAML (default path `config/rbac_groups.yml`):
+`AuthorizeRequest` fails closed when the caller’s roles do not grant the CT-owned entity for the action. CommandTower ships those entity definitions. Hosts supply `config/rbac_groups.yml` with **product roles** that grant entity **names** (default path already `config/rbac_groups.yml`):
 
 ```ruby
 CommandTower.configure do |c|
   c.authorization.rbac_group_path = Rails.root.join("config/rbac_groups.yml")
+  c.authorization.default_membership_role = "member"
 end
 ```
 
-Dummy host example: `rails_app/config/rbac_groups.yml` — defines a **`member`** group and entities for session, me, profile, inbox, preferences, phone, pushover, email verification. Do not redefine groups that already exist in `default.yml` (for example `admin`); add entities and attach them carefully.
+Dummy host example: `rails_app/config/rbac_groups.yml` — **`member`** grants session, me, profile, inbox, preferences, phone, pushover, email verification; operator roles grant selected Admin entities; a host-owned **`admin`** may deliberately grant a broad Admin bundle. Do not redefine `owner` or copy CT controller/entity blocks. Hosts may define an `admin` role as host policy.
 
-Admin announcements: assign users the `admin` role (or another role that includes `admin_messaging_announcements`).
-
+Admin announcements: assign users a host role that includes `admin_messaging_announcements` (for example a host `admin` or `messaging_operator`).
 ### Host controller recipe
 
 ```ruby
@@ -124,17 +124,21 @@ class Host::ThingsController < ApplicationController
 end
 ```
 
-Map host controllers to RBAC entities the same way engine controllers are mapped in the dummy host file.
+Map host controllers to **host-owned** RBAC entities in the host YAML. Grant CT-owned entity names to product roles; do not copy engine controller mappings.
 
 ## Engine admin HTTP
 
-Only:
-
 ```http
+GET  /admin/workspace
+GET  /admin/users
+GET  /admin/users/:id
+POST /admin/users/:id/impersonation-sessions
+GET  /admin/audit-events
 POST /admin/messaging/announcements
+DELETE /auth/impersonation-session
 ```
 
-No SchemaHelper admin user list, attribute modify, role assign, or impersonate routes. User administration is host/ops (`command_tower:users:create`, host tooling, etc.).
+Impersonation is a session overlay, not a User mutation and not an Admin Workspace tool. There is no role-assign or attribute-modify admin surface.
 
 ## Email verification gate
 

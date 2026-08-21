@@ -18,7 +18,7 @@ module CommandTower
               ),
             }
 
-            Contract::Observability::StructuredLogger.info(
+            Contract::Observability::Publisher.info(
               base.merge(event: "messaging.accept.started"),
             )
 
@@ -31,7 +31,7 @@ module CommandTower
                 "messaging.accept.succeeded"
               end
 
-            Contract::Observability::StructuredLogger.info(
+            Contract::Observability::Publisher.info(
               base.merge(
                 event:,
                 duration_ms: elapsed_ms(started_at),
@@ -62,7 +62,7 @@ module CommandTower
           private
 
           def log_failure(base, started_at, error, level, error_code, event)
-            Contract::Observability::StructuredLogger.public_send(
+            Contract::Observability::Publisher.public_send(
               level,
               base.merge(
                 event:,

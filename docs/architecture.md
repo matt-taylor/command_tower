@@ -26,5 +26,10 @@ Controller / Job → Workflow → Shared Sequences / Services → Models & Clien
 - Service capability base: [ServiceBase README](../app/services/command_tower/README.md)
 - Install and host ownership: [Initializing](initializing.md)
 - Host extension boundaries: [Extending](extending.md)
+- Eventing: [Eventing](eventing.md)
+- Audit authoring and durable ledger: [Audit](audit.md)
+- Admin Workspace registry and manifest: [Admin Workspace](admin_workspace.md)
+
+Architecture specs under `spec/architecture/` guard Execution Context, canonical ASN publication, kernel-owned lifecycle, logging projection, and approved `Rails.logger` exceptions.
 
 Back to [README](../README.md).

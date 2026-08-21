@@ -15,13 +15,16 @@ Proof for contracts lives primarily under `spec/requests/command_tower/`.
 3. [Auth endpoints](#auth-endpoints)
 4. [Me and profile](#me-and-profile)
 5. [Me Inbox](#me-inbox)
-6. [Preferences](#preferences)
-7. [Phone](#phone)
-8. [Pushover](#pushover)
-9. [Admin messaging](#admin-messaging)
-10. [Non-HTTP emit APIs](#non-http-emit-apis)
-11. [RBAC overview](#rbac-overview)
-12. [Feature gates](#feature-gates)
+6. [Audit events](#audit-events)
+7. [Preferences](#preferences)
+8. [Phone](#phone)
+9. [Pushover](#pushover)
+10. [Admin Workspace](#admin-workspace)
+11. [Impersonation](#impersonation)
+12. [Admin messaging](#admin-messaging)
+13. [Non-HTTP emit APIs](#non-http-emit-apis)
+14. [RBAC overview](#rbac-overview)
+15. [Feature gates](#feature-gates)
 
 ---
 
@@ -128,9 +131,36 @@ Default JWT TTL is **7 days** (`config.jwt.ttl`).
 | | |
 |--|--|
 | **Auth** | `authenticate_request!` + `authorize_request!` |
-| **Success** | **200** — `data`: `{ user, tokenExpiresAt }` |
+| **Success** | **200** — `data`: `{ user, tokenExpiresAt, impersonation? }` |
 | **Errors** | `401`; `403`; `412` `email_verification_required` when email verification gate applies |
 | **Spec** | `spec/requests/command_tower/auth/session_spec.rb` |
+
+`user` is the **effective** principal (target while overlaying). When an impersonation overlay is active, `impersonation` is present:
+
+```json
+{
+  "active": true,
+  "sessionId": "…",
+  "actorUserId": 1,
+  "actorDisplayName": "Ada Admin",
+  "targetUserId": 42,
+  "idleExpiresAt": "…",
+  "absoluteExpiresAt": "…"
+}
+```
+
+Omit `impersonation` when not overlaying. Clocks are ISO timestamps from the session row. Successful idle refresh may also echo `{ impersonation: { idleExpiresAt, absoluteExpiresAt } }` on that 2xx envelope **meta** only (not on generic success).
+
+### `DELETE /auth/impersonation-session`
+
+| | |
+|--|--|
+| **Auth** | `authenticate_request!` (overlay capture: expired overlays still authenticate the administrator) |
+| **Success** | **200** — `data`: `{ message: "impersonation_ended" }`; `set_token` re-issues the administrator JWT **without** `impersonation_session_id` |
+| **Errors** | `401`; `422` `impersonation_session_missing` |
+| **Spec** | `spec/requests/command_tower/auth/impersonation_session_spec.rb` |
+
+Does **not** authorize `admin_impersonation` on the effective user. Shared frontend persists `X-Authorization-Reset` on native 2xx responses.
 
 ### `POST /auth/signup-session`
 
@@ -149,6 +179,17 @@ Default JWT TTL is **7 days** (`config.jwt.ttl`).
 | **Auth** | Public |
 | **Success** | **200** — `data`: password / email / username / verificationCode / phoneVerificationCode policy objects (`minLength`, `maxLength`, `pattern`, …) |
 | **Spec** | `spec/requests/command_tower/auth/identity_policy_spec.rb` |
+
+### `GET /auth/principal-capabilities`
+
+| | |
+|--|--|
+| **Auth** | authenticate + authorize (RBAC entity `principal_capabilities`) |
+| **Success** | **200** — `data`: `{ principalCapabilities: string[] }` (unique, sorted, possessed projectable ids only) |
+| **Errors** | `401`; `403`; `412` `email_verification_required` when email verification gate applies |
+| **Spec** | `spec/requests/command_tower/auth/principal_capabilities_spec.rb` |
+
+Projection is effective entity grants ∩ curated `config.registry.principal_capabilities` (never role/group names). CommandTower seeds `admin_workspace`, `admin_users`, `admin_users_update`, `admin_rbac_assignments`, `admin_audit_events`, `admin_messaging_announcements`, `admin_impersonation`, `me_audit_events`. Hosts may register additive host-owned ids. Distinct from `/me` capabilities and from `GET /admin/workspace` (tool manifest). See [Principal capabilities](principal_capabilities.md).
 
 ### `GET /auth/email/availability`
 
@@ -290,7 +331,7 @@ Rotates `verifier_token` (invalidates outstanding sessions). See [change_passwor
 
 ## Me Inbox
 
-All inbox routes: authenticate + authorize. Host must map RBAC entities for inbox controller actions (see dummy host `rails_app/config/rbac_groups.yml`).
+All inbox routes: authenticate + authorize. Host product roles must **grant** the CT-owned `me_inbox` entity (see dummy host `rails_app/config/rbac_groups.yml`).
 
 Pagination for list: query `limit` (default **50**, max **100**), `offset` (default **0**), `scope` (`inbox` \| `archived`, default `inbox`). List `meta`: `{ limit, offset, totalCount }`. See [pagination.md](pagination.md).
 
@@ -313,6 +354,25 @@ Pagination for list: query `limit` (default **50**, max **100**), `offset` (defa
 **Errors:** `401` / `403` / `422`; show/open may return `404` `not_found`.
 
 **Specs:** `spec/requests/command_tower/me/inbox_spec.rb`, `me/inbox_bulk_spec.rb`.
+
+---
+
+## Audit events
+
+Authenticate + authorize. Host `member` grants CT-owned `me_audit_events`. Engine `admin` grants `admin_audit_events`. Pagination matches Inbox: `limit` (default **50**, max **100**), `offset` (default **0**); list `meta`: `{ limit, offset, totalCount }`. See [pagination.md](pagination.md) and [audit.md](audit.md#reading-audit-history).
+
+Sensitive `changes` from/to are **backend-masked** for both surfaces. Metadata is not masked. The Me controller does not accept a target-user id.
+
+| Method | Path | Notes |
+|--------|------|--------|
+| `GET` | `/me/audit-events` | Caller's `user_history` rows only; optional `eventName`, `occurredAfter`, `occurredBefore`, `subjectType` |
+| `GET` | `/me/audit-events/:id` | Same Me scope; **404** out of scope |
+| `GET` | `/admin/audit-events` | Full ledger (unscoped) or scoped composite when scope param present; plus admin filters |
+| `GET` | `/admin/audit-events/:id` | Full ledger by id; **404** missing or out of scope |
+
+Scoped admin audit: host-scoped rows (`scope_class: host`) matching host context **OR** eligible global rows (`scope_class: global` + registry `global_visible_in_host_scope`) for in-scope affected users. **Legacy** rows excluded. Missing/malformed/unauthorized scope → **403**.
+
+**Specs:** `spec/requests/command_tower/me/audit_events_spec.rb`, `admin/audit/events_spec.rb`, `admin/scoping/audit_events_spec.rb`.
 
 ---
 
@@ -366,6 +426,104 @@ Errors include `422` (`pushover_already_configured`, `pushover_not_configured`, 
 
 ---
 
+## Admin Workspace
+
+### `GET /admin/workspace`
+
+| | |
+|--|--|
+| **Auth** | authenticate + authorize (RBAC entity `admin_workspace`) |
+| **Success** | **200** |
+| **Spec** | `spec/requests/command_tower/admin/workspace_spec.rb` |
+
+No query parameters. Envelope `data` (no pagination `meta`):
+
+```json
+{
+  "tools": [
+    {
+      "id": "audit",
+      "label": "Audit",
+      "description": "Browse account and administrative audit history.",
+      "route": "/admin/audit",
+      "group": "operations",
+      "sortOrder": 100,
+      "icon": "history",
+      "scope": { "required": true, "parameter": "partition", "label": "Partition" },
+      "scopeOptions": [{ "value": "scope-a", "label": "Scope A" }],
+      "availability": { "enabled": true, "reason": null }
+    }
+  ]
+}
+```
+
+Unscoped hosts omit `scope`, `scopeOptions`, and `availability`.
+
+Tools are filtered from the composed RBAC grant graph (`allow_everything` or an entity matching the tool's `required_entity`). `description` is additive presentation metadata (soft authoring ≤100 chars; registry hard max 160). CommandTower seeds `users`, `audit`, and `messaging`. Hosts add tools via `config.registry.admin_workspace.tool`. There is no generic tool execution route. `/me` does not duplicate this list. Do not use this endpoint as a UI permission probe — use [Principal capabilities](principal_capabilities.md).
+
+Registration and boot rules: [Admin Workspace](admin_workspace.md).
+
+### Admin Users
+
+Authenticate + authorize. Host grants CT-owned `admin_users` for list/show. Identity mutations require `admin_users_update` (do not fold writes into `admin_users`). Role assignment requires `admin_rbac_assignments`. Pagination matches Inbox/Audit: `limit` (default **50**, max **100**), `offset` (default **0**); list `meta`: `{ limit, offset, totalCount }`. Free-text `search` filters email / username / first_name / last_name server-side. Safe JSON allowlist only (never password digests / verifier tokens). **No** semantic `audit(...)` on list/show (read-only inspection). Mutations emit workflow-owned `admin_direct` events. See [pagination.md](pagination.md).
+
+When the tool declares `scope_required`, pass the configured scope query param (e.g. `partition=scope-a`). Missing/malformed/unauthorized scope → **403**. Authorized scope + user absent from narrowed relation → **404** (same as nonexistent id).
+
+| Method | Path | Notes |
+|--------|------|-------|
+| `GET` | `/admin/users` | Optional `search`; optional scope param when tool is scoped; ordered by `id` DESC |
+| `GET` | `/admin/users/:id` | **404** when missing or out of scope |
+| `PATCH` | `/admin/users/:id/name` | `{ firstName, lastName }` — both required |
+| `PATCH` | `/admin/users/:id/username` | `{ username }` |
+| `PATCH` | `/admin/users/:id/email` | `{ email }`; clears `emailValidated` when the address changes |
+| `PATCH` | `/admin/users/:id/email-validation` | `{ emailValidated: boolean }` — does not change email |
+| `GET` | `/admin/users/assignable-roles` | Host-sourced assignable catalog (excludes `owner`) |
+| `PATCH` | `/admin/users/:id/roles` | `{ roles: string[] }` — replaces assignable roles; preserves `owner` |
+
+Success **200** `{ data, meta, errors }` where mutation `data` is the same User schema as Show. Catalog `data` is `{ roles: [{ name, description }] }`. Validation **422** `data: null`. Missing `admin_users_update` or `admin_rbac_assignments` **403**. Impersonation overlay **418**.
+
+**Specs:** `spec/requests/command_tower/admin/users_spec.rb`, `spec/requests/command_tower/admin/users/identities_spec.rb`, `spec/requests/command_tower/admin/users/roles_spec.rb`, `spec/requests/command_tower/admin/scoping/users_spec.rb`.
+
+Impersonation start is a separate session primitive (below), not a User mutation.
+
+---
+
+## Impersonation
+
+Impersonation is a **server-authoritative session overlay** on the administrator JWT. `user_id` in the JWT is always the actor. Optional claim `impersonation_session_id` locates `command_tower_impersonation_sessions`. Expiration is row-authoritative (idle + absolute). HTTP activity alone does **not** refresh idle.
+
+`config.impersonation.idle_timeout` default **10 minutes**; `absolute_timeout` default **1 hour**; idle must be less than absolute.
+
+Qualifying workflows declare activity:
+
+```ruby
+class SomeWorkflow < ApplicationWorkflow
+  retry_strategy :none
+  impersonation_activity!
+end
+```
+
+Successful `WorkflowResult` sets a request flag; `HttpBoundary` records one idle refresh after a 2xx response. Do not declare on AuthenticateRequest, Session show, principal-capabilities, workspace manifest, or Logout. 5.5 exemplars: `Profile::ShowWorkflow` (GET, yes), `Me::UpdateNameWorkflow` (PATCH, yes), `Messaging::Preferences::UpdateWorkflow` (PATCH, no).
+
+Web cookie vs native Bearer: start/stop use `response_effects[:set_token]` (`X-Authorization-Reset` + body-adjacent header; cookie when enabled).
+
+### `POST /admin/users/:id/impersonation-sessions`
+
+| | |
+|--|--|
+| **Auth** | authenticate + authorize (`admin_impersonation`) |
+| **Success** | **201** — `data`: `{ id, actorUserId, targetUserId, idleExpiresAt, absoluteExpiresAt }` |
+| **Errors** | `401`; `403` (RBAC); `404` (missing / out of Users scope); `418` (overlay active); `422` self-target |
+| **Spec** | `spec/requests/command_tower/admin/users/impersonation_sessions_spec.rb` |
+
+Target lookup reuses `Services::Admin::Users::Show` with the same scope query param as Users show. Concurrent sessions are allowed. Nested start while an overlay is active is rejected at the Admin prohibition boundary (**418** `admin_unavailable_during_impersonation`); `StartWorkflow` still maps nested start to **403** `nested_impersonation_forbidden` if reached.
+
+Admin resource endpoints other than `GET /admin/workspace` return **418** while overlaying. Workspace remains allowed and disables every tool via `availability`.
+
+Expired product request: overlay present + invalid row → **401** `impersonation_session_expired` **without** clearing the auth cookie. Client may `DELETE /auth/impersonation-session` to return to self.
+
+---
+
 ## Admin messaging
 
 ### `POST /admin/messaging/announcements`
@@ -382,7 +540,7 @@ Errors include `422` (`pushover_already_configured`, `pushover_not_configured`, 
 
 **Sync response:** `mode`, `requested`, `campaignIdentity`, `accepted`, `failed`, `skipped`, `failures: [{ userId, errorCode }]`.
 
-Engine admin HTTP is **announcements only**. There is no `/admin` user list, modify, role assign, or impersonate surface.
+Engine admin HTTP includes workspace manifest, announcements, audit events, Users list/show, and impersonation start. There is no role-assign or User-mutation admin surface.
 
 ---
 
@@ -403,10 +561,11 @@ Details: [messaging_integration_guide.md](messaging_integration_guide.md).
 
 Engine defaults (`lib/command_tower/authorization/default.yml`):
 
-- Group `owner` — all entities
-- Group `admin` — entity `admin_messaging_announcements` on `AnnouncementsController#create`
+- Group `owner` — all entities (`entities: true`)
+- CT-owned Admin **entities** `admin_workspace`, `admin_users`, `admin_messaging_announcements`, `admin_audit_events` (and Me/Auth entities)
+- **No** CommandTower operational `admin` role — hosts grant Admin entities deliberately
 
-Hosts **must** supply `rbac_groups.yml` entities for Me / Auth / session surfaces (fail-closed). The dummy host file `rails_app/config/rbac_groups.yml` shows a `member` mapping pattern.
+Hosts **must** supply `rbac_groups.yml` **product roles** that grant CT-owned Me / Auth / session entity names (fail-closed). Operational Admin roles are host-owned (least privilege or a deliberate broad host `admin`). The dummy host file `rails_app/config/rbac_groups.yml` shows grants-only `member` plus operator examples. Do not copy CT controller/entity definitions into the host file.
 
 Configure via `CommandTower.configure { |c| c.authorization.rbac_group_path = ... }`. Deep guide: [authentication_authorization_guide.md](authentication_authorization_guide.md). Quick start: [authorization.md](authorization.md).
 
@@ -424,7 +583,7 @@ When a gate is off, the route is **not drawn** → **404**.
 | Email verification send/verify | `login.plain_text.email_verify?` |
 | Password reset send/validate/reset | `login.plain_text.password_reset?` |
 
-Always drawn (not route-gated): register, logout, session, signup-session, identity-policy, password-recovery-session, Me/profile/inbox/preferences/phone/pushover, admin announcements. Phone/Pushover use **503** capability errors when product adapters are unavailable.
+Always drawn (not route-gated): register, logout, session, signup-session, identity-policy, principal-capabilities, password-recovery-session, Me/profile/inbox/audit-events/preferences/phone/pushover, admin workspace, admin announcements, admin audit-events. Phone/Pushover use **503** capability errors when product adapters are unavailable.
 
 ---
 
@@ -435,4 +594,6 @@ Always drawn (not route-gated): register, logout, session, signup-session, ident
 - [Sensitive changes](sensitive_routes.md)
 - [Pagination](pagination.md)
 - [Messaging](messaging_integration_guide.md)
+- [Admin Workspace](admin_workspace.md)
+- [Principal capabilities](principal_capabilities.md)
 - [README](../README.md)

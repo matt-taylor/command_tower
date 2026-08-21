@@ -16,8 +16,26 @@ RSpec.describe CommandTower::Workflows::Auth::AuthenticationResponseEffects do
       it { is_expected.to eq({}) }
     end
 
-    context "when a cookie authenticated request succeeded" do
-      let(:metadata) { { cookie_authenticated: true, authentication_failed: false } }
+    context "when a cookie authenticated request failed because email is unverified" do
+      let(:metadata) do
+        {
+          cookie_authenticated: true,
+          authentication_failed: true,
+          email_verification_required: true
+        }
+      end
+
+      it { is_expected.to eq({}) }
+    end
+
+    context "when a cookie authenticated request failed because impersonation expired" do
+      let(:metadata) do
+        {
+          cookie_authenticated: true,
+          authentication_failed: true,
+          impersonation_session_expired: true
+        }
+      end
 
       it { is_expected.to eq({}) }
     end

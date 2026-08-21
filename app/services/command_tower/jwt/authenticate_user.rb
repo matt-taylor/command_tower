@@ -45,12 +45,18 @@ module CommandTower::Jwt
       end
 
       generated_token = nil
+      impersonation_session_id = payload[:impersonation_session_id].presence
       if with_reset
-        generated_token = LoginCreate.(user:).token
+        generated_token = LoginCreate.(user:, impersonation_session_id:).token
         expires_at = CommandTower.config.jwt.ttl.from_now.to_time
       end
 
-      AuthenticationOutcome.success(user:, expires_at: expires_at.to_s, generated_token:)
+      AuthenticationOutcome.success(
+        user:,
+        expires_at: expires_at.to_s,
+        generated_token:,
+        impersonation_session_id:
+      )
     end
 
     private

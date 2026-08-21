@@ -17,7 +17,7 @@ Layer map: [architecture.md](architecture.md). Install/configure/migrate/doctor:
 | `Communications::Produce` / `ProduceMany` | Sending messaging |
 | `FactoryBot.modify` | Extend shared factories |
 | Model reopen | Product associations / behavior |
-| Initializers | Configuration |
+| Initializers | Configuration, including `config.registry.audit.event`, `config.registry.admin_workspace.tool`, and `config.registry.principal_capabilities.capability` |
 | Notification catalogs / channel policy | Host-owned messaging customization |
 
 ## Internal platform — do not extend
@@ -97,8 +97,39 @@ Do not create one Messaging workflow per message type. Do not call the messaging
 
 No DoubleFloor Me (or other product) source is required to use the platform.
 
+## Execution Context
+
+Greenfield hosts inherit CommandTower-owned execution-boundary bases so HTTP and jobs establish ambient context automatically:
+
+```ruby
+class ApplicationController < CommandTower::ApplicationController
+end
+
+class ApplicationJob < CommandTower::ApplicationJob
+end
+```
+
+`CommandTower::Current` is the single `CurrentAttributes` bag (`execution_uuid`, `correlation_id`, `request_id`, `source`, identity scalars). Workflows and services **read** it (`execution_context`); they do not mint a new execution per call.
+
+`CommandTower::Auth::RequestContext` remains the HTTP request/response JWT transport handle. It is not Execution Context.
+
+Rake/console (and other non-HTTP/job entry points) wrap work with:
+
+```ruby
+CommandTower.with_execution(source: :rake) do
+  # ...
+end
+```
+
+Nested `with_execution` shares the outer context. Do not wrap `db:migrate` or doctor.
+
+If a host **cannot** change `ApplicationController` / `ApplicationJob` superclasses, include `CommandTower::Execution::HttpBoundary` / `CommandTower::Execution::JobBoundary` as a compatibility escape hatch. Do not include those modules into every `ActionController` or `ActiveJob::Base`.
+
+Automatic workflow/service lifecycle notifications are emitted by CommandTower kernels. Logging is a subscriber: emission is exhaustive; materialization is selective; log records are curated projections. The host owns format. See [Eventing](eventing.md).
+
 ## Related
 
+- [Eventing](eventing.md)
 - [Architecture](architecture.md)
 - [Controllers](controllers.md)
 - [Sensitive changes](sensitive_routes.md)

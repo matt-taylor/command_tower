@@ -74,7 +74,7 @@ Pagination detail: [pagination.md](pagination.md). Full catalog: [api_reference.
 - Notification catalog content (registered into CommandTower notification types)
 - `platform_enabled_channels` / channel policy injection
 - Messaging adapter credentials (email / SMS / Pushover) via initializer or ENV
-- Host `rbac_groups.yml` entities for Me inbox/preferences/phone/pushover (and admin if used)
+- Host product roles that grant CT-owned Me inbox/preferences/phone/pushover entities (and `admin` if used)
 - Product-specific operational tooling (announce rake tasks, welcome copy)
 
 ## Related

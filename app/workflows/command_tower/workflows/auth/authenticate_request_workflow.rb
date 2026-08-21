@@ -6,11 +6,12 @@ module CommandTower
       class AuthenticateRequestWorkflow < CommandTower::Workflows::ApplicationWorkflow
         retry_strategy :none
 
-        def call(request:, response:, bypass_email_validation: false)
+        def call(request:, response:, bypass_email_validation: false, overlay_mode: :enforce)
           request_context = CommandTower::Auth::RequestContext.from(request, response)
           auth_result = CommandTower::Services::Auth::AuthenticateSession.call(
             request_context: request_context,
-            bypass_email_validation: bypass_email_validation
+            bypass_email_validation: bypass_email_validation,
+            overlay_mode: overlay_mode
           )
 
           unless auth_result.success?

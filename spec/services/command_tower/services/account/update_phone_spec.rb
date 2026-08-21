@@ -18,6 +18,22 @@ RSpec.describe CommandTower::Services::Account::UpdatePhone do
         expect(user.phone_number_validated).to eq(false)
       end
 
+      context "when persisting the audit fact" do
+        before do
+          CommandTower.with_execution(source: :http, user_id: user.id, effective_user_id: user.id) do
+            described_class.call(user:, phone_number:)
+          end
+        end
+
+        let(:row) { CommandTower::Audit::Event.find_by!(action: "phone_updated") }
+
+        it "persists sensitive phone from/to" do
+          expect(row.change_set).to eq("phone" => { "from" => nil, "to" => "+14155552671" })
+          expect(row.sensitive_fields).to eq(["phone"])
+          expect(row.affected_user_id).to eq(user.id)
+        end
+      end
+
       it "returns the updated user" do
         expect(result.data[:user]).to eq(user)
       end
@@ -48,6 +64,10 @@ RSpec.describe CommandTower::Services::Account::UpdatePhone do
 
         expect(user.phone_number).to eq("+14155552671")
         expect(user.phone_number_validated).to eq(true)
+      end
+
+      it "does not persist phone_updated" do
+        expect { result }.not_to change { CommandTower::Audit::Event.where(action: "phone_updated").count }
       end
     end
 

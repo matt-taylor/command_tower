@@ -5,7 +5,9 @@ RSpec.describe CommandTower::Workflows::WorkflowResult do
     subject(:result) { described_class.success(payload: { ok: true }, meta: { page: 1 }) }
 
     it { expect(result).to be_success }
-    it { expect(result).not_to be_failure }
+    it { expect(result).not_to be_deferred }
+    it { expect(result.reason).to be_nil }
+    it { expect(result.retry_after).to be_nil }
     it { expect(result.payload).to eq(ok: true) }
     it { expect(result.errors).to eq([]) }
     it { expect(result.http_status).to eq(:ok) }
@@ -22,8 +24,25 @@ RSpec.describe CommandTower::Workflows::WorkflowResult do
     end
 
     it { expect(result).to be_failure }
+    it { expect(result).not_to be_success }
+    it { expect(result).not_to be_deferred }
     it { expect(result.payload).to be_nil }
     it { expect(result.http_status).to eq(:unprocessable_entity) }
     it { expect(result.errors.size).to eq(1) }
+  end
+
+  describe ".deferred" do
+    subject(:result) do
+      described_class.deferred(reason: :provider_cooldown, retry_after: 17, payload: { ok: false })
+    end
+
+    it { expect(result).to be_deferred }
+    it { expect(result).not_to be_success }
+    it { expect(result).not_to be_failure }
+    it { expect(result.reason).to eq(:provider_cooldown) }
+    it { expect(result.retry_after).to eq(17) }
+    it { expect(result.http_status).to eq(:accepted) }
+    it { expect(result.payload).to eq(ok: false) }
+    it { expect(result.errors).to eq([]) }
   end
 end

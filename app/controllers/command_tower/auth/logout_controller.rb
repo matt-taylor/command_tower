@@ -6,7 +6,9 @@ module CommandTower
       include CommandTower::Api::ApplicationResponseRenderer
 
       def create
-        result = CommandTower::Workflows::Auth::LogoutWorkflow.call
+        token_data = CommandTower::Jwt::AuthorizationHelper.extract_token(request)
+        token = token_data[:error] ? nil : token_data[:token]
+        result = CommandTower::Workflows::Auth::LogoutWorkflow.call(token:)
         render_application_result(result)
       end
     end

@@ -16,8 +16,16 @@ module AuthRequestSpecHelpers
     CommandTower::Auth::RequestContext.from(request, ActionDispatch::Response.new)
   end
 
-  def login_token_for(user)
-    CommandTower::Jwt::LoginCreate.call(user: user).token
+  def login_token_for(user, impersonation_session_id: nil)
+    CommandTower::Jwt::LoginCreate.call(user:, impersonation_session_id:).token
+  end
+
+  def impersonation_token_for(actor, session)
+    login_token_for(actor, impersonation_session_id: session.id)
+  end
+
+  def authenticate_impersonation_with_bearer!(actor, session)
+    { "Authorization" => "Bearer #{impersonation_token_for(actor, session)}" }
   end
 
   # Request-spec auth setup. Do not POST the login route for setup unless the

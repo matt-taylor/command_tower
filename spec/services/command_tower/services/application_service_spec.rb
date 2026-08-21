@@ -80,4 +80,150 @@ RSpec.describe CommandTower::Services::ApplicationService do
       end
     end
   end
+
+  describe "#transaction" do
+    let(:app_error) do
+      Class.new(CommandTower::Errors::ApplicationError) do
+        def code
+          "spec_service_transaction_error"
+        end
+      end.new
+    end
+
+    context "when the transaction succeeds" do
+      let(:service_class) do
+        Class.new(described_class) do
+          validate :user, required: true
+
+          def call
+            transaction do
+              user.update!(first_name: "Committed")
+              context.first_name = user.first_name
+            end
+          end
+        end
+      end
+
+      let(:user) { create(:user, first_name: "Before") }
+      subject(:result) { service_class.call(user: user) }
+
+      it "commits mutations and returns a successful ServiceResult" do
+        expect(result).to be_success
+        expect(result.data[:first_name]).to eq("Committed")
+        expect(user.reload.first_name).to eq("Committed")
+      end
+    end
+
+    context "when fail_transaction! is used with a failed ServiceResult" do
+      let(:captured_error) { app_error }
+      let(:service_class) do
+        error = captured_error
+        Class.new(described_class) do
+          validate :user, required: true
+
+          define_method(:call) do
+            transaction do
+              user.update!(first_name: "ShouldRollback")
+              fail_transaction!(
+                CommandTower::Services::ServiceResult.failure(errors: [error])
+              )
+            end
+          end
+        end
+      end
+
+      let(:user) { create(:user, first_name: "Before") }
+      subject(:result) { service_class.call(user: user) }
+
+      it "rolls back and returns the exact application error" do
+        expect(result).to be_failure
+        expect(result.errors).to contain_exactly(captured_error)
+        expect(user.reload.first_name).to eq("Before")
+        expect(result.errors.first).not_to be_a(CommandTower::Errors::InternalError)
+      end
+    end
+
+    context "when fail_transaction! follows multiple mutations" do
+      let(:captured_error) { app_error }
+      let(:service_class) do
+        error = captured_error
+        Class.new(described_class) do
+          validate :user_a, required: true
+          validate :user_b, required: true
+
+          define_method(:call) do
+            transaction do
+              user_a.update!(first_name: "AChanged")
+              user_b.update!(first_name: "BChanged")
+              fail_transaction!(error)
+            end
+          end
+        end
+      end
+
+      let(:user_a) { create(:user, first_name: "A") }
+      let(:user_b) { create(:user, first_name: "B") }
+      subject(:result) { service_class.call(user_a: user_a, user_b: user_b) }
+
+      it "rolls back all writes" do
+        expect(result).to be_failure
+        expect(user_a.reload.first_name).to eq("A")
+        expect(user_b.reload.first_name).to eq("B")
+      end
+    end
+
+    context "when a failed ServiceResult is returned without fail_transaction!" do
+      let(:service_class) do
+        Class.new(described_class) do
+          validate :user, required: true
+
+          def call
+            transaction do
+              user.update!(first_name: "ShouldRollback")
+              CommandTower::Services::ServiceResult.failure(
+                errors: [CommandTower::Errors::ValidationError.new]
+              )
+            end
+          end
+        end
+      end
+
+      let(:user) { create(:user, first_name: "Before") }
+      subject(:invoke) { service_class.call(user: user) }
+
+      it "rejects a failed ServiceResult returned without fail_transaction!" do
+        expect { invoke }.to raise_error(
+          CommandTower::Transactional::InvalidTransactionResult,
+          /fail_transaction!/
+        )
+        expect(user.reload.first_name).to eq("Before")
+      end
+    end
+
+    context "when work is performed before the transaction block" do
+      let(:service_class) do
+        Class.new(described_class) do
+          validate :outside_user, required: true
+          validate :inside_user, required: true
+
+          def call
+            outside_user.update!(first_name: "OutsideCommitted")
+            transaction do
+              inside_user.update!(first_name: "InsideShouldRollback")
+              fail_transaction!(CommandTower::Errors::ValidationError.new)
+            end
+          end
+        end
+      end
+
+      let(:outside_user) { create(:user, first_name: "OutsideBefore") }
+      let(:inside_user) { create(:user, first_name: "InsideBefore") }
+
+      it "does not enclose work performed before the transaction block" do
+        expect(service_class.call(outside_user: outside_user, inside_user: inside_user)).to be_failure
+        expect(outside_user.reload.first_name).to eq("OutsideCommitted")
+        expect(inside_user.reload.first_name).to eq("InsideBefore")
+      end
+    end
+  end
 end

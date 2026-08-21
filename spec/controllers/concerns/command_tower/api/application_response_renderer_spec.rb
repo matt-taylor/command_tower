@@ -47,6 +47,15 @@ RSpec.describe CommandTower::Api::ApplicationResponseRenderer, type: :controller
       render_application_result(result)
     end
 
+    def deferred_action
+      result = CommandTower::Workflows::WorkflowResult.deferred(
+        reason: :provider_cooldown,
+        retry_after: 17,
+        payload: { pending: true }
+      )
+      render_application_result(result)
+    end
+
     def deser_failure_action
       deserialized = CommandTower::Deserializers::ApplicationDeserializer::DeserializerResult.new(
         success: false,
@@ -63,6 +72,7 @@ RSpec.describe CommandTower::Api::ApplicationResponseRenderer, type: :controller
       get "success_with_blank_effects_action" => "anonymous#success_with_blank_effects_action"
       get "success_with_unknown_effects_action" => "anonymous#success_with_unknown_effects_action"
       get "failure_action" => "anonymous#failure_action"
+      get "deferred_action" => "anonymous#deferred_action"
       get "deser_failure_action" => "anonymous#deser_failure_action"
     end
   end
@@ -111,6 +121,20 @@ RSpec.describe CommandTower::Api::ApplicationResponseRenderer, type: :controller
       it "does not raise and still renders" do
         expect(response).to have_http_status(:ok)
         expect(response.parsed_body["data"]).to eq("ok" => true)
+      end
+    end
+
+    context "with a deferred result" do
+      before { get :deferred_action }
+
+      let(:body) { response.parsed_body }
+
+      it { expect(response).to have_http_status(:accepted) }
+
+      it "renders a success-shaped envelope, not errors" do
+        expect(body["data"]).to eq("pending" => true)
+        expect(body["errors"]).to eq([])
+        expect(body["meta"]).to include("reason" => "provider_cooldown", "retry_after" => 17)
       end
     end
 

@@ -20,10 +20,14 @@ module CommandTower
               response_effects[:ensure_csrf_cookie] = { rotate: csrf_rotate_on_reset? }
             end
 
+            impersonation_session = impersonation_session_for(auth_context)
+
             success(
               payload: CommandTower::Serializers::Auth::SessionResponseSerializer.serialize(
                 user: current_user,
-                token_expires_at: auth_context.token_expires_at
+                token_expires_at: auth_context.token_expires_at,
+                impersonation_session:,
+                actor: auth_context.actor_user
               ),
               http_status: :ok,
               response_effects: response_effects
@@ -36,6 +40,16 @@ module CommandTower
             return false unless CommandTower::Jwt::CsrfHelper.csrf_enabled?
 
             CommandTower.config.jwt.cookie.csrf.rotate_on_reset
+          end
+
+          def impersonation_session_for(auth_context)
+            return unless CommandTower::Current.impersonation_active
+
+            session_id = auth_context.impersonation_session_id.presence ||
+              CommandTower::Current.impersonation_session_id
+            return if session_id.blank?
+
+            CommandTower::Impersonation::Session.find_by(id: session_id)
           end
         end
       end

@@ -39,19 +39,20 @@ RSpec.describe "Messaging execution observability", :messaging_accept do
   end
 
   let(:payloads) { [] }
-
-  before do
-    allow(CommandTower::Messaging::Contract::Observability::StructuredLogger).to receive(:info) do |payload|
-      payloads << payload
-    end
-    allow(CommandTower::Messaging::Contract::Observability::StructuredLogger).to receive(:error) do |payload|
-      payloads << payload
+  let(:subscriber) do
+    bucket = payloads
+    ActiveSupport::Notifications.subscribe(/\Acommand_tower\.messaging/) do |name, _s, _f, _id, payload|
+      bucket << payload.to_h.merge(event: name)
     end
   end
 
+  before { subscriber }
+
+  after { unsubscribe_notifications(subscriber) }
+
   let(:serialized) do
     lambda do |logged_payloads|
-      logged_payloads.map { |payload| payload.to_json }.join("\n")
+      logged_payloads.map(&:inspect).join("\n")
     end
   end
 
@@ -69,11 +70,11 @@ RSpec.describe "Messaging execution observability", :messaging_accept do
 
     it "emits render and adapter success events with safe fields only" do
       expect(events).to include(
-        "messaging.execution.readiness.revalidated",
-        "messaging.execution.render.started",
-        "messaging.execution.render.succeeded",
-        "messaging.execution.adapter.started",
-        "messaging.execution.adapter.accepted",
+        "command_tower.messaging.execution.readiness.revalidated",
+        "command_tower.messaging.execution.render.started",
+        "command_tower.messaging.execution.render.succeeded",
+        "command_tower.messaging.execution.adapter.started",
+        "command_tower.messaging.execution.adapter.accepted",
       )
 
       dump = serialized.call(payloads)
@@ -102,7 +103,7 @@ RSpec.describe "Messaging execution observability", :messaging_accept do
     end
 
     let(:failed_event) do
-      payloads.find { |payload| (payload[:event] || payload["event"]) == "messaging.execution.render.failed" }
+      payloads.find { |payload| (payload[:event] || payload["event"]) == "command_tower.messaging.execution.render.failed" }
     end
 
     it "emits render.failed with safe classification and no raw exception message" do
@@ -133,7 +134,7 @@ RSpec.describe "Messaging execution observability", :messaging_accept do
     end
 
     let(:terminal_event) do
-      payloads.find { |payload| (payload[:event] || payload["event"]) == "messaging.execution.adapter.terminal" }
+      payloads.find { |payload| (payload[:event] || payload["event"]) == "command_tower.messaging.execution.adapter.terminal" }
     end
 
     it "emits adapter.terminal with safe error_code only" do

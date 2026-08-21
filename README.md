@@ -41,10 +41,14 @@ See [Architecture](docs/architecture.md) and [ServiceBase](app/services/command_
 | Guide | Purpose |
 |-------|---------|
 | [Host integration](docs/host_integration_guide.md) | **Start here** — step-by-step new Rails host path |
-| [Upgrades](docs/upgrades/README.md) | Release upgrade summaries (see [0.10.0](docs/upgrades/0.10.0.md)) |
+| [Upgrades](docs/upgrades/README.md) | Release upgrade summaries (see [0.11.0](docs/upgrades/0.11.0.md)) |
 | [Initializing](docs/initializing.md) | Install, configure, migrate, doctor, upgrades |
 | [Testing](docs/testing.md) | Shared FactoryBot / `CommandTower::Testing` |
 | [Architecture](docs/architecture.md) | Layer map for hosts and contributors |
+| [Eventing](docs/eventing.md) | ASN grammar, lifecycle vs semantic, envelope, subscriber failure |
+| [Audit](docs/audit.md) | Registered `audit(...)` + append-only `command_tower_audit_events` ledger |
+| [Admin Workspace](docs/admin_workspace.md) | Tool registry + RBAC-filtered `GET /admin/workspace` manifest |
+| [Principal capabilities](docs/principal_capabilities.md) | Curated FE-projectable ids via `GET /auth/principal-capabilities` |
 | [Controllers / routes](docs/controllers.md) | Engine route areas (index) |
 | [API reference](docs/api_reference.md) | Endpoint catalog (detailed contracts) |
 | [Extending](docs/extending.md) | Stable extension points / do-not-extend |
@@ -86,7 +90,7 @@ Engine HTTP coverage lives primarily under `spec/requests/`. Residual journey co
 
 ## Routes
 
-Engine routes cover Auth, Me (profile, inbox, preferences, phone, Pushover), and Admin messaging announcements. Index: [Controllers](docs/controllers.md). Contracts: [API reference](docs/api_reference.md).
+Engine routes cover Auth, Me (profile, inbox, preferences, phone, Pushover), Admin Workspace manifest, admin audit events, and Admin messaging announcements. Index: [Controllers](docs/controllers.md). Contracts: [API reference](docs/api_reference.md).
 
 ## Models
 
@@ -109,7 +113,7 @@ Cookie mode supports HttpOnly JWT cookies, SameSite, optional double-submit CSRF
 
 Authorization establishes permission after authentication (`403` when it fails).
 
-Engine defaults ship `owner` and `admin` (announcements). Hosts **must** supply `rbac_groups.yml` entities for Me/Auth surfaces (fail-closed). Host controllers may use provisional `authorize_user!` after `authenticate_user!`.
+Engine defaults ship `owner` (full access) plus CT-owned Me/Auth and Admin **entity** definitions. CommandTower does **not** ship an operational `admin` role. Hosts supply `rbac_groups.yml` **product roles** that grant those entity names (fail-closed), including any operational Admin bundles. Do not copy CT controller mappings. Host controllers may use provisional `authorize_user!` after `authenticate_user!`.
 
 - Quick start: [Authorization](docs/authorization.md)
 - Deep guide: [Authentication & authorization](docs/authentication_authorization_guide.md)

@@ -11,6 +11,9 @@ RSpec.describe "CommandTower migration baseline" do
       20260805000003_create_command_tower_messaging_core.rb
       20260805000004_create_messaging_notification_preferences.rb
       20260805000005_create_messaging_endpoints_and_pushover_credentials.rb
+      20260816000001_create_command_tower_audit_events.rb
+      20260817000001_add_scope_columns_to_command_tower_audit_events.rb
+      20260817000003_create_command_tower_impersonation_sessions.rb
     ]
   end
 
@@ -26,6 +29,8 @@ RSpec.describe "CommandTower migration baseline" do
       messaging_notification_preferences
       messaging_endpoints
       messaging_endpoint_pushover_credentials
+      command_tower_audit_events
+      command_tower_impersonation_sessions
     ]
   end
 
@@ -95,6 +100,8 @@ RSpec.describe "CommandTower migration baseline" do
     expect(CommandTower::Messaging::EndpointPushoverCredential.table_name).to eq(
       "messaging_endpoint_pushover_credentials"
     )
+    expect(CommandTower::Audit::Event.table_name).to eq("command_tower_audit_events")
+    expect(CommandTower::Impersonation::Session.table_name).to eq("command_tower_impersonation_sessions")
   end
 
   context "when inspecting users columns" do

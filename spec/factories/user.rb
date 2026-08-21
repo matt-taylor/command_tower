@@ -40,6 +40,22 @@ FactoryBot.define do
       roles { ["owner"] }
     end
 
+    trait :role_impersonation_operator do
+      roles { ["impersonation_operator"] }
+    end
+
+    trait :role_rbac_admin do
+      roles { ["rbac_admin"] }
+    end
+
+    trait :role_support_admin do
+      roles { ["support_admin"] }
+    end
+
+    trait :role_users_identity_admin do
+      roles { ["users_identity_admin"] }
+    end
+
     trait :without_phone do
       phone_number { nil }
       phone_number_validated { false }

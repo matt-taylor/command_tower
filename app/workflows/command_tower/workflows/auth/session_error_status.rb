@@ -18,6 +18,7 @@ module CommandTower
                CommandTower::Errors::ForbiddenError
             :forbidden
           when CommandTower::Errors::Auth::InvalidCredentialsError,
+               CommandTower::Errors::Auth::ImpersonationSessionExpiredError,
                CommandTower::Errors::UnauthorizedError
             :unauthorized
           else

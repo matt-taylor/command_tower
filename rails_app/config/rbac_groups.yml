@@ -1,10 +1,8 @@
 ---
-# Host-owned RBAC for the dummy application. Engine-owned controllers that sit
-# behind the authorization boundary must be mapped by the host, otherwise
-# AuthorizeRequest fails closed.
-# Note: do not redefine groups that already exist in CommandTower default.yml
-# (e.g. admin) — Role.create_role raises on duplicate names. Add entities here
-# and attach them to default roles in lib/command_tower/authorization/default.yml.
+# Host-owned RBAC. CommandTower ships CT entity definitions in
+# lib/command_tower/authorization/default.yml. Hosts grant those names to
+# product roles and may add host-owned entities for host controllers.
+# Operational Admin privilege bundles are host-owned (least privilege).
 groups:
   member:
     description: Standard authenticated application user
@@ -17,74 +15,81 @@ groups:
       - me_name
       - me_password
       - me_inbox
+      - me_audit_events
       - me_preferences
       - me_phone
       - me_phone_verification_send
       - me_phone_verification_verify
       - me_pushover
       - me_pushover_verification
+      - principal_capabilities
+  audit_operator:
+    description: Dummy host role with Admin Workspace and audit only
+    entities:
+      - principal_capabilities
+      - admin_workspace
+      - admin_audit_events
+  messaging_operator:
+    description: Dummy host role with Admin Workspace and messaging only
+    entities:
+      - principal_capabilities
+      - admin_workspace
+      - admin_messaging_announcements
+  operations_admin:
+    description: Dummy host role with all CT Admin Workspace capabilities
+    entities:
+      - principal_capabilities
+      - admin_workspace
+      - admin_audit_events
+      - admin_messaging_announcements
+      - admin_users
+  impersonation_operator:
+    description: Dummy host role that can start impersonation of visible users
+    entities:
+      - principal_capabilities
+      - admin_workspace
+      - admin_users
+      - admin_impersonation
+  admin:
+    description: |
+      Host-owned deliberate broad Admin bundle (host policy, not platform default).
+      Grants CT Admin Workspace, audit, messaging, users, and identity-update entities.
+    entities:
+      - principal_capabilities
+      - admin_workspace
+      - admin_audit_events
+      - admin_messaging_announcements
+      - admin_users
+      - admin_users_update
+      - admin_rbac_assignments
+  users_identity_admin:
+    description: Identity mutations on Users without RBAC assignment
+    entities:
+      - principal_capabilities
+      - admin_workspace
+      - admin_users
+      - admin_users_update
+  rbac_admin:
+    description: Assign and revoke allowed Admin Users roles
+    entities:
+      - principal_capabilities
+      - admin_workspace
+      - admin_users
+      - admin_rbac_assignments
+  audit_admin:
+    description: Audit Explorer plus Users inspection
+    entities:
+      - principal_capabilities
+      - admin_workspace
+      - admin_users
+      - admin_audit_events
+  support_admin:
+    description: Users inspection subset used to prove grant-subset assignment
+    entities:
+      - principal_capabilities
+      - admin_workspace
+      - admin_users
 entities:
-  - name: email_verification_send
-    controller: CommandTower::Auth::EmailVerification::SendController
-    only: create
-  - name: email_verification_verify
-    controller: CommandTower::Auth::EmailVerification::VerifyController
-    only: create
-  - name: session
-    controller: CommandTower::Auth::SessionController
+  - name: dummy_admin_example
+    controller: FoundationProof::WorkspaceExampleController
     only: show
-  - name: me
-    controller: CommandTower::MeController
-    only: show
-  - name: profile
-    controller: CommandTower::ProfileController
-    only: show
-  - name: me_name
-    controller: CommandTower::Me::NameController
-    only: update
-  - name: me_password
-    controller: CommandTower::Me::PasswordController
-    only: update
-  - name: me_inbox
-    controller: CommandTower::Me::InboxController
-    only:
-      - index
-      - show
-      - open
-      - archive
-      - destroy
-      - unread_count
-      - bulk_read
-      - bulk_unread
-      - bulk_archive
-      - bulk_restore
-      - bulk_delete
-  - name: me_preferences
-    controller: CommandTower::Me::PreferencesController
-    only:
-      - show
-      - update
-  - name: me_phone
-    controller: CommandTower::Me::PhoneController
-    only:
-      - update
-      - destroy
-  - name: me_phone_verification_send
-    controller: CommandTower::Me::PhoneVerification::VerificationsController
-    only: create
-  - name: me_phone_verification_verify
-    controller: CommandTower::Me::PhoneVerification::VerifyController
-    only: create
-  - name: me_pushover
-    controller: CommandTower::Me::PushoverController
-    only:
-      - show
-      - create
-      - update
-      - destroy
-  - name: me_pushover_verification
-    controller: CommandTower::Me::Pushover::VerificationsController
-    only: create
-  - name: admin_messaging_announcements
-    controller: CommandTower::Admin::Messaging::AnnouncementsController
-    only: create

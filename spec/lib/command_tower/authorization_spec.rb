@@ -18,19 +18,56 @@ RSpec.describe CommandTower::Authorization do
     subject(:provision_rbac_default) { described_class.provision_rbac_default! }
 
     it "creates owner" do
-      subject
-      expect(described_class::Role.roles["owner"]).to be_present
+      expect { provision_rbac_default }.to change { described_class::Role.roles["owner"].present? }.from(false).to(true)
     end
 
-    it "creates admin" do
-      subject
-      expect(described_class::Role.roles["admin"]).to be_present
+    it "does not create an operational admin role" do
+      provision_rbac_default
+      expect(described_class::Role.roles["admin"]).to be_nil
     end
 
-    it "does not create retired legacy admin roles" do
-      subject
-      expect(described_class::Role.roles["admin-without-impersonation"]).to be_nil
-      expect(described_class::Role.roles["admin-read-only"]).to be_nil
+    context "when CommandTower-owned Me surfaces are defined" do
+      before { provision_rbac_default }
+
+      it "marks me as CommandTower-owned" do
+        expect(described_class::Entity.entities["me"].source).to eq(:command_tower)
+      end
+
+      it "marks session as CommandTower-owned" do
+        expect(described_class::Entity.entities["session"].source).to eq(:command_tower)
+      end
+
+      it "marks me_inbox as CommandTower-owned" do
+        expect(described_class::Entity.entities["me_inbox"].source).to eq(:command_tower)
+      end
+
+      it "marks me_audit_events as CommandTower-owned" do
+        expect(described_class::Entity.entities["me_audit_events"].source).to eq(:command_tower)
+      end
+
+      it "marks admin_audit_events as CommandTower-owned" do
+        expect(described_class::Entity.entities["admin_audit_events"].source).to eq(:command_tower)
+      end
+
+      it "marks admin_workspace as CommandTower-owned" do
+        expect(described_class::Entity.entities["admin_workspace"].source).to eq(:command_tower)
+      end
+
+      it "marks admin_messaging_announcements as CommandTower-owned" do
+        expect(described_class::Entity.entities["admin_messaging_announcements"].source).to eq(:command_tower)
+      end
+    end
+
+    context "when checking retired legacy admin roles" do
+      before { provision_rbac_default }
+
+      it "does not create admin-without-impersonation" do
+        expect(described_class::Role.roles["admin-without-impersonation"]).to be_nil
+      end
+
+      it "does not create admin-read-only" do
+        expect(described_class::Role.roles["admin-read-only"]).to be_nil
+      end
     end
   end
 

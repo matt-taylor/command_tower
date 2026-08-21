@@ -10,7 +10,10 @@ module CommandTower
 
           def call
             user = User.where(username: identifier).or(User.where(email: identifier)).first
-            invalid_credentials! if user.nil?
+            if user.nil?
+              audit_login_failed(affected_user: nil, outcome: "unknown_identifier")
+              invalid_credentials!
+            end
 
             if user.authenticate(password)
               user.successful_login += 1
@@ -20,6 +23,7 @@ module CommandTower
               user.password_consecutive_fail += 1
               user.save
               log_warn("Valid identifier. Incorrect password. Consecutive Password failures: #{user.password_consecutive_fail}")
+              audit_login_failed(affected_user: user, outcome: "invalid_password")
               invalid_credentials!
             end
 
@@ -32,6 +36,10 @@ module CommandTower
 
           def invalid_credentials!
             context.fail!(application_error: CommandTower::Errors::Auth::InvalidCredentialsError.new)
+          end
+
+          def audit_login_failed(affected_user:, outcome:)
+            audit(:login_failed, affected_user:, changes: {}, metadata: { outcome: })
           end
 
           def token_expires_at_from_ttl

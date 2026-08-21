@@ -69,7 +69,7 @@ module CommandTower
               payload[:communication_id] = communication_id
             end
 
-            Contract::Observability::StructuredLogger.public_send(level, payload)
+            Contract::Observability::Publisher.public_send(level, payload)
           end
         end
       end

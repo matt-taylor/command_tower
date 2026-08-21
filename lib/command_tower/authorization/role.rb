@@ -4,7 +4,7 @@ module CommandTower
   module Authorization
     class Role
       class << self
-        def create_role(name:, description:, entities: nil, allow_everything: false)
+        def create_role(name:, description:, entities: nil, allow_everything: false, source: :host)
           if roles[name]
             raise Error, "Role [#{name}] already exists. Must use different name"
           end
@@ -17,7 +17,7 @@ module CommandTower
             end
           end
 
-          roles[name] = new(name:, description:, entities:, allow_everything:)
+          roles[name] = new(name:, description:, entities:, allow_everything:, source:)
           # A role is `intended` to be immutable (attr_reader)
           # Once the role is defined it will not get changed
           # After it is created, add the mapping to the source of truth list of mapped method names to their controllers
@@ -35,12 +35,13 @@ module CommandTower
         end
       end
 
-      attr_reader :entities, :name, :description, :allow_everything
-      def initialize(name:, description:, entities:, allow_everything: false)
+      attr_reader :entities, :name, :description, :allow_everything, :source
+      def initialize(name:, description:, entities:, allow_everything: false, source: :host)
         @name = name
         @entities = Array(entities)
         @description = description
         @allow_everything = allow_everything
+        @source = source.to_sym
       end
 
       def authorized?(controller:, method:, user:)

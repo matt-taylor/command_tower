@@ -3,12 +3,14 @@
 require "singleton"
 require "class_composer"
 require "command_tower/configuration/admin/config"
+require "command_tower/configuration/admin_scope/config"
 require "command_tower/configuration/application/config"
 require "command_tower/configuration/authorization/config"
 require "command_tower/configuration/base"
 require "command_tower/configuration/credentials/config"
 require "command_tower/configuration/email/config"
 require "command_tower/configuration/identity/config"
+require "command_tower/configuration/impersonation/config"
 require "command_tower/configuration/jwt/config"
 require "command_tower/configuration/jwt/cookie/config"
 require "command_tower/configuration/login/config"
@@ -16,6 +18,7 @@ require "command_tower/configuration/messaging/config"
 require "command_tower/configuration/otp/config"
 require "command_tower/configuration/pagination/config"
 require "command_tower/configuration/password_recovery_session/config"
+require "command_tower/configuration/registry/config"
 require "command_tower/configuration/signup_session/config"
 require "command_tower/configuration/user/config"
 require "command_tower/configuration/username/config"
@@ -78,6 +81,11 @@ module CommandTower
         allowed: Configuration::Identity::Config,
         default: Configuration::Identity::Config.new
 
+      add_composer :impersonation,
+        desc: "Impersonation session idle and absolute timeouts",
+        allowed: Configuration::Impersonation::Config,
+        default: Configuration::Impersonation::Config.new
+
       add_composer :messaging,
         desc: "Messaging delivery configuration (notification SMS, etc.). Separate from Identity OTP.",
         allowed: Configuration::Messaging::Config,
@@ -88,10 +96,22 @@ module CommandTower
         allowed: Configuration::Admin::Config,
         default: Configuration::Admin::Config.new
 
+      add_composer :admin_scope,
+        desc: "Host hooks for optional Admin resource scoping (options, validation, narrowing)",
+        allowed: Configuration::AdminScope::Config,
+        dynamic_default: ->(_) { Configuration::AdminScope::Config.new },
+        default_shown: "Configuration::AdminScope::Config.new"
+
       add_composer :pagination,
         desc: "Pagination configuration for the app",
         allowed: Configuration::Pagination::Config,
         default: Configuration::Pagination::Config.new
+
+      add_composer :registry,
+        desc: "Host and platform registrations expressed as configuration (not a plugin API)",
+        allowed: Configuration::Registry::Config,
+        dynamic_default: ->(_) { Configuration::Registry::Config.new },
+        default_shown: "Configuration::Registry::Config.new"
 
       add_composer :signup_session,
         desc: "Signup session token claims, TTL, and signup rate limit ceilings",

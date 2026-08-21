@@ -4,13 +4,21 @@ module CommandTower
   module Authorization
     class Entity
       class << self
-        def create_entity(name:, controller:, only: nil, except: nil)
+        def create_entity(name:, controller:, only: nil, except: nil, source: :host)
           if entities[name]
-            Rails.logger.warn("Warning: Authorization entity #{name} duplicated. Only the most recent one will persist")
+            raise Error, "Authorization entity [#{name}] already exists. Hosts must not redefine CommandTower-owned entities."
           end
 
-          entities[name] = new(name:, controller:, only:, except:)
+          entity = new(name:, controller:, only:, except:, source:)
 
+          if source.to_sym == :host
+            ct_controllers = entities.values.select { |existing| existing.source == :command_tower }.map(&:controller)
+            if ct_controllers.include?(entity.controller)
+              raise Error, "Host entity [#{name}] redefines CommandTower-owned controller [#{entity.controller}]"
+            end
+          end
+
+          entities[name] = entity
           entities[name]
         end
 
@@ -23,11 +31,13 @@ module CommandTower
         end
       end
 
-      attr_reader :name, :controller, :only, :except
-      def initialize(name:, controller:, only: nil, except: nil)
+      attr_reader :name, :controller, :only, :except, :source
+      def initialize(name:, controller:, only: nil, except: nil, source: :host)
         @controller = controller
         @except = except.nil? ? nil : Array(except).map(&:to_sym)
         @only = only.nil? ? nil : Array(only).map(&:to_sym)
+        @source = source.to_sym
+        @name = name
 
         validate!
       end

@@ -27,5 +27,16 @@ RSpec.describe CommandTower::Jwt::LoginCreate do
         expect(call.token).to be_a String
       end
     end
+
+    context "when an impersonation session id is supplied" do
+      subject(:call) { described_class.call(user:, impersonation_session_id: session.id) }
+
+      let(:session) { create(:impersonation_session, actor: user, target: create(:user)) }
+
+      it "embeds the overlay claim without changing user_id" do
+        expect(CommandTower::Jwt::Decode.call(token: call.token).payload[:user_id]).to eq(user.id)
+        expect(CommandTower::Jwt::Decode.call(token: call.token).payload[:impersonation_session_id]).to eq(session.id)
+      end
+    end
   end
 end

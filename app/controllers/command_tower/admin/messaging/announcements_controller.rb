@@ -3,14 +3,7 @@
 module CommandTower
   module Admin
     module Messaging
-      class AnnouncementsController < CommandTower::ApplicationController
-        include CommandTower::Auth::AuthenticationBoundary
-        include CommandTower::Auth::AuthorizationBoundary
-        include CommandTower::Api::ApplicationResponseRenderer
-
-        before_action :authenticate_request!
-        before_action :authorize_request!
-
+      class AnnouncementsController < CommandTower::Admin::ApplicationController
         def create
           deserialized = CommandTower::Deserializers::Admin::Messaging::CreateAnnouncementDeserializer.call(params)
           unless deserialized.success?

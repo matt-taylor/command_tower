@@ -44,6 +44,25 @@ RSpec.describe CommandTower::Services::Auth::PasswordReset::Reset do
         expect(user.reload.authenticate(password)).to be_truthy
       end
 
+      it "persists password_changed as a system reset" do
+        expect { result }.to change { CommandTower::Audit::Event.where(action: "password_changed").count }.by(1)
+      end
+
+      context "when inspecting the password_changed row" do
+        before { result }
+
+        let(:row) { CommandTower::Audit::Event.find_by!(action: "password_changed") }
+
+        it "records a reset without secrets" do
+          expect(row.attribution_mode).to eq("system")
+          expect(row.affected_user_id).to eq(user.id)
+          expect(row.change_set).to eq({})
+          expect(row.metadata).to eq("mechanism" => "reset")
+          expect(row.metadata.to_s).not_to include(password)
+          expect(row.metadata.to_s).not_to include(token)
+        end
+      end
+
       it "invalidates the old password" do
         result
 

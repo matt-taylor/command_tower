@@ -34,10 +34,12 @@ module RailsApp
     config.autoload_paths << Rails.root.join("app/services")
     config.autoload_paths << Rails.root.join("app/deserializers")
     config.autoload_paths << Rails.root.join("app/serializers")
+    config.autoload_paths << CommandTower::Engine.root.join("app/shared_sequences")
     config.eager_load_paths << Rails.root.join("app/workflows")
     config.eager_load_paths << Rails.root.join("app/services")
     config.eager_load_paths << Rails.root.join("app/deserializers")
     config.eager_load_paths << Rails.root.join("app/serializers")
+    config.eager_load_paths << CommandTower::Engine.root.join("app/shared_sequences")
   end
 end
 

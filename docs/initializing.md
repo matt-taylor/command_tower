@@ -21,8 +21,8 @@ bin/rails command_tower:doctor
 
 Continue with [Host integration](host_integration_guide.md):
 
-1. Host `rbac_groups.yml` (required — otherwise authenticated Me/Auth calls **403**)
-2. Assign host roles (for example `member`) on users
+1. Host `rbac_groups.yml` product role that **grants** CT-owned Me/Auth entity names (required — otherwise authenticated Me/Auth calls **403**)
+2. Set `authorization.default_membership_role` (for example `"member"`) or assign roles some other supported way
 3. Enable feature gates you need (login, reset, availability, …)
 4. Smoke-check `GET /me` with a Bearer token
 5. Wire messaging catalog/adapters when you emit or use phone/Pushover

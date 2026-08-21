@@ -11,6 +11,8 @@ CommandTower::Engine.routes.draw do
   namespace :auth do
     post "logout", to: "logout#create"
     get "session", to: "session#show"
+    get "principal-capabilities", to: "principal_capabilities#show"
+    delete "impersonation-session", to: "impersonation_session#destroy"
 
     constraints(->(_req) { CommandTower.config.login.plain_text.enable? }) do
       scope path: "plain-text", module: "plain_text" do
@@ -74,6 +76,10 @@ CommandTower::Engine.routes.draw do
       end
     end
 
+    get "audit-events/filter-options", to: "audit_events#filter_options"
+    get "audit-events", to: "audit_events#index"
+    get "audit-events/:id", to: "audit_events#show"
+
     resource :preferences, only: [:show], controller: "preferences"
     patch "preferences/:notification_type_key", to: "preferences#update"
 
@@ -96,6 +102,20 @@ CommandTower::Engine.routes.draw do
   end
 
   namespace :admin do
+    get "audit-events/filter-options", to: "audit/events#filter_options"
+    get "audit-events", to: "audit/events#index"
+    get "audit-events/:id", to: "audit/events#show"
+    get "users", to: "users#index"
+    get "users/assignable-roles", to: "users/roles#index"
+    get "users/:id", to: "users#show"
+    patch "users/:id/name", to: "users/identities#update_name"
+    patch "users/:id/username", to: "users/identities#update_username"
+    patch "users/:id/email", to: "users/identities#update_email"
+    patch "users/:id/email-validation", to: "users/identities#update_email_validation"
+    patch "users/:id/roles", to: "users/roles#update"
+    post "users/:id/impersonation-sessions", to: "users/impersonation_sessions#create"
+    get "workspace", to: "workspace#show"
+
     namespace :messaging do
       post "announcements", to: "announcements#create"
     end

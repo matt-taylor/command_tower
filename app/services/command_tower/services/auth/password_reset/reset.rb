@@ -29,9 +29,19 @@ module CommandTower
             user.password = password
             user.password_confirmation = password_confirmation
 
-            unless user.save
-              log_error("Failed to update the password for user [#{user.id}]")
-              reject!(user.errors.to_hash.transform_values { Array(_1).join(", ") })
+            ActiveRecord::Base.transaction do
+              unless user.save
+                log_error("Failed to update the password for user [#{user.id}]")
+                reject!(user.errors.to_hash.transform_values { Array(_1).join(", ") })
+              end
+
+              audit(
+                :password_changed,
+                subject: user,
+                affected_user: user,
+                changes: {},
+                metadata: { mechanism: "reset" }
+              )
             end
 
             log_info("Password reset completed for user [#{user.id}]")

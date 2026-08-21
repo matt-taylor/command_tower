@@ -26,6 +26,30 @@ RSpec.describe CommandTower::Workflows::Auth::PlainText::LoginWorkflow do
         expect(result.response_effects[:set_token][:token]).to be_present
       end
 
+      it "persists session_created as self_service" do
+        expect { result }.to change { CommandTower::Audit::Event.where(action: "session_created").count }.by(1)
+      end
+
+      context "when inspecting the session_created row" do
+        before { result }
+
+        let(:row) { CommandTower::Audit::Event.find_by!(action: "session_created") }
+
+        it "records self_service attribution" do
+          expect(row.attribution_mode).to eq("self_service")
+          expect(row.actor_user_id).to eq(user.id)
+          expect(row.affected_user_id).to eq(user.id)
+        end
+      end
+
+      context "when session_created is disabled" do
+        before { CommandTower.config.registry.audit.set_enabled!(:session_created, false) }
+
+        it "does not persist session_created" do
+          expect { result }.not_to change { CommandTower::Audit::Event.where(action: "session_created").count }
+        end
+      end
+
       context "when asserting service delegation" do
         let(:service_result) do
           instance_double(
@@ -72,6 +96,10 @@ RSpec.describe CommandTower::Workflows::Auth::PlainText::LoginWorkflow do
         expect(result.errors).to contain_exactly(
           an_instance_of(CommandTower::Errors::Auth::InvalidCredentialsError)
         )
+      end
+
+      it "does not persist login_failed by default" do
+        expect { result }.not_to change { CommandTower::Audit::Event.where(action: "login_failed").count }
       end
     end
   end

@@ -626,9 +626,7 @@ RSpec.describe CommandTower::Messaging::Inbox, :messaging_inbox do
     before do
       %i[info warn error].each do |level|
         allow(Rails.logger).to receive(level) do |message|
-          log_entries << JSON.parse(message)
-        rescue JSON::ParserError
-          nil
+          log_entries << (message.is_a?(Hash) ? message.stringify_keys : nil)
         end
       end
     end
@@ -646,15 +644,15 @@ RSpec.describe CommandTower::Messaging::Inbox, :messaging_inbox do
       end
 
       let(:events) do
-        log_entries.filter_map { |payload| payload["event"] if payload["component"] == "command_tower.messaging" }
+        log_entries.filter_map { |payload| payload["event"] if payload["event"].to_s.start_with?("command_tower.messaging") }
       end
 
       it "logs first successful lifecycle mutations only" do
         expect(events).to eq(
           %w[
-            messaging.inbox.viewed
-            messaging.inbox.archived
-            messaging.inbox.deleted
+            command_tower.messaging.inbox.viewed
+            command_tower.messaging.inbox.archived
+            command_tower.messaging.inbox.deleted
           ],
         )
         expect(log_entries.flat_map(&:keys)).not_to include("title", "body", "metadata")
@@ -672,14 +670,14 @@ RSpec.describe CommandTower::Messaging::Inbox, :messaging_inbox do
       end
 
       let(:events) do
-        log_entries.filter_map { |payload| payload["event"] if payload["component"] == "command_tower.messaging" }
+        log_entries.filter_map { |payload| payload["event"] if payload["event"].to_s.start_with?("command_tower.messaging") }
       end
 
       it "logs unviewed and restored lifecycle events" do
         expect(events).to eq(
           %w[
-            messaging.inbox.unviewed
-            messaging.inbox.restored
+            command_tower.messaging.inbox.unviewed
+            command_tower.messaging.inbox.restored
           ],
         )
       end
@@ -693,10 +691,10 @@ RSpec.describe CommandTower::Messaging::Inbox, :messaging_inbox do
         described_class.bulk_archive(recipient_id: user.id, inbox_item_ids: [changed.id, already_archived.id])
       end
 
-      let(:entries) { log_entries.select { |payload| payload["component"] == "command_tower.messaging" } }
+      let(:entries) { log_entries.select { |payload| payload["event"].to_s.start_with?("command_tower.messaging") } }
 
       it "logs one bulk-flagged event per changed item and none for noops" do
-        expect(entries.map { |payload| payload["event"] }).to eq(%w[messaging.inbox.archived])
+        expect(entries.map { |payload| payload["event"] }).to eq(%w[command_tower.messaging.inbox.archived])
         expect(entries.first["bulk"]).to be(true)
         expect(entries.first["inbox_item_id"]).to eq(changed.id)
         expect(log_entries.flat_map(&:keys)).not_to include("title", "body", "metadata")

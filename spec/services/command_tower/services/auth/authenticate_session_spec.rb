@@ -36,6 +36,44 @@ RSpec.describe CommandTower::Services::Auth::AuthenticateSession do
       end
     end
 
+    context "with a valid impersonation overlay" do
+      let(:actor) { create(:user) }
+      let(:target) { create(:user) }
+      let!(:session) { create(:impersonation_session, actor:, target:) }
+      let(:request_context) do
+        auth_request_context(headers: { authorization: "Bearer #{impersonation_token_for(actor, session)}" })
+      end
+
+      after { CommandTower::Current.reset }
+
+      it "returns the target as the current user" do
+        expect(result).to be_success
+        expect(result.data[:user]).to eq(target)
+        expect(result.data[:actor_user]).to eq(actor)
+        expect(CommandTower::Current.impersonation_active).to be(true)
+      end
+    end
+
+    context "with an expired impersonation overlay" do
+      let(:actor) { create(:user) }
+      let(:target) { create(:user) }
+      let!(:session) do
+        create(:impersonation_session, actor:, target:, idle_expires_at: 1.minute.ago, absolute_expires_at: 1.hour.from_now)
+      end
+      let(:request_context) do
+        auth_request_context(headers: { authorization: "Bearer #{impersonation_token_for(actor, session)}" })
+      end
+
+      after { CommandTower::Current.reset }
+
+      it "returns ImpersonationSessionExpiredError without cookie-clear metadata" do
+        expect(result).to be_failure
+        expect(result.errors.first).to be_a(CommandTower::Errors::Auth::ImpersonationSessionExpiredError)
+        expect(result.metadata[:impersonation_session_expired]).to be(true)
+        expect(result.metadata).not_to have_key(:clear_auth_cookie)
+      end
+    end
+
     context "without a token" do
       let(:request_context) { auth_request_context }
 
@@ -83,6 +121,7 @@ RSpec.describe CommandTower::Services::Auth::AuthenticateSession do
       end
 
       it { expect(result.metadata[:token_source]).to eq(:header) }
+      it { expect(result.metadata[:email_verification_required]).to be(true) }
     end
 
     context "when the caller bypasses email validation" do

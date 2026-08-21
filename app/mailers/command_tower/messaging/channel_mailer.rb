@@ -8,8 +8,7 @@ module CommandTower
           raise ArgumentError, "rendered must be a RenderedPayload"
         end
 
-        from_address = CredentialResolution.resolve(:smtp).user_name.presence
-        from_address ||= "from@example.com"
+        from_address = smtp_from_address
 
         mail(
           to: rendered.recipient_address,

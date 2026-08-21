@@ -14,13 +14,13 @@ module CommandTower
                 messaging_operation: operation,
               }.merge(request_fields(request))
 
-              StructuredLogger.info(
+              Publisher.info(
                 base.merge(event: "messaging.#{operation}.started"),
               )
 
               result = yield
 
-              StructuredLogger.info(
+              Publisher.info(
                 base.merge(
                   event: "messaging.#{operation}.succeeded",
                   duration_ms: elapsed_ms(started_at),
@@ -45,7 +45,7 @@ module CommandTower
             private
 
             def log_failure(base, started_at, operation, error, level, error_code)
-              StructuredLogger.public_send(
+              Publisher.public_send(
                 level,
                 base.merge(
                   event: "messaging.#{operation}.failed",

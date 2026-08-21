@@ -10,7 +10,7 @@ module CommandTower
         validate :user, is_a: User, required: true
         validate :phone_number, is_a: String, required: true
 
-        def call
+          def call
           normalized = normalize
 
           if user.phone_number == normalized
@@ -18,6 +18,7 @@ module CommandTower
             return
           end
 
+          previous = user.phone_number
           user.phone_number = normalized
           user.phone_number_validated = false
 
@@ -26,6 +27,13 @@ module CommandTower
           rescue ActiveRecord::RecordNotUnique
             reject!(DUPLICATE_MESSAGE)
           end
+
+          audit(
+            :phone_updated,
+            subject: user,
+            affected_user: user,
+            changes: { phone: { from: previous, to: normalized } }
+          )
 
           context.user = user
         end

@@ -17,16 +17,10 @@ All services in CommandTower that use this pattern inherit `CommandTower::Servic
 ## What does ServiceBase offer
 
 ### Logging
-`ServiceBase` offers a convenient way to tag logs. It keeps track of:
-- The start of the logic call
-- The time it took to complete the logic
-- The status of the logic
 
-Additionally, it provides some convenience methods for logging
-- `log_debug`
-- `log_info`
-- `log_warn`
-- `log_error`
+Lifecycle logging is an `ActiveSupport::Notifications` consumer. Services do not write Start/Finished lines to `Rails.logger`.
+
+Operational notes from services still use `log_info` / `log_warn` / `log_error`, which publish `command_tower.log.*` events. See [Eventing](../../../docs/eventing.md).
 
 ### Argument Validation
 Argument Validation is the powerhouse behind ServiceBase

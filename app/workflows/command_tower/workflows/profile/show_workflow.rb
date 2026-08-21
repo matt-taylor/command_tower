@@ -5,6 +5,7 @@ module CommandTower
     module Profile
       class ShowWorkflow < CommandTower::Workflows::ApplicationWorkflow
         retry_strategy :none
+        impersonation_activity!
 
         def call(current_user:, auth_context: nil)
           success(
