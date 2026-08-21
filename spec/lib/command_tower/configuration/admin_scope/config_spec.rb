@@ -22,7 +22,7 @@ RSpec.describe CommandTower::Configuration::AdminScope::Config do
       subject(:registration) { register_users!.call }
 
       it "stores a validated registration" do
-        expect(config.fetch(:users)).to eq(registration)
+        expect(registration).to eq(config.fetch(:users))
       end
     end
 
