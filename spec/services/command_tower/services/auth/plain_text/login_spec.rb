@@ -86,6 +86,15 @@ RSpec.describe CommandTower::Services::Auth::PlainText::Login do
         before { result }
 
         let(:row) { CommandTower::Audit::Event.find_by!(action: "login_failed") }
+        let(:raw_metadata) do
+          CommandTower::Audit::Event.connection.select_value(
+            CommandTower::Audit::Event.sanitize_sql_array([
+              "SELECT metadata FROM command_tower_audit_events WHERE id = ?",
+              row.id
+            ])
+          )
+        end
+        let(:raw_metadata_text) { raw_metadata.is_a?(String) ? raw_metadata : raw_metadata.to_json }
 
         it "omits affected user and identifier" do
           expect(row.affected_user_id).to be_nil
@@ -94,16 +103,8 @@ RSpec.describe CommandTower::Services::Auth::PlainText::Login do
         end
 
         it "stores metadata as JSON without Ruby Hash#inspect" do
-          raw = CommandTower::Audit::Event.connection.select_value(
-            CommandTower::Audit::Event.sanitize_sql_array([
-              "SELECT metadata FROM command_tower_audit_events WHERE id = ?",
-              row.id
-            ])
-          )
-          raw_text = raw.is_a?(String) ? raw : raw.to_json
-
-          expect(raw_text).not_to include("=>")
-          expect(JSON.parse(raw_text)).to eq("outcome" => "unknown_identifier")
+          expect(raw_metadata_text).not_to include("=>")
+          expect(JSON.parse(raw_metadata_text)).to eq("outcome" => "unknown_identifier")
         end
       end
     end

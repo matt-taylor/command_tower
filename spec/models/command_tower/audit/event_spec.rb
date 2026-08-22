@@ -53,6 +53,15 @@ RSpec.describe CommandTower::Audit::Event, type: :model do
       let(:change_set) { { "email" => { "from" => "a@example.com", "to" => "b@example.com" } } }
       let(:metadata) { { "outcome" => "unknown_identifier" } }
       let(:sensitive_fields) { ["email"] }
+      let(:raw_metadata) do
+        described_class.connection.select_value(
+          described_class.sanitize_sql_array([
+            "SELECT metadata FROM command_tower_audit_events WHERE id = ?",
+            event.id
+          ])
+        )
+      end
+      let(:raw_metadata_text) { raw_metadata.is_a?(String) ? raw_metadata : raw_metadata.to_json }
 
       it "round-trips Hash and Array values through JSON coding" do
         expect(event.reload.metadata).to eq("outcome" => "unknown_identifier")
@@ -61,16 +70,8 @@ RSpec.describe CommandTower::Audit::Event, type: :model do
       end
 
       it "persists metadata as JSON-parseable text without Ruby Hash#inspect" do
-        raw = described_class.connection.select_value(
-          described_class.sanitize_sql_array([
-            "SELECT metadata FROM command_tower_audit_events WHERE id = ?",
-            event.id
-          ])
-        )
-        raw_text = raw.is_a?(String) ? raw : raw.to_json
-
-        expect(raw_text).not_to include("=>")
-        expect(JSON.parse(raw_text)).to eq("outcome" => "unknown_identifier")
+        expect(raw_metadata_text).not_to include("=>")
+        expect(JSON.parse(raw_metadata_text)).to eq("outcome" => "unknown_identifier")
       end
     end
   end
