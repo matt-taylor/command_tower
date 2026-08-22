@@ -2,7 +2,7 @@
 
 class CreateCommandTowerAuditEvents < ActiveRecord::Migration[7.2]
   def change
-    create_table :command_tower_audit_events, charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci" do |t|
+    create_table :command_tower_audit_events do |t|
       t.string :event_uuid, null: false
       t.string :action, null: false
       t.datetime :occurred_at, null: false

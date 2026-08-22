@@ -74,15 +74,37 @@ RSpec.describe CommandTower::Services::Auth::PlainText::Login do
         expect { result }.to change { CommandTower::Audit::Event.where(action: "login_failed").count }.by(1)
       end
 
+      it "returns InvalidCredentialsError rather than a persistence failure" do
+        expect(result).to be_failure
+        expect(result.errors).to contain_exactly(
+          an_instance_of(CommandTower::Errors::Auth::InvalidCredentialsError)
+        )
+        expect(result.errors.map(&:class).map(&:name)).not_to include("ActiveRecord::CheckViolation")
+      end
+
       context "when inspecting the unknown-identifier row" do
         before { result }
 
         let(:row) { CommandTower::Audit::Event.find_by!(action: "login_failed") }
+        let(:raw_metadata) do
+          CommandTower::Audit::Event.connection.select_value(
+            CommandTower::Audit::Event.sanitize_sql_array([
+              "SELECT metadata FROM command_tower_audit_events WHERE id = ?",
+              row.id
+            ])
+          )
+        end
+        let(:raw_metadata_text) { raw_metadata.is_a?(String) ? raw_metadata : raw_metadata.to_json }
 
         it "omits affected user and identifier" do
           expect(row.affected_user_id).to be_nil
           expect(row.metadata).to eq("outcome" => "unknown_identifier")
           expect(row.metadata.values.join).not_to include("nobody@example.com")
+        end
+
+        it "stores metadata as JSON without Ruby Hash#inspect" do
+          expect(raw_metadata_text).not_to include("=>")
+          expect(JSON.parse(raw_metadata_text)).to eq("outcome" => "unknown_identifier")
         end
       end
     end
