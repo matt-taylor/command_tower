@@ -17,11 +17,13 @@ module CommandTower
       validates :scope_class, inclusion: { in: SCOPE_CLASSES.values }
       validates :originating_administrator_id, presence: true, if: :impersonation_active?
 
-      after_initialize do
-        write_attribute(:change_set, {}) if has_attribute?(:change_set) && read_attribute(:change_set).nil?
-        write_attribute(:metadata, {}) if has_attribute?(:metadata) && read_attribute(:metadata).nil?
-        write_attribute(:sensitive_fields, []) if has_attribute?(:sensitive_fields) && read_attribute(:sensitive_fields).nil?
-      end
+      # Force JSON attribute types so writes are JSON.generate'd on every adapter.
+      # MySQL 8 already maps t.json → Type::Json (serialize is rejected). MariaDB
+      # often stores t.json as LONGTEXT + json_valid CHECK and would otherwise
+      # persist Hash#inspect — failing the CHECK (HTTP 500 on login_failed audit).
+      attribute :metadata, :json, default: -> { {} }
+      attribute :change_set, :json, default: -> { {} }
+      attribute :sensitive_fields, :json, default: -> { [] }
 
       before_update :reject_mutation
       before_destroy :reject_mutation
