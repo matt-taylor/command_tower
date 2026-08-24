@@ -46,7 +46,9 @@ Hosts configure scope behavior on `CommandTower.config.admin_scope` (see [Resour
 
 ## Resource scoping
 
-Optional **host-defined resource scoping** narrows Admin tool data (Users, Audit, …) after RBAC. CommandTower remains **domain-blind** — it does not know League, Season, or tenant semantics.
+Optional **host-defined resource scoping** selects a scope value before entering a tool and, for Users/Audit, narrows Admin tool data after RBAC. CommandTower remains **domain-blind** — it does not know League, Season, or tenant semantics.
+
+Every `admin_scope.register` requires **`options`**, **`validate`**, and **`availability`**. Resource-narrowing hooks (`narrow_users`, `narrow_audit`, `affected_users_in_scope`) are required for CT-owned **`users`** / **`audit`** (or whenever any narrowing hook is set). Product Admin host tools may register the three base hooks only — scope drives Workspace invocation (0/1/N), not CT SQL narrowing.
 
 ```ruby
 CommandTower.configure do |config|
@@ -64,23 +66,41 @@ CommandTower.configure do |config|
     registration.narrow_audit = ->(relation:, scope_value:, principal:, tool_id:) { relation }
     registration.affected_users_in_scope = ->(scope_value:, principal:, tool_id:) { [] }
   end
+
+  # Product Admin host tool — invocation scope only (no Users/Audit narrowing).
+  config.registry.admin_workspace.tool :example_product_admin do |tool|
+    tool.label = "Example Product Admin"
+    tool.route = "/admin/example-product"
+    tool.group = :product
+    tool.sort_order = 300
+    tool.required_entity = :host_example_entity
+    tool.scope_required = true
+    tool.scope_parameter = "resource_slug"
+    tool.scope_label = "Resource"
+  end
+
+  config.admin_scope.register(:example_product_admin) do |registration|
+    registration.options = ->(principal:) { [CommandTower::AdminScope::ScopeOption.new(value: "x", label: "X")] }
+    registration.validate = ->(value:, principal:) { value.to_s == "x" }
+    registration.availability = ->(principal:) { { enabled: true, reason: nil } }
+  end
 end
 ```
 
-| Hook | Purpose |
-|------|---------|
-| `options` | Eager scope choices for manifest (`scopeOptions`) |
-| `availability` | `{ enabled:, reason: }` — disabled tools render non-navigable in FE |
-| `validate` | Authorize requested scope value; fail closed → **403** |
-| `narrow_users` | SQL narrowing for Users list/show |
-| `narrow_audit` | SQL narrowing for host-scoped audit rows |
-| `affected_users_in_scope` | User ids for eligible **global** audit events in scoped admin views |
+| Hook | Purpose | Required |
+|------|---------|----------|
+| `options` | Eager scope choices for manifest (`scopeOptions`) | Always |
+| `availability` | `{ enabled:, reason: }` — disabled tools render non-navigable in FE | Always |
+| `validate` | Authorize requested scope value; fail closed → **403** | Always |
+| `narrow_users` | SQL narrowing for Users list/show | `users` / `audit` only |
+| `narrow_audit` | SQL narrowing for host-scoped audit rows | `users` / `audit` only |
+| `affected_users_in_scope` | User ids for eligible **global** audit events in scoped admin views | `users` / `audit` only |
 
-**HTTP disclosure policy:** missing/malformed/unauthorized scope → **403**; authorized scope + resource absent from narrowed relation (nonexistent **or** out of scope) → **404** (indistinguishable).
+**HTTP disclosure policy** (Users/Audit resource APIs): missing/malformed/unauthorized scope → **403**; authorized scope + resource absent from narrowed relation (nonexistent **or** out of scope) → **404** (indistinguishable).
 
 Unscoped tools (`scope_required: false`, default) behave exactly as before — no scope query param, no `admin_scope` registration required.
 
-Synthetic proof lives in `rails_app` (`FoundationProof::AdminScope`); Pick'em League adoption is Phase 7 only.
+Synthetic proof lives in `rails_app` (`FoundationProof::AdminScope`). Hosts own product-scoped destinations via FE `resolveScopedDestination` — CT does not interpret path params.
 
 ## Seeded CommandTower tools
 
