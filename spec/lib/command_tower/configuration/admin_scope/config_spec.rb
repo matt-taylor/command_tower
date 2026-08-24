@@ -45,6 +45,88 @@ RSpec.describe CommandTower::Configuration::AdminScope::Config do
         expect { invoke }.to raise_error(CommandTower::AdminScope::FrozenRegistryError)
       end
     end
+
+    context "when users omits resource-narrowing hooks" do
+      subject(:invoke) do
+        config.register(:users) do |entry|
+          entry.options = noop
+          entry.validate = noop
+          entry.availability = noop
+        end
+      end
+
+      it "rejects incomplete users registrations" do
+        expect { invoke }.to raise_error(
+          CommandTower::AdminScope::InvalidToolRegistrationError,
+          /narrow_users/
+        )
+      end
+    end
+
+    context "when a host product tool registers base hooks only" do
+      before do
+        CommandTower.config.registry.admin_workspace.tool :host_scoped_product do |tool|
+          tool.label = "Host Scoped Product"
+          tool.description = "Test host scoped product tool."
+          tool.route = "/admin/host-scoped-product"
+          tool.group = :product
+          tool.sort_order = 900
+          tool.required_entity = :admin_users
+          tool.scope_required = true
+          tool.scope_parameter = "resource_slug"
+          tool.scope_label = "Resource"
+        end
+      end
+
+      after { CommandTower.config.registry.admin_workspace.reset_host_definitions! }
+
+      subject(:registration) do
+        config.register(:host_scoped_product) do |entry|
+          entry.options = noop
+          entry.validate = noop
+          entry.availability = noop
+        end
+      end
+
+      it "accepts product tools without Users/Audit narrowing hooks" do
+        expect(registration.options).to eq(noop)
+        expect(registration.narrow_users).to be_nil
+      end
+    end
+
+    context "when a product tool sets only one narrowing hook" do
+      before do
+        CommandTower.config.registry.admin_workspace.tool :host_partial_narrow do |tool|
+          tool.label = "Host Partial Narrow"
+          tool.description = "Test partial narrowing requirement."
+          tool.route = "/admin/host-partial-narrow"
+          tool.group = :product
+          tool.sort_order = 901
+          tool.required_entity = :admin_users
+          tool.scope_required = true
+          tool.scope_parameter = "resource_slug"
+          tool.scope_label = "Resource"
+        end
+      end
+
+      after { CommandTower.config.registry.admin_workspace.reset_host_definitions! }
+
+      subject(:invoke) do
+        config.register(:host_partial_narrow) do |entry|
+          entry.options = noop
+          entry.validate = noop
+          entry.availability = noop
+          entry.narrow_users = noop
+        end
+      end
+
+      it "requires the full narrowing set when any narrowing hook is present" do
+        expect { invoke }.to raise_error(
+          CommandTower::AdminScope::InvalidToolRegistrationError,
+          /narrow_audit/
+        )
+      end
+    end
   end
 
   describe "#validate_scoped_tools!" do
