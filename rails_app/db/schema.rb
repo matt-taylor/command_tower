@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_26_140000) do
+ActiveRecord::Schema[7.2].define(version: 2026_08_26_140000) do
   create_table "command_tower_audit_events", charset: "utf8mb3", force: :cascade do |t|
     t.string "action", null: false
     t.bigint "actor_user_id"
