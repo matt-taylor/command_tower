@@ -19,6 +19,7 @@ RSpec.describe CommandTower::Services::Me::Capabilities do
         editUsername: { enabled: false },
         changeEmail: { enabled: false },
         changePassword: { enabled: true },
+        deleteAccount: { enabled: true },
         editPhone: { enabled: false },
         editPushover: { enabled: false },
         logoutAllDevices: { enabled: false },

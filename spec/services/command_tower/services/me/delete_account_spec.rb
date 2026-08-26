@@ -43,8 +43,8 @@ RSpec.describe CommandTower::Services::Me::DeleteAccount do
 
     before { result }
 
-    it "allows a new registration with the same email" do
-      register = CommandTower::Services::Auth::Register.call(
+    let(:register) do
+      CommandTower::Services::Auth::Register.call(
         first_name: "New",
         last_name: "Person",
         username: "newreuseuser",
@@ -52,7 +52,9 @@ RSpec.describe CommandTower::Services::Me::DeleteAccount do
         password: stored_password,
         password_confirmation: stored_password
       )
+    end
 
+    it "allows a new registration with the same email" do
       expect(register).to be_success
       expect(register.data[:user].id).not_to eq(user.id)
     end
