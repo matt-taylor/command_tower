@@ -31,6 +31,7 @@ RSpec.describe "CommandTower audit architecture" do
       role_assigned
       role_revoked
       password_changed
+      account_deleted
       email_verified
       phone_updated
       phone_cleared

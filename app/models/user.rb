@@ -33,8 +33,14 @@ require "securerandom"
 class User < CommandTower::ApplicationRecord
   has_secure_password
 
-  validates :username, uniqueness: true
-  validates :email, uniqueness: true
+  TOMBSTONE_EMAIL_DOMAIN = "@invalid.local"
+  TOMBSTONE_EMAIL_PREFIX = "deleted+"
+  TOMBSTONE_USERNAME_PREFIX = "deleted_"
+
+  scope :not_deleted, -> { where(deleted_at: nil) }
+
+  validates :username, uniqueness: { conditions: -> { not_deleted } }
+  validates :email, uniqueness: { conditions: -> { not_deleted } }
 
   ###
   # Serialize the roles column to check for inclusion easily
@@ -47,6 +53,18 @@ class User < CommandTower::ApplicationRecord
 
   def full_name
     "#{first_name} #{last_name}"
+  end
+
+  def deleted?
+    deleted_at.present?
+  end
+
+  def self.tombstone_email_for(id)
+    "#{TOMBSTONE_EMAIL_PREFIX}#{id}#{TOMBSTONE_EMAIL_DOMAIN}"
+  end
+
+  def self.tombstone_username_for(id)
+    "#{TOMBSTONE_USERNAME_PREFIX}#{id}"
   end
 
   def reset_verifier_token!

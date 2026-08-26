@@ -60,6 +60,7 @@ CommandTower::Engine.routes.draw do
   namespace :me do
     patch "name", to: "name#update"
     patch "password", to: "password#update"
+    delete "account", to: "account#destroy"
 
     resources :inbox, only: [:index, :show, :destroy], controller: "inbox" do
       collection do

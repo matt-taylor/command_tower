@@ -9,7 +9,7 @@ module CommandTower
           validate :password, is_a: String, required: true, sensitive: true
 
           def call
-            user = User.where(username: identifier).or(User.where(email: identifier)).first
+            user = User.not_deleted.where(username: identifier).or(User.not_deleted.where(email: identifier)).first
             if user.nil?
               audit_login_failed(affected_user: nil, outcome: "unknown_identifier")
               invalid_credentials!

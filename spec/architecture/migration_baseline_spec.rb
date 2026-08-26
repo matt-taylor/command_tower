@@ -14,6 +14,7 @@ RSpec.describe "CommandTower migration baseline" do
       20260816000001_create_command_tower_audit_events.rb
       20260817000001_add_scope_columns_to_command_tower_audit_events.rb
       20260817000003_create_command_tower_impersonation_sessions.rb
+      20260826140000_add_deleted_at_to_users.rb
     ]
   end
 

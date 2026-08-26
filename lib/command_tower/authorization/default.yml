@@ -25,6 +25,9 @@ entities:
   - name: me_password
     controller: CommandTower::Me::PasswordController
     only: update
+  - name: me_account
+    controller: CommandTower::Me::AccountController
+    only: destroy
   - name: me_inbox
     controller: CommandTower::Me::InboxController
     only:

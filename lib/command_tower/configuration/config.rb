@@ -2,6 +2,7 @@
 
 require "singleton"
 require "class_composer"
+require "command_tower/configuration/account_deletion/config"
 require "command_tower/configuration/admin/config"
 require "command_tower/configuration/admin_scope/config"
 require "command_tower/configuration/application/config"
@@ -90,6 +91,11 @@ module CommandTower
         desc: "Messaging delivery configuration (notification SMS, etc.). Separate from Identity OTP.",
         allowed: Configuration::Messaging::Config,
         default: Configuration::Messaging::Config.new
+
+      add_composer :account_deletion,
+        desc: "Account self-service deletion host hooks",
+        allowed: Configuration::AccountDeletion::Config,
+        default: Configuration::AccountDeletion::Config.new
 
       add_composer :admin,
         desc: "Admin configuration for the app",

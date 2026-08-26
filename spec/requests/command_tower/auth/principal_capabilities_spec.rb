@@ -109,7 +109,7 @@ RSpec.describe "GET /auth/principal-capabilities", :with_rbac_setup, type: :requ
   end
 
   context "with an unverified email over cookie" do
-    let(:user) { create(:user, :unvalidated_email, roles: ["member"]) }
+    let(:user) { create(:user, :unvalidated_email, roles: ["member"], created_at: 5.minutes.ago) }
     let(:cookie_name) { CommandTower.config.jwt.cookie.name }
 
     before do

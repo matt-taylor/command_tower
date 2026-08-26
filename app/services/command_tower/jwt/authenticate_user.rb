@@ -27,7 +27,7 @@ module CommandTower::Jwt
       return invalid_token if expires_at.nil?
 
       user = User.find_by(id: payload[:user_id])
-      if user.nil?
+      if user.nil? || user.deleted?
         log_warn("user_id [#{payload[:user_id]}] was not found. Cannot Continue")
         return invalid_token
       end

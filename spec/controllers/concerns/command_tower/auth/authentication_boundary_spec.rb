@@ -54,7 +54,7 @@ RSpec.describe CommandTower::Auth::AuthenticationBoundary, type: :controller do
     end
 
     context "with an unverified email" do
-      let(:user) { create(:user, :unvalidated_email) }
+      let(:user) { create(:user, :unvalidated_email, created_at: 5.minutes.ago) }
 
       before do
         request.headers["Authorization"] = "Bearer #{login_token_for(user)}"

@@ -15,14 +15,15 @@ module CommandTower
 
         def project
           {
-            editName: { enabled: true },
+            editName: { enabled: !user.deleted? },
             editUsername: { enabled: false },
             changeEmail: { enabled: false },
-            changePassword: { enabled: true },
-            editPhone: { enabled: sms_enabled? },
-            editPushover: { enabled: pushover_enabled? },
+            changePassword: { enabled: !user.deleted? },
+            editPhone: { enabled: sms_enabled? && !user.deleted? },
+            editPushover: { enabled: pushover_enabled? && !user.deleted? },
             logoutAllDevices: { enabled: false },
-            verifyEmail: { enabled: !user.email_validated }
+            verifyEmail: { enabled: !user.deleted? && !user.email_validated },
+            deleteAccount: { enabled: !user.deleted? }
           }
         end
 
