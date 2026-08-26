@@ -3,6 +3,7 @@
 Host-facing upgrade / change summaries for CommandTower releases.
 
 | Version | Summary |
+| [0.13.0](0.13.0.md) | Account self-service deletion (`DELETE /api/me/account`); tombstone + PII scrub; `me_account` RBAC; `users.deleted_at` migration |
 |---------|---------|
 | [0.12.0](0.12.0.md) | Intervention envelope serializers/deserializers; product-tool admin_scope without Users/Audit narrowing |
 | [0.11.1](0.11.1.md) | Audit Event `attribute :json` (MariaDB); audit migration without `utf8mb4_0900_ai_ci` |

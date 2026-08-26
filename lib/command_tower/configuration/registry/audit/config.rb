@@ -64,6 +64,20 @@ module CommandTower
               affected_user_required: true,
               global_visible_in_host_scope: true
             },
+            account_deleted: {
+              label: "Account deleted",
+              tags: %w[identity account deletion security],
+              enabled: true,
+              enablement_configurable: false,
+              user_history: true,
+              sensitive_fields: [],
+              allowed_changes: [],
+              retention: :permanent,
+              subject_required: true,
+              subject_type: "User",
+              affected_user_required: true,
+              global_visible_in_host_scope: true
+            },
             email_verified: {
               label: "Email verified",
               tags: %w[identity verification email],

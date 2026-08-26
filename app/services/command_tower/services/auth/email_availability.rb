@@ -16,7 +16,7 @@ module CommandTower
             return
           end
 
-          if ::User.exists?(email: normalized)
+          if ::User.not_deleted.exists?(email: normalized)
             context.valid = true
             context.available = false
             context.message = "Email is already registered"

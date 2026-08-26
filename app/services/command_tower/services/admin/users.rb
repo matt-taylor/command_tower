@@ -12,7 +12,7 @@ module CommandTower
           validate :scope_context, is_a: [CommandTower::AdminScope::ScopeContext, NilClass], required: false
 
           def call
-            relation = ::User.order(id: :desc)
+            relation = ::User.not_deleted.order(id: :desc)
             relation = CommandTower::AdminScope::ApplyUsersNarrowing.call(
               relation:,
               scope_context:,
@@ -48,7 +48,7 @@ module CommandTower
           validate :scope_context, is_a: [CommandTower::AdminScope::ScopeContext, NilClass], required: false
 
           def call
-            relation = ::User.where(id:)
+            relation = ::User.not_deleted.where(id:)
             relation = CommandTower::AdminScope::ApplyUsersNarrowing.call(
               relation:,
               scope_context:,

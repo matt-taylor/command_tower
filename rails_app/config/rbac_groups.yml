@@ -14,6 +14,7 @@ groups:
       - profile
       - me_name
       - me_password
+      - me_account
       - me_inbox
       - me_audit_events
       - me_preferences
