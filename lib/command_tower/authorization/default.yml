@@ -75,6 +75,7 @@ entities:
       - create
       - update
       - destroy
+      - test
   - name: me_audit_events
     controller: CommandTower::Me::AuditEventsController
     only:

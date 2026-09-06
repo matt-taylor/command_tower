@@ -25,9 +25,11 @@ module CommandTower
                CommandTower::Errors::Account::PushoverAlreadyConfiguredError,
                CommandTower::Errors::Account::PushoverVerificationFailedError,
                CommandTower::Errors::Account::PushEndpointNotFoundError,
+               CommandTower::Errors::Account::PushTestNoEndpointError,
                CommandTower::Errors::ValidationError
             :unprocessable_entity
-          when CommandTower::Errors::Account::PhoneVerificationThrottledError
+          when CommandTower::Errors::Account::PhoneVerificationThrottledError,
+               CommandTower::Errors::Account::PushTestRateLimitError
             :too_many_requests
           when CommandTower::Errors::Account::SmsCapabilityUnavailableError,
                CommandTower::Errors::Account::PushoverCapabilityUnavailableError,

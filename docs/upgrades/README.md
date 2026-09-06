@@ -4,6 +4,7 @@ Host-facing upgrade / change summaries for CommandTower releases.
 
 | Version | Summary |
 |---------|---------|
+| [0.15.0](0.15.0.md) | Me `POST /me/push/test` → Produce (`push_delivery_test`); configurable Expo self-test rate limit composers; `me_push#test` |
 | [0.14.0](0.14.0.md) | Expo push Messaging channel (`config.messaging.expo`) + `/api/me/push*` registration HTTP; `me_push` RBAC |
 | [0.13.1](0.13.1.md) | Canonical `Intervention::Severity` constants (`blocking`, `warning`, `informational`) |
 | [0.13.0](0.13.0.md) | Account self-service deletion (`DELETE /api/me/account`); tombstone + PII scrub; `me_account` RBAC; `users.deleted_at` migration |

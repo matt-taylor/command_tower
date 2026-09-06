@@ -104,8 +104,10 @@ CommandTower::Engine.routes.draw do
     # Expo push lifecycle always drawn (no route constraints).
     # Product readiness is workflow-gated as 503 push_capability_unavailable.
     # Collection JSON (multi-active). No verification POST — create/replace mark_verified.
+    # Self-test must be declared before :id routes so "test" is not captured as an id.
     get "push", to: "push#index"
     post "push", to: "push#create"
+    post "push/test", to: "push#test"
     patch "push/:id", to: "push#update"
     put "push/:id", to: "push#update"
     delete "push/:id", to: "push#destroy"

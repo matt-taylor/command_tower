@@ -164,6 +164,10 @@ RSpec.describe "Me push", :with_rbac_setup, type: :request do
         controller: "command_tower/me/push",
         action: "index",
       )
+      expect(CommandTower::Engine.routes.recognize_path("/me/push/test", method: :post)).to include(
+        controller: "command_tower/me/push",
+        action: "test",
+      )
       expect(CommandTower::Engine.routes.recognize_path("/me/push/1", method: :put)).to include(
         controller: "command_tower/me/push",
         action: "update",
@@ -172,6 +176,84 @@ RSpec.describe "Me push", :with_rbac_setup, type: :request do
         controller: "command_tower/me/push",
         action: "destroy",
       )
+    end
+  end
+
+  context "POST /me/push/test", :messaging_notification_types do
+    let(:push_delivery_test) do
+      build_notification_type_declaration(
+        key: "push_delivery_test",
+        allowed_channels: %w[push],
+        default_channels: %w[push],
+        inbox_available: false,
+        user_configurable: false,
+        mandatory: false,
+        default_preference_state: {
+          "channels" => { "push" => true },
+          "inbox" => false,
+        },
+        label: "Push delivery test",
+        category_key: "system",
+        category_label: "System",
+        category_order: 1,
+        type_order: 1,
+        settings_visible: false,
+      )
+    end
+    let(:previous_limit) { CommandTower.config.messaging.expo.self_test_per_user_hour }
+    let(:previous_channels) { CommandTower.config.messaging.platform_enabled_channels }
+
+    around do |example|
+      with_expo_fake_adapter!.call do
+        CommandTower.config.messaging.allow_fake_adapter = true
+        CommandTower.config.messaging.expo.self_test_per_user_hour = 2
+        CommandTower.config.messaging.platform_enabled_channels = -> { %w[inbox push] }
+        register_and_seal_notification_types(push_delivery_test)
+        example.run
+      ensure
+        CommandTower.config.messaging.expo.self_test_per_user_hour = previous_limit
+        CommandTower.config.messaging.platform_enabled_channels = previous_channels
+      end
+    end
+
+    context "when no endpoint is registered" do
+      before { post "/me/push/test", headers: headers, as: :json }
+
+      it { expect(response).to have_http_status(:unprocessable_entity) }
+
+      it "returns push_test_no_endpoint" do
+        expect(response.parsed_body.dig("errors", 0, "code")).to eq("push_test_no_endpoint")
+      end
+    end
+
+    context "when an endpoint is registered" do
+      before do
+        post "/me/push", headers: headers, params:, as: :json
+        post "/me/push/test", headers: headers, as: :json
+      end
+
+      it { expect(response).to have_http_status(:ok) }
+
+      it "returns Produce identifiers without Expo tokens" do
+        expect(response.parsed_body["data"]).to include(
+          "communicationId" => a_kind_of(Integer).or(a_kind_of(String)),
+          "selectedChannels" => a_collection_including("push"),
+        )
+        expect(response.parsed_body.to_json).not_to include("ExponentPushToken")
+      end
+    end
+
+    context "when the configured self-test limit is exceeded" do
+      before do
+        post "/me/push", headers: headers, params:, as: :json
+        2.times { post "/me/push/test", headers: headers, as: :json }
+        post "/me/push/test", headers: headers, as: :json
+      end
+
+      it "returns 429 push_test_rate_limited" do
+        expect(response).to have_http_status(:too_many_requests)
+        expect(response.parsed_body.dig("errors", 0, "code")).to eq("push_test_rate_limited")
+      end
     end
   end
 end

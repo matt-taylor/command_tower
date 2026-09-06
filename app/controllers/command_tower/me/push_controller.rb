@@ -51,6 +51,14 @@ module CommandTower
         render_application_result(result)
       end
 
+      def test
+        result = CommandTower::Workflows::Me::Push::TestWorkflow.call(
+          current_user: current_user,
+          auth_context: current_auth_context,
+        )
+        render_application_result(result)
+      end
+
       private
 
       def render_deserializer_errors
