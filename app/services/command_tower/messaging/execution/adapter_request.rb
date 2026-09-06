@@ -9,8 +9,16 @@ module CommandTower
         :channel_key,
         :attempt_id,
         :rendered,
+        :eligible_endpoint_ids,
       ) do
-        def self.build(channel_delivery_id:, communication_id:, channel_key:, attempt_id:, rendered:)
+        def self.build(
+          channel_delivery_id:,
+          communication_id:,
+          channel_key:,
+          attempt_id:,
+          rendered:,
+          eligible_endpoint_ids: []
+        )
           raise InvalidAdapterContractError, "arbitrary hashes are not accepted" if [channel_delivery_id, communication_id, channel_key, attempt_id].any? { |v| v.is_a?(Hash) }
           raise InvalidAdapterContractError, "channel_delivery_id is required" if blank?(channel_delivery_id)
           raise InvalidAdapterContractError, "communication_id is required" if blank?(communication_id)
@@ -20,11 +28,20 @@ module CommandTower
           raise InvalidAdapterContractError, "rendered is required" if rendered.nil?
           unless rendered.is_a?(Rendering::RenderedPayload) ||
               rendered.is_a?(Rendering::RenderedSmsPayload) ||
-              rendered.is_a?(Rendering::RenderedPushoverPayload)
+              rendered.is_a?(Rendering::RenderedPushoverPayload) ||
+              rendered.is_a?(Rendering::RenderedPushPayload)
             raise InvalidAdapterContractError,
-                  "rendered must be a RenderedPayload, RenderedSmsPayload, or RenderedPushoverPayload"
+                  "rendered must be a RenderedPayload, RenderedSmsPayload, RenderedPushoverPayload, or RenderedPushPayload"
           end
           raise InvalidAdapterContractError, "rendered must be frozen" unless rendered.frozen?
+          raise InvalidAdapterContractError, "eligible_endpoint_ids must be an Array" unless eligible_endpoint_ids.is_a?(Array)
+
+          ids = eligible_endpoint_ids.map do |id|
+            integer_id = Integer(id, exception: false)
+            raise InvalidAdapterContractError, "eligible_endpoint_ids must be Integers" if integer_id.nil?
+
+            integer_id
+          end
 
           new(
             channel_delivery_id:,
@@ -32,6 +49,7 @@ module CommandTower
             channel_key:,
             attempt_id:,
             rendered:,
+            eligible_endpoint_ids: ids.freeze,
           ).freeze
         end
 

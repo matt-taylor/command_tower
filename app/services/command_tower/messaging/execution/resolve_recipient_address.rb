@@ -42,6 +42,13 @@ module CommandTower
             else
               { address: endpoint_id.to_s, error_code: nil }
             end
+          when "push"
+            eligible_ids = Array(@readiness_result&.eligible_endpoint_ids)
+            if eligible_ids.empty?
+              { address: nil, error_code: "recipient_missing" }
+            else
+              { address: eligible_ids.first.to_s, error_code: nil }
+            end
           else
             { address: nil, error_code: "adapter_unconfigured" }
           end

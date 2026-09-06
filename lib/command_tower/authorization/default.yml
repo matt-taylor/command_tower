@@ -68,6 +68,13 @@ entities:
   - name: me_pushover_verification
     controller: CommandTower::Me::Pushover::VerificationsController
     only: create
+  - name: me_push
+    controller: CommandTower::Me::PushController
+    only:
+      - index
+      - create
+      - update
+      - destroy
   - name: me_audit_events
     controller: CommandTower::Me::AuditEventsController
     only:

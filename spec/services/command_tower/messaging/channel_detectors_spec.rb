@@ -64,6 +64,27 @@ RSpec.describe CommandTower::Messaging::ChannelDetectors do
     end
   end
 
+  describe ".expo_configured?" do
+    subject(:result) { described_class.expo_configured? }
+
+    before do
+      allow(CommandTower::Messaging::Execution::Adapters::Expo::Configuration)
+        .to receive(:expo_configured?).and_return(configured)
+    end
+
+    context "when Expo is configured" do
+      let(:configured) { true }
+
+      it { is_expected.to be(true) }
+    end
+
+    context "when Expo is not configured" do
+      let(:configured) { false }
+
+      it { is_expected.to be(false) }
+    end
+  end
+
   describe ".configured?" do
     subject(:result) { described_class.configured?(channel_key) }
 
@@ -71,7 +92,10 @@ RSpec.describe CommandTower::Messaging::ChannelDetectors do
       allow(described_class).to receive(:email_configured?).and_return(true)
       allow(described_class).to receive(:sms_configured?).and_return(true)
       allow(described_class).to receive(:pushover_configured?).and_return(true)
+      allow(described_class).to receive(:expo_configured?).and_return(expo_configured)
     end
+
+    let(:expo_configured) { true }
 
     context "when channel is inbox" do
       let(:channel_key) { "inbox" }
@@ -97,8 +121,16 @@ RSpec.describe CommandTower::Messaging::ChannelDetectors do
       it { is_expected.to be(true) }
     end
 
-    context "when channel is push" do
+    context "when channel is push and Expo is configured" do
       let(:channel_key) { "push" }
+      let(:expo_configured) { true }
+
+      it { is_expected.to be(true) }
+    end
+
+    context "when channel is push and Expo is not configured" do
+      let(:channel_key) { "push" }
+      let(:expo_configured) { false }
 
       it { is_expected.to be(false) }
     end

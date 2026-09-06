@@ -20,6 +20,7 @@ This page is an **index** of route areas. Detailed request/response contracts li
 | Preferences | `/me/preferences*` | Notification preferences |
 | Phone | `/me/phone*` | Phone endpoint + verification |
 | Pushover | `/me/pushover*` | Pushover endpoint lifecycle + verification |
+| Push | `/me/push*` | Expo push endpoint collection (register / replace / revoke) |
 | Admin messaging | `/admin/messaging/announcements` | Cohort announcements |
 
 Exact paths depend on where the host mounts the engine.

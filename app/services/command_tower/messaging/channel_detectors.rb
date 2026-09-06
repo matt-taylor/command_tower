@@ -26,6 +26,10 @@ module CommandTower
         Execution::Adapters::Pushover::Configuration.pushover_configured?
       end
 
+      def expo_configured?
+        Execution::Adapters::Expo::Configuration.expo_configured?
+      end
+
       # Used by RecipientReadiness#platform_configured_for? (fail-closed).
       def configured?(channel_key)
         case channel_key.to_s
@@ -37,6 +41,8 @@ module CommandTower
           sms_configured?
         when "pushover"
           pushover_configured?
+        when "push"
+          expo_configured?
         else
           false
         end

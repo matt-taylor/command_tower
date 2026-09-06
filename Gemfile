@@ -27,6 +27,7 @@ gem "simplecov", require: false
 gem "timecop"
 
 gem "mysql2"
+gem "webmock"
 
 group :development do
   gem "annotate"

@@ -10,7 +10,8 @@ Complete install and host RBAC first: [Host integration](host_integration_guide.
 |---------|----------------|
 | User inbox (consume) | Engine `/me/inbox*` — see [API reference](api_reference.md#me-inbox) |
 | Preferences | Engine `/me/preferences*` — see [API reference](api_reference.md#preferences) |
-| Phone / Pushover endpoints | Engine `/me/phone*`, `/me/pushover*` (503 when capability unavailable) |
+| Phone / Pushover / Push endpoints | Engine `/me/phone*`, `/me/pushover*`, `/me/push*` (503 when capability unavailable) |
+
 | Single-recipient emit | `CommandTower::Services::Messaging::Communications::Produce` |
 | Multi-recipient emit | `CommandTower::Services::Messaging::Communications::ProduceMany` |
 | Admin cohort announce | Engine `POST /admin/messaging/announcements` |
@@ -73,9 +74,13 @@ Pagination detail: [pagination.md](pagination.md). Full catalog: [api_reference.
 
 - Notification catalog content (registered into CommandTower notification types)
 - `platform_enabled_channels` / channel policy injection
-- Messaging adapter credentials (email / SMS / Pushover) via initializer or ENV
-- Host product roles that grant CT-owned Me inbox/preferences/phone/pushover entities (and `admin` if used)
+- Messaging adapter credentials (email / SMS / Pushover / Expo push) via initializer or ENV
+- Host product roles that grant CT-owned Me inbox/preferences/phone/pushover/`me_push` entities (and `admin` if used)
 - Product-specific operational tooling (announce rake tasks, welcome copy)
+
+Expo push (`config.messaging.expo`): set `adapter` to `fake`, `log`, or `http` to enable the Messaging `push` channel and Me `/me/push*` (default `disabled`). `access_token` is optional — send `Authorization: Bearer` only when non-blank (required only if the Expo project enables enhanced push security). Never log the token.
+
+Me push registration: engine `/me/push*` (collection of active endpoints). Create/replace persist via `Endpoints` and **mark_verified** in-workflow — there is no `POST /me/push/verification`. Tokens must be Expo form (`ExponentPushToken[...]` / `ExpoPushToken[...]`).
 
 ## Related
 

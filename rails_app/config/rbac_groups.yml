@@ -23,6 +23,7 @@ groups:
       - me_phone_verification_verify
       - me_pushover
       - me_pushover_verification
+      - me_push
       - principal_capabilities
   audit_operator:
     description: Dummy host role with Admin Workspace and audit only

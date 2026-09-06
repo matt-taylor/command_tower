@@ -186,6 +186,52 @@ RSpec.describe CommandTower::Messaging::Rendering::ChannelRenderer, :messaging_a
       end
     end
 
+    context "for push with deep_link metadata" do
+      before do
+        communication.update!(
+          title: "Announcement",
+          body: "Season opens tonight.",
+          metadata: { "deep_link" => "pickem://announcements/1" },
+        )
+      end
+
+      subject(:payload) do
+        described_class.render(
+          communication:,
+          channel_key: "push",
+          recipient_address: "99",
+        )
+      end
+
+      it "renders push title, body, and optional deep_link without embedding the token" do
+        expect(payload).to be_a(CommandTower::Messaging::Rendering::RenderedPushPayload)
+        expect(payload).to be_frozen
+        expect(payload.recipient_address).to eq("99")
+        expect(payload.title).to eq("Announcement")
+        expect(payload.body).to eq("Season opens tonight.")
+        expect(payload.deep_link).to eq("pickem://announcements/1")
+      end
+    end
+
+    context "for push without deep_link" do
+      before do
+        communication.update!(title: "Hi", body: "Body only", metadata: nil)
+      end
+
+      subject(:payload) do
+        described_class.render(
+          communication:,
+          channel_key: "push",
+          recipient_address: "7",
+        )
+      end
+
+      it "renders a nil deep_link when metadata has none" do
+        expect(payload.deep_link).to be_nil
+        expect(payload.body).to eq("Body only")
+      end
+    end
+
     context "when recipient address is blank" do
       it "raises recipient_missing for blank recipient addresses without querying User" do
         expect(User).not_to receive(:find)
@@ -271,11 +317,12 @@ RSpec.describe CommandTower::Messaging::Rendering::ChannelRenderer, :messaging_a
   end
 
   describe ".supported_channel?" do
-    it "reports email, sms, and pushover as supported channels" do
+    it "reports email, sms, pushover, and push as supported channels" do
       expect(described_class.supported_channel?("sms")).to eq(true)
       expect(described_class.supported_channel?("email")).to eq(true)
       expect(described_class.supported_channel?("pushover")).to eq(true)
-      expect(described_class.supported_channel?("push")).to eq(false)
+      expect(described_class.supported_channel?("push")).to eq(true)
+      expect(described_class.supported_channel?("fax")).to eq(false)
     end
   end
 end

@@ -114,6 +114,7 @@ module CommandTower
                 channel_key: delivery.channel_key,
                 attempt_id: attempt.id,
                 rendered:,
+                eligible_endpoint_ids: Array(readiness.eligible_endpoint_ids),
               )
               adapter = CommandTower::Messaging::Execution::SelectAdapter.call(delivery:, executor:)
               CommandTower::Messaging::Execution::OperationLogger.adapter_started(

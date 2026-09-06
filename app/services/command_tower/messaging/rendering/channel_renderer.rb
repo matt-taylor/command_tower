@@ -10,7 +10,8 @@ module CommandTower
         EMAIL_CHANNEL = "email"
         SMS_CHANNEL = "sms"
         PUSHOVER_CHANNEL = "pushover"
-        SUPPORTED_CHANNELS = [EMAIL_CHANNEL, SMS_CHANNEL, PUSHOVER_CHANNEL].freeze
+        PUSH_CHANNEL = "push"
+        SUPPORTED_CHANNELS = [EMAIL_CHANNEL, SMS_CHANNEL, PUSHOVER_CHANNEL, PUSH_CHANNEL].freeze
         TEMPLATE_DIR = CommandTower::Engine.root.join("app/views/command_tower/messaging/rendering")
         DEFAULT_TITLE = "Notification"
 
@@ -48,6 +49,8 @@ module CommandTower
               render_sms(address)
             when PUSHOVER_CHANNEL
               render_pushover(address)
+            when PUSH_CHANNEL
+              render_push(address)
             else
               raise RenderError.new(code: "render_failed", error_class: "UnsupportedChannel")
             end
@@ -80,7 +83,7 @@ module CommandTower
         end
 
         def render_pushover(address)
-          title = pushover_title
+          title = notification_title
           message = render_template("pushover.text.erb").to_s.strip
           raise ArgumentError, "message is required" if message.empty?
 
@@ -91,7 +94,20 @@ module CommandTower
           )
         end
 
-        def pushover_title
+        def render_push(address)
+          title = notification_title
+          body = render_template("push.text.erb").to_s.strip
+          raise ArgumentError, "body is required" if body.empty?
+
+          RenderedPushPayload.build(
+            recipient_address: address,
+            title:,
+            body:,
+            deep_link: template_locals[:deep_link],
+          )
+        end
+
+        def notification_title
           title = @communication.title.to_s.strip
           return title unless title.empty?
 
@@ -100,6 +116,8 @@ module CommandTower
 
           DEFAULT_TITLE
         end
+
+        alias pushover_title notification_title
 
         def render_template(filename)
           path = TEMPLATE_DIR.join(filename)

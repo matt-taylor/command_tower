@@ -39,4 +39,59 @@ RSpec.describe CommandTower::Configuration::Messaging::Config do
       expect { invoke }.to raise_error(ClassComposer::ValidatorError, /TrueClass, FalseClass/)
     end
   end
+
+  describe "expo composer" do
+    around do |example|
+      previous_adapter = CommandTower.config.messaging.expo.adapter
+      previous_token = CommandTower.config.messaging.expo.access_token
+      example.run
+    ensure
+      CommandTower.config.messaging.expo.adapter = previous_adapter
+      CommandTower.config.messaging.expo.access_token = previous_token
+    end
+
+    context "with defaults" do
+      before do
+        CommandTower.config.messaging.expo.adapter = "disabled"
+        CommandTower.config.messaging.expo.access_token = ""
+      end
+
+      it "defaults adapter to disabled with Expo API base URL and blank optional access_token" do
+        expect(CommandTower.config.messaging.expo.adapter).to eq("disabled")
+        expect(CommandTower.config.messaging.expo.api_base_url).to eq("https://exp.host/--/api/v2/push")
+        expect(CommandTower.config.messaging.expo.timeout_seconds).to eq(5)
+        expect(CommandTower.config.messaging.expo.access_token).to eq("")
+      end
+    end
+
+    %w[disabled fake log http].each do |adapter_name|
+      context "when adapter is #{adapter_name}" do
+        before { CommandTower.config.messaging.expo.adapter = adapter_name }
+
+        it "accepts #{adapter_name}" do
+          expect(CommandTower.config.messaging.expo.adapter).to eq(adapter_name)
+        end
+      end
+    end
+
+    context "when adapter is unknown" do
+      subject(:invoke) { CommandTower.config.messaging.expo.adapter = "twilio" }
+
+      it "rejects adapters outside the allow-list" do
+        expect { invoke }.to raise_error(ClassComposer::ValidatorError)
+      end
+    end
+
+    context "when access_token is set" do
+      before do
+        CommandTower.config.messaging.expo.access_token = "expo-token"
+        CommandTower.config.messaging.expo.adapter = "http"
+      end
+
+      it "accepts an optional access_token without requiring it for http" do
+        expect(CommandTower.config.messaging.expo.access_token).to eq("expo-token")
+        expect(CommandTower.config.messaging.expo.adapter).to eq("http")
+      end
+    end
+  end
 end

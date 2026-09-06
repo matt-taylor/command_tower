@@ -223,6 +223,9 @@ CommandTower.configure do |config|
 
   # config.messaging.sms.adapter = "disabled"
   # config.messaging.pushover.adapter = "disabled"
+  # Expo Push (Messaging channel "push"). access_token optional (Bearer only when set).
+  # config.messaging.expo.adapter = "disabled"
+  # config.messaging.expo.access_token = ""
 
   # ##############################
   # #                            #
