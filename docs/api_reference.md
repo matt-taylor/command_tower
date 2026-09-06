@@ -426,6 +426,27 @@ Errors include `422` (`pushover_already_configured`, `pushover_not_configured`, 
 
 ---
 
+## Push (Expo)
+
+Routes are **always drawn**. Product readiness is workflow-gated as **503** `push_capability_unavailable` (`config.messaging.expo.adapter` must be `fake`, `log`, or `http`).
+
+There is **no** `POST /me/push/verification`. Create and replace call `Endpoints.mark_verified` in-workflow after persist.
+
+| Method | Path | Body | Notes |
+|--------|------|------|--------|
+| `GET` | `/me/push` | — | `{ endpoints: [...] }` — **active only** (terminal rows omitted) |
+| `POST` | `/me/push` | `token`/`address` (snake or camelCase) | Create or idempotent same-fingerprint; returns verified endpoint |
+| `PATCH` / `PUT` | `/me/push/:id` | same | Replace by id; new row verified; other actives untouched |
+| `DELETE` | `/me/push/:id` | — | Revoke; returns revoked SafeView |
+
+**Token form:** `ExponentPushToken[...]` or `ExpoPushToken[...]` (422 otherwise).
+
+**Endpoint fields:** `id`, `channelKey`, `lifecycleState`, `verificationState`, `maskedDisplayValue`, `verifiedAt`, `createdAt`, `updatedAt`, `actions: { canReplace, canRemove }`. Never the raw token.
+
+**RBAC:** `me_push`. **Spec:** `spec/requests/command_tower/me/push_spec.rb`.
+
+---
+
 ## Admin Workspace
 
 ### `GET /admin/workspace`

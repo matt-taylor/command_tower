@@ -3,6 +3,7 @@
 require "class_composer"
 require "command_tower/configuration/messaging/sms"
 require "command_tower/configuration/messaging/pushover"
+require "command_tower/configuration/messaging/expo"
 
 module CommandTower
   module Configuration
@@ -54,6 +55,11 @@ module CommandTower
           desc: "Pushover verification transport configuration (credential validate + test notification)",
           allowed: Pushover,
           default: Pushover.new
+
+        add_composer :expo,
+          desc: "Expo Push delivery configuration (Messaging push channel; optional access_token)",
+          allowed: Expo,
+          default: Expo.new
       end
     end
   end

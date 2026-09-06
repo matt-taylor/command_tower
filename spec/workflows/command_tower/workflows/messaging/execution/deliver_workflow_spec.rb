@@ -753,4 +753,75 @@ RSpec.describe CommandTower::Workflows::Messaging::Execution::DeliverWorkflow, :
       end
     end
   end
+
+  context "push handoff boundary" do
+    let(:platform_enabled_channels) { %w[push] }
+    let(:endpoint) do
+      view = CommandTower::Messaging::Endpoints.create(
+        owner_user_id: user.id,
+        channel_key: "push",
+        address: "ExponentPushToken[deliver1111]",
+      )
+      record = CommandTower::Messaging::Endpoint.find(view.id)
+      record.update!(verification_state: "verified", verified_at: Time.current)
+      record
+    end
+
+    around do |example|
+      previous = CommandTower.config.messaging.expo.adapter
+      previous_fake = CommandTower.config.messaging.allow_fake_adapter
+      CommandTower.config.messaging.expo.adapter = "fake"
+      CommandTower.config.messaging.allow_fake_adapter = false
+      example.run
+    ensure
+      CommandTower.config.messaging.expo.adapter = previous
+      CommandTower.config.messaging.allow_fake_adapter = previous_fake
+    end
+
+    before do
+      endpoint
+      delivery.update!(channel_key: "push")
+      destination_plan.update!(
+        decision: destination_plan.decision.merge(
+          "selected_channels" => %w[push],
+          "platform_enabled_channels" => platform_enabled_channels,
+        ),
+      )
+    end
+
+    context "when delivering via injected executor" do
+      let(:adapter) { instance_double(CommandTower::Messaging::Execution::Adapters::FakeAdapter) }
+
+      before do
+        allow(adapter).to receive(:call) do |request:|
+          expect(request.rendered).to be_a(CommandTower::Messaging::Rendering::RenderedPushPayload)
+          expect(request.eligible_endpoint_ids).to eq([endpoint.id])
+          expect(request.rendered.recipient_address).to eq(endpoint.id.to_s)
+          CommandTower::Messaging::Execution::AdapterResult.build(outcome: :success)
+        end
+      end
+
+      subject(:invoke) { described_class.call(channel_delivery_id: delivery.id, executor: adapter) }
+
+      before { invoke }
+
+      it "passes eligible_endpoint_ids into AdapterRequest for push fan-out" do
+        expect(adapter).to have_received(:call)
+        expect(delivery.reload.status).to eq("accepted_by_provider")
+      end
+    end
+
+    context "when Expo adapter is disabled after handoff" do
+      before { CommandTower.config.messaging.expo.adapter = "disabled" }
+
+      subject(:invoke) { described_class.call(channel_delivery_id: delivery.id) }
+
+      before { invoke }
+
+      it "terminals with adapter_unconfigured when Expo is disabled and no executor is injected" do
+        expect(delivery.reload.status).to eq("failed_terminal")
+        expect(delivery.delivery_attempts.sole.error_code).to eq("adapter_unconfigured")
+      end
+    end
+  end
 end

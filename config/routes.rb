@@ -100,6 +100,15 @@ CommandTower::Engine.routes.draw do
     put "pushover", to: "pushover#update"
     delete "pushover", to: "pushover#destroy"
     post "pushover/verification", to: "pushover/verifications#create"
+
+    # Expo push lifecycle always drawn (no route constraints).
+    # Product readiness is workflow-gated as 503 push_capability_unavailable.
+    # Collection JSON (multi-active). No verification POST — create/replace mark_verified.
+    get "push", to: "push#index"
+    post "push", to: "push#create"
+    patch "push/:id", to: "push#update"
+    put "push/:id", to: "push#update"
+    delete "push/:id", to: "push#destroy"
   end
 
   namespace :admin do

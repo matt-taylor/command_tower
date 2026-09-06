@@ -190,6 +190,19 @@ RSpec.describe CommandTower::Messaging::Endpoints do
       end
     end
 
+    context "when a non-Expo push token is supplied" do
+      subject(:invoke) do
+        described_class.create(owner_user_id:, channel_key: "push", address: "not-an-expo-token-at-all")
+      end
+
+      it "rejects tokens that are not Expo push token form" do
+        expect { invoke }.to raise_error(
+          CommandTower::Messaging::Endpoints::ValidationError,
+          /Expo push token/,
+        )
+      end
+    end
+
     context "when a database unique conflict occurs on insert" do
       before do
         described_class.create(owner_user_id:, channel_key: "push", address: "ExponentPushToken[same9999]")

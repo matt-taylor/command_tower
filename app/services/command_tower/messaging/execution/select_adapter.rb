@@ -36,6 +36,10 @@ module CommandTower
             if Adapters::Pushover::Configuration.pushover_configured?
               return Adapters::Pushover::Adapter.new
             end
+          when "push"
+            if Adapters::Expo::Configuration.expo_configured?
+              return Adapters::Expo::Adapter.new
+            end
           end
 
           Adapters::UnconfiguredAdapter.new

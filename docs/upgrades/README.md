@@ -4,6 +4,7 @@ Host-facing upgrade / change summaries for CommandTower releases.
 
 | Version | Summary |
 |---------|---------|
+| [0.14.0](0.14.0.md) | Expo push Messaging channel (`config.messaging.expo`) + `/api/me/push*` registration HTTP; `me_push` RBAC |
 | [0.13.1](0.13.1.md) | Canonical `Intervention::Severity` constants (`blocking`, `warning`, `informational`) |
 | [0.13.0](0.13.0.md) | Account self-service deletion (`DELETE /api/me/account`); tombstone + PII scrub; `me_account` RBAC; `users.deleted_at` migration |
 | [0.12.0](0.12.0.md) | Intervention envelope serializers/deserializers; product-tool admin_scope without Users/Audit narrowing |
