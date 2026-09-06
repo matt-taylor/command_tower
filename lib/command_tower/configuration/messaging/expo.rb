@@ -32,6 +32,19 @@ module CommandTower
                 "Required only if the Expo project enables enhanced push security. Never log.",
           allowed: String,
           default: ""
+
+        add_composer :self_test_per_user_hour,
+          desc: "Max Me push self-test (POST /me/push/test) sends allowed per user per rolling window. " \
+                "Hosts enabling Account Push notifications settings should set this explicitly " \
+                "(Pick'em: 10).",
+          allowed: Integer,
+          default: 10
+
+        add_composer :self_test_window_seconds,
+          desc: "Rolling window length in seconds for Me push self-test rate limiting " \
+                "(default 3600 = one hour).",
+          allowed: Integer,
+          default: 3600
       end
     end
   end
