@@ -15,6 +15,7 @@ RSpec.describe "CommandTower migration baseline" do
       20260817000001_add_scope_columns_to_command_tower_audit_events.rb
       20260817000003_create_command_tower_impersonation_sessions.rb
       20260826140000_add_deleted_at_to_users.rb
+      20260906180000_create_user_experience_states.rb
     ]
   end
 
@@ -32,6 +33,7 @@ RSpec.describe "CommandTower migration baseline" do
       messaging_endpoint_pushover_credentials
       command_tower_audit_events
       command_tower_impersonation_sessions
+      user_experience_states
     ]
   end
 
@@ -103,6 +105,7 @@ RSpec.describe "CommandTower migration baseline" do
     )
     expect(CommandTower::Audit::Event.table_name).to eq("command_tower_audit_events")
     expect(CommandTower::Impersonation::Session.table_name).to eq("command_tower_impersonation_sessions")
+    expect(CommandTower::UserExperienceState.table_name).to eq("user_experience_states")
   end
 
   context "when inspecting users columns" do

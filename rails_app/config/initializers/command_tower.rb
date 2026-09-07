@@ -270,6 +270,9 @@ CommandTower.configure do |config|
   # The default name of the application: [String]
   # config.application.app_name = # Auto Populates to the name of the application
 
+  # Server-bound host/product identity for CT-generic user-scoped state. Not client-supplied.: [String]
+  config.application.host_key = "command_tower"
+
   # The name of the application to use in communications like SMS or Email: [String]
   # config.application.communication_name = config.application.app_name
 

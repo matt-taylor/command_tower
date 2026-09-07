@@ -111,6 +111,9 @@ CommandTower::Engine.routes.draw do
     patch "push/:id", to: "push#update"
     put "push/:id", to: "push#update"
     delete "push/:id", to: "push#destroy"
+
+    get "experience-states", to: "experience_states#index"
+    post "experience-states/complete", to: "experience_states#complete"
   end
 
   namespace :admin do

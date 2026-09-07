@@ -45,7 +45,7 @@ RSpec.describe "CommandTower audit architecture" do
       impersonation_ended
     ]
   end
-  let(:configurable_event_names) { %i[session_created session_cleared login_failed] }
+  let(:configurable_event_names) { %i[session_created session_cleared login_failed experience_state_completed] }
   let(:me_audit_events_controller_source) do
     File.read(engine_root.join("app/controllers/command_tower/me/audit_events_controller.rb"))
   end
@@ -119,7 +119,7 @@ RSpec.describe "CommandTower audit architecture" do
 
   it "marks session and login_failed facts as enablement-configurable" do
     expect(configurable_event_names.map { |name| CommandTower.config.registry.audit.fetch(name).enablement_configurable? }).to eq(
-      [true, true, true]
+      Array.new(configurable_event_names.size, true)
     )
   end
 

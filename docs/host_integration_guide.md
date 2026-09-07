@@ -32,10 +32,11 @@ In the host initializer, set at least:
 - `config.jwt.hmac_secret`
 - `config.signup_session.jwt_secret` (or `SIGNUP_SESSION_JWT_SECRET`)
 - `config.password_recovery_session.jwt_secret` (or `PASSWORD_RECOVERY_SESSION_JWT_SECRET`)
+- `config.application.host_key` — server-bound host/product identity for CT-generic user-scoped state (for example experience states). Not client-supplied. Blank values cause Me experience-state routes to return **503** `experience_states_host_unconfigured`.
 
 Re-run `bin/rails command_tower:doctor`. Details: [Initializing — Configuration](initializing.md#configuration).
 
-Dummy-host reference: [`rails_app/config/initializers/command_tower.rb`](../rails_app/config/initializers/command_tower.rb).
+Dummy-host reference: [`rails_app/config/initializers/command_tower.rb`](../rails_app/config/initializers/command_tower.rb) (sets `host_key` to `"command_tower"`).
 
 ### Email / SMTP
 
