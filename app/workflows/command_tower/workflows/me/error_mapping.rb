@@ -33,7 +33,8 @@ module CommandTower
             :too_many_requests
           when CommandTower::Errors::Account::SmsCapabilityUnavailableError,
                CommandTower::Errors::Account::PushoverCapabilityUnavailableError,
-               CommandTower::Errors::Account::PushCapabilityUnavailableError
+               CommandTower::Errors::Account::PushCapabilityUnavailableError,
+               CommandTower::Errors::Account::ExperienceStatesHostUnconfiguredError
             :service_unavailable
           when CommandTower::Errors::Account::PhoneVerificationSendFailedError,
                CommandTower::Errors::Account::PushoverProviderUnavailableError

@@ -76,6 +76,11 @@ entities:
       - update
       - destroy
       - test
+  - name: me_experience_states
+    controller: CommandTower::Me::ExperienceStatesController
+    only:
+      - index
+      - complete
   - name: me_audit_events
     controller: CommandTower::Me::AuditEventsController
     only:

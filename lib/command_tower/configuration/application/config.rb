@@ -14,6 +14,11 @@ module CommandTower
           desc: "The default name of the application",
           default_shown: "# Auto Populates to the name of the application"
 
+        add_composer :host_key,
+          allowed: String,
+          default: "",
+          desc: "Server-bound host/product identity for CT-generic user-scoped state. Not client-supplied."
+
         add_composer :communication_name,
           allowed: String,
           dynamic_default: :app_name,

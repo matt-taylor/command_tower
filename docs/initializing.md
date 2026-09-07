@@ -107,6 +107,7 @@ Required for production-ready hosts:
 - `config.jwt.hmac_secret` — typically `SECRET_KEY_BASE` / `Rails.application.secret_key_base`
 - `config.signup_session.jwt_secret` — or `SIGNUP_SESSION_JWT_SECRET`
 - `config.password_recovery_session.jwt_secret` — or `PASSWORD_RECOVERY_SESSION_JWT_SECRET`
+- `config.application.host_key` — server-bound host/product identity for CT-generic user-scoped state (experience states). Not client-supplied. Blank → Me experience-state routes return **503**.
 
 Optional / feature-gated:
 

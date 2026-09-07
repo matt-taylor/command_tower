@@ -265,6 +265,18 @@ module CommandTower
               subject_type: "User",
               affected_user_required: true,
               global_visible_in_host_scope: true
+            },
+            experience_state_completed: {
+              label: "Experience state completed",
+              tags: %w[experience account],
+              enabled: true,
+              enablement_configurable: true,
+              user_history: false,
+              sensitive_fields: [],
+              allowed_changes: [],
+              retention: :permanent,
+              subject_required: false,
+              affected_user_required: true
             }
           }.freeze
 

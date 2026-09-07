@@ -15,6 +15,7 @@ module CommandTower
         20260817000001_add_scope_columns_to_command_tower_audit_events.rb
         20260817000003_create_command_tower_impersonation_sessions.rb
         20260826140000_add_deleted_at_to_users.rb
+        20260906180000_create_user_experience_states.rb
       ].freeze
 
       module_function

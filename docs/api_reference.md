@@ -447,6 +447,27 @@ There is **no** `POST /me/push/verification`. Create and replace call `Endpoints
 
 ---
 
+## Experience states
+
+Durable completion facts for host-composed experiences. CommandTower stores opaque identity keys only — no League / Season / Tenant semantics and no presentation instructions such as `showWelcome`.
+
+`config.application.host_key` is **server-bound**. The client must not supply `hostKey` / `host_key`. When `host_key` is blank, both routes return **503** `experience_states_host_unconfigured`.
+
+| Method | Path | Body | Notes |
+|--------|------|------|--------|
+| `GET` | `/me/experience-states` | — | `{ experienceStates: [...] }` — **completed rows only** for the configured host |
+| `POST` | `/me/experience-states/complete` | `experienceKey`/`experience_key`, `scopeType`/`scope_type`, `scopeIdentifier`/`scope_identifier`, `version` (snake or camelCase) | Idempotent complete; returns the durable fact |
+
+**Fact fields:** `hostKey`, `experienceKey`, `scopeType`, `scopeIdentifier`, `version`, `completedAt`. Never `showWelcome` / applicability / presentation instructions.
+
+**RBAC:** `me_experience_states` (`index`, `complete`). Grant explicitly on host roles (dummy host `member` includes it).
+
+**Audit:** first durable creation emits `experience_state_completed` (opaque `host_context` type/identifier). Idempotent replay does not emit again.
+
+**Spec:** `spec/requests/command_tower/me/experience_states_spec.rb`.
+
+---
+
 ## Admin Workspace
 
 ### `GET /admin/workspace`

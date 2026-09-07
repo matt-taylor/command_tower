@@ -21,6 +21,7 @@ This page is an **index** of route areas. Detailed request/response contracts li
 | Phone | `/me/phone*` | Phone endpoint + verification |
 | Pushover | `/me/pushover*` | Pushover endpoint lifecycle + verification |
 | Push | `/me/push*` | Expo push endpoint collection (register / replace / revoke) |
+| Experience states | `/me/experience-states*` | Durable completed experience-state facts (list / complete) |
 | Admin messaging | `/admin/messaging/announcements` | Cohort announcements |
 
 Exact paths depend on where the host mounts the engine.

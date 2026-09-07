@@ -24,6 +24,7 @@ groups:
       - me_pushover
       - me_pushover_verification
       - me_push
+      - me_experience_states
       - principal_capabilities
   audit_operator:
     description: Dummy host role with Admin Workspace and audit only
