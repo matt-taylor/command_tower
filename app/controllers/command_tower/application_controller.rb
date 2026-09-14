@@ -3,6 +3,7 @@
 module CommandTower
   class ApplicationController < ActionController::API
     include CommandTower::Execution::HttpBoundary
+    include CommandTower::Execution::ClientCompatibilityBoundary
 
     AUTHENTICATION_HEADER = CommandTower::Jwt::AuthorizationHelper::AUTHENTICATION_HEADER
     AUTHENTICATION_EXPIRE_HEADER = CommandTower::Jwt::AuthorizationHelper::AUTHENTICATION_EXPIRE_HEADER

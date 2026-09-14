@@ -222,6 +222,41 @@ CommandTower::Testing.install!
 
 Details: [Testing](testing.md). Prefer `spec/requests/` patterns in the gem as HTTP contract proof.
 
+## Step 11 — Client version compatibility (optional)
+
+CommandTower can gate or warn on stale client app versions per platform, ahead of every request (before authn/authz). It is entirely opt-in: an untouched registry is a no-op, and the shipped CommandTower-owned catalog is empty by design.
+
+```ruby
+CommandTower.configure do |c|
+  c.registry.client_compatibility.mode = :observe # or :enforce; default observe
+
+  c.registry.client_compatibility.platform :web do |platform|
+    platform.minimum = "1.0.0"      # required; MAJOR.MINOR.PATCH[.prerelease]
+    platform.recommended = "1.2.0"  # optional; non-blocking upgrade guidance
+    # platform.update_url is forbidden on :web (web recovery is "reload", not a store)
+  end
+
+  c.registry.client_compatibility.platform :ios do |platform|
+    platform.minimum = "2.0.0"
+    platform.update_url = "https://apps.apple.com/app/id..."
+  end
+
+  # Optional: a capability-scoped floor stricter than the platform-global minimum,
+  # bound to an existing RBAC entity (see Step 4).
+  c.registry.client_compatibility.entity :some_host_entity do |entity|
+    entity.minimum.ios = "2.1.0"
+  end
+end
+```
+
+- Canonical platforms are `web` | `ios` | `android`. Configure only what your app ships — `android` unconfigured never fails boot on its own.
+- Zero configured platforms while otherwise opted in (non-default `mode`, any `entity`/`client_contract`/`bind`) fails boot fast; a completely untouched registry does not.
+- `X-App-Version` / `X-Client-Platform` request headers drive evaluation — never User-Agent, never an allowlist.
+- Every controller runs the check via `before_action :evaluate_client_compatibility!` on `CommandTower::ApplicationController`. Exempt a controller with `skip_before_action :evaluate_client_compatibility!`.
+- Process-level ENV overlays may only **raise** an already-configured platform's minimum, never lower it or configure a platform the host didn't enable: `COMMAND_TOWER_CLIENT_COMPATIBILITY_MODE=observe|enforce`, `COMMAND_TOWER_CLIENT_COMPATIBILITY_MINIMUM_WEB|IOS|ANDROID=<version>`.
+- In `:observe` mode nothing is ever blocked — decisions are logged only. In `:enforce` mode, an incompatible or unparseable identity renders HTTP `426` with a `client_update_required` error envelope.
+- Recommended-update guidance (when a client is compatible but below `recommended`) is surfaced only in `meta.clientCompatibility` on login and session-show responses — never on every response.
+
 ## Done when
 
 - Doctor passes for secrets/migrations

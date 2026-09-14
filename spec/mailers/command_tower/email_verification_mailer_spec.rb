@@ -43,4 +43,22 @@ RSpec.describe CommandTower::EmailVerificationMailer do
       expect(ActionMailer::Base.deliveries.last.from).to eq(["from-cr@example.com"])
     end
   end
+
+  context "when config.email_theme is left at its default (no host override)" do
+    let(:theme) { CommandTower::EmailTheme::Resolver.resolve }
+
+    subject(:html_body) do
+      described_class.verify_email("to@example.com", user, "654321").deliver_now
+      ActionMailer::Base.deliveries.last.html_part&.body&.to_s.presence ||
+        ActionMailer::Base.deliveries.last.body.to_s
+    end
+
+    it "renders CT's own default email_theme token values" do # rubocop:disable RSpec/ExampleLength, RSpec/MultipleExpectations
+      expect(html_body).to include("background-color: #{theme[:canvas_background]}")
+      expect(html_body).to include("background-color: #{theme[:surface_background]}")
+      expect(html_body).to include("background: #{theme[:accent]}")
+      expect(html_body).to include("color: #{theme[:text_on_accent]}")
+      expect(html_body).to include("border: 2px dashed #{theme[:surface_border]}")
+    end
+  end
 end

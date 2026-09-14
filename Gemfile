@@ -29,6 +29,16 @@ gem "timecop"
 gem "mysql2"
 gem "webmock"
 
+# json 3.x removed the second positional `options` arg from `JSON.parse` and
+# the `quirks_mode:` keyword from `JSON.generate`. ActiveSupport (both the 7.x
+# and 8.x lines currently supported by our CI matrix) still calls
+# `::JSON.parse(json, options)` positionally in `ActiveSupport::JSON.decode`,
+# and ActiveSupport 7.x's `.encode` still passes `quirks_mode:` to
+# `JSON.generate`. Both raise `ArgumentError` under json 3.x. Pin below 3 so
+# `bundle install` (which re-resolves from scratch per Ruby/Rails matrix cell
+# in CI, discarding Gemfile.lock) never floats onto an incompatible json.
+gem "json", "< 3"
+
 group :development do
   gem "annotate"
 end

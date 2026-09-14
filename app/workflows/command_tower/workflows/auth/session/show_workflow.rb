@@ -5,6 +5,8 @@ module CommandTower
     module Auth
       module Session
         class ShowWorkflow < CommandTower::Workflows::ApplicationWorkflow
+          include CommandTower::Workflows::ClientCompatibility::RecommendationMeta
+
           retry_strategy :none
 
           def call(current_user:, auth_context:)
@@ -30,6 +32,7 @@ module CommandTower
                 actor: auth_context.actor_user
               ),
               http_status: :ok,
+              meta: client_compatibility_meta,
               response_effects: response_effects
             )
           end

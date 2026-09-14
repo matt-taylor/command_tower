@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-require "erb"
 require "cgi"
 
 module CommandTower
@@ -12,7 +11,7 @@ module CommandTower
         PUSHOVER_CHANNEL = "pushover"
         PUSH_CHANNEL = "push"
         SUPPORTED_CHANNELS = [EMAIL_CHANNEL, SMS_CHANNEL, PUSHOVER_CHANNEL, PUSH_CHANNEL].freeze
-        TEMPLATE_DIR = CommandTower::Engine.root.join("app/views/command_tower/messaging/rendering")
+        TEMPLATE_FILENAME_PATTERN = /\A(?<basename>[a-z]+)\.(?<format>html|text)\.erb\z/
         DEFAULT_TITLE = "Notification"
 
         def self.render(communication:, channel_key:, recipient_address:)
@@ -120,24 +119,56 @@ module CommandTower
         alias pushover_title notification_title
 
         def render_template(filename)
-          path = TEMPLATE_DIR.join(filename)
-          raise Errno::ENOENT, "missing template #{filename}" unless path.file?
+          match = TEMPLATE_FILENAME_PATTERN.match(filename.to_s)
+          raise Errno::ENOENT, "missing template #{filename}" unless match
 
-          template = ERB.new(path.read, trim_mode: "-")
-          template.result_with_hash(template_locals)
+          TemplateResolver.render(
+            basename: match[:basename],
+            format: match[:format].to_sym,
+            notification_type_key: @communication.notification_type_key,
+            generic_locals: template_locals,
+            type_locals: type_template_locals,
+          )
         end
 
+        # ActionView's OutputBuffer auto-escapes any interpolated value that is
+        # not marked `html_safe?`, for every format (html and text alike) —
+        # see `ActionView::OutputBuffer#<<`. Generic templates historically
+        # relied on plain ERB, which never auto-escaped anything; callers
+        # (namely `email.html.erb`) explicitly call `h.call(...)` when they
+        # want escaping. To preserve that exact contract under ActionView
+        # rendering, `title`/`body`/`deep_link` are pre-marked `html_safe` (so
+        # raw interpolation stays unescaped, matching legacy behavior) and
+        # `h.call` marks its own already-escaped output `html_safe` too, so it
+        # is not escaped a second time by the output buffer.
         def template_locals
+          {
+            title: @communication.title.to_s.html_safe,
+            body: @communication.body.to_s.html_safe,
+            deep_link: deep_link_from_metadata&.html_safe,
+            h: ->(value) { CGI.escapeHTML(value.to_s).html_safe },
+          }
+        end
+
+        def type_template_locals
+          template_locals.merge(
+            metadata: frozen_metadata,
+            notification_type_key: @communication.notification_type_key.to_s,
+          )
+        end
+
+        def deep_link_from_metadata
           metadata = @communication.metadata
           deep_link = metadata.is_a?(Hash) ? metadata["deep_link"] || metadata[:deep_link] : nil
           deep_link = deep_link.to_s if deep_link
+          deep_link.presence
+        end
 
-          {
-            title: @communication.title.to_s,
-            body: @communication.body.to_s,
-            deep_link: deep_link.presence,
-            h: ->(value) { CGI.escapeHTML(value.to_s) },
-          }
+        def frozen_metadata
+          metadata = @communication.metadata
+          return {}.freeze unless metadata.is_a?(Hash)
+
+          metadata.to_h.transform_keys(&:to_s).freeze
         end
       end
     end

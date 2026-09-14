@@ -59,6 +59,44 @@ CommandTower::Services::Messaging::Communications::Produce.call(
 
 Admin announcements HTTP is a product path over ProduceMany (async/sync, audience selection). Contract: [API reference — Admin messaging](api_reference.md#admin-messaging).
 
+## Rendering template overrides
+
+`ChannelRenderer` resolves each rendered destination (email HTML/text, SMS, Pushover, push) by `notification_type_key` first, falling back to a generic template — and always prefers a **host** view over CommandTower's own engine default for either. Hosts customize by dropping ERB files at this path in their own `app/views/`; they never call `ChannelRenderer` or its internal `TemplateResolver` collaborator directly.
+
+```text
+app/views/command_tower/messaging/rendering/
+  email.html.erb            # optional host override of the generic chrome
+  email.text.erb
+  sms.text.erb
+  push.text.erb
+  pushover.text.erb
+  <notification_type_key>/
+    email.html.erb          # optional type-specific override (only if the key matches [a-z0-9_]+)
+    email.text.erb
+    sms.text.erb
+    push.text.erb
+    pushover.text.erb
+```
+
+Notes:
+
+- `<notification_type_key>` directories only resolve when the key matches `/\A[a-z0-9_]+\z/`. Keys with dots (e.g. legacy `"example.type"`-style keys) or other characters always fall back to generic — they never attempt a type directory, even if one happens to exist on disk.
+- Each rendered destination resolves independently — a type directory can override just `email.html.erb` while every other destination (email text, SMS, Pushover, push) still renders from the generic templates.
+- Generic templates receive the same four locals as before (`title`, `body`, `deep_link`, `h` — an HTML-escaping helper). Type-specific templates additionally receive `metadata` (the communication's metadata Hash) and `notification_type_key`.
+- A missing or failing template (generic or type-specific) surfaces the same way it always has: `RenderError` with code `"render_failed"`.
+
+### Inbox document override (`inbox_document.json.erb`)
+
+The Me Inbox detail `content` field (`inbox_document_v1`, see [api_reference.md](api_reference.md#me-inbox)) is built by a separate collaborator, `InboxDocumentRenderer`, using the **same** type-directory convention and sanitized-key rule as above, resolved through `TemplateResolver.render_type_template`:
+
+```text
+app/views/command_tower/messaging/rendering/
+  <notification_type_key>/
+    inbox_document.json.erb   # optional type-specific inbox content override
+```
+
+This override has **no generic ERB fallback file** — the generic Inbox document is built in pure Ruby from `communication.body`/`metadata`, not from a template. Because of that, the fail-open contract here is stricter than `ChannelRenderer`'s: a missing type template, malformed JSON, an envelope with the wrong `schema` or a non-Array `blocks`, or a template that raises mid-render all fall back silently to the generic document — the Inbox read path never surfaces a `RenderError` and never 500s. A valid envelope with one invalid/unknown block strips only that block, keeping the rest; if stripping empties `blocks`, the generic document is used instead.
+
 ## Me Inbox HTTP (summary)
 
 | Concern | Contract |

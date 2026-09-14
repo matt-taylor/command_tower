@@ -338,8 +338,8 @@ Pagination for list: query `limit` (default **50**, max **100**), `offset` (defa
 | Method | Path | Notes |
 |--------|------|--------|
 | `GET` | `/me/inbox` | List — `data` array of items; pagination meta |
-| `GET` | `/me/inbox/:id` | Detail (+ `body`, `metadata`, `notificationTypeKey`) |
-| `POST` | `/me/inbox/:id/open` | Detail |
+| `GET` | `/me/inbox/:id` | Detail (+ `body`, `metadata`, `notificationTypeKey`, `content`) |
+| `POST` | `/me/inbox/:id/open` | Detail (+ `content`) |
 | `PATCH` | `/me/inbox/:id/archive` | Item |
 | `DELETE` | `/me/inbox/:id` | `data: null` |
 | `GET` | `/me/inbox/unread-count` | `{ count }` |
@@ -348,6 +348,17 @@ Pagination for list: query `limit` (default **50**, max **100**), `offset` (defa
 | `POST` | `/me/inbox/bulk/archive` | same |
 | `POST` | `/me/inbox/bulk/restore` | same |
 | `POST` | `/me/inbox/bulk/delete` | same |
+
+**`content` (detail only, response-only — `inbox_document_v1`):** rendered at read from the item's `Communication`, never persisted; absent from list items. Shape: `{ schema: "inbox_document_v1", blocks: [...] }`. Allowlisted block types:
+
+| Block | Fields | Notes |
+|-------|--------|-------|
+| `paragraph` | `text` (string) | |
+| `cta` | `label` (string), `href` (string) | `href` must be `http(s)` or a custom scheme (e.g. `pickem://...`); `javascript:`/`data:`/`vbscript:`, schemeless, blank, and unparsable hrefs are rejected — the `cta` block is simply omitted, never an error |
+
+Generic (default) rendering: one `paragraph` block from `communication.body` (omitted if blank — `blocks` can legitimately be `[]`), plus one `cta` block if `metadata.deep_link` is a safe href (label from `metadata.cta_label`, default `"Open"`).
+
+Hosts may override the document per `notificationTypeKey` with an `inbox_document.json.erb` view at `app/views/command_tower/messaging/rendering/<notification_type_key>/inbox_document.json.erb` (same lookup convention as [`messaging_integration_guide.md`](messaging_integration_guide.md#rendering-template-overrides)). Any failure resolving or rendering that template (missing file, malformed JSON, wrong `schema`/`blocks` shape, or a raising template) fails open to the generic document — the Inbox read path never 500s on a bad type template. A valid envelope with one invalid/unknown block strips only that block; if stripping empties `blocks`, the generic document is used instead.
 
 **List item fields:** `id`, `title`, `status`, `read`, `viewedAt`, `createdAt`, `updatedAt`.
 

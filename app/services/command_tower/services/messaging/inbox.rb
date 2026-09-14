@@ -120,7 +120,14 @@ module CommandTower
             communication = CommandTower::Messaging::Contract::Communications.find(
               CommandTower::Messaging::Contract::Requests::FindCommunication.build(communication_id: item.communication_id, recipient_id:)
             )
-            item(item).merge(body: communication.body, metadata: communication.metadata, notification_type_key: communication.notification_type_key)
+            content = CommandTower::Messaging::Rendering::InboxDocumentRenderer.render(communication:, recipient_id:).to_h
+
+            item(item).merge(
+              body: communication.body,
+              metadata: communication.metadata,
+              notification_type_key: communication.notification_type_key,
+              content:,
+            )
           end
         end
       end

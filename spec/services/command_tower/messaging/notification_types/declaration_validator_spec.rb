@@ -218,6 +218,7 @@ RSpec.describe CommandTower::Messaging::NotificationTypes::DeclarationValidator,
           retention: nil,
           delivery_status_visible: nil,
           host_ownership: nil,
+          inbox_document_composer: nil,
         )
       end
 
@@ -250,6 +251,7 @@ RSpec.describe CommandTower::Messaging::NotificationTypes::DeclarationValidator,
           retention: nil,
           delivery_status_visible: nil,
           host_ownership: nil,
+          inbox_document_composer: nil,
         )
       end
 
