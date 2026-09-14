@@ -1,9 +1,18 @@
 # frozen_string_literal: true
 
-RSpec.describe CommandTower::Services::ClientCompatibility::Evaluate do
+RSpec.describe CommandTower::Services::ClientCompatibility::Evaluate, :with_rbac_setup do
   let(:registry) { CommandTower::Configuration::Registry::ClientCompatibility::Config.new }
   # "session" is a real registered RBAC entity (CommandTower::Auth::SessionController#show),
   # used here only to exercise entity-matching without inventing test-only RBAC state.
+  # `:with_rbac_setup` guarantees a freshly-provisioned default RBAC graph before each
+  # example — this spec's `matched_entity_names` lookup reads the ambient
+  # `CommandTower::Authorization::Entity.entities` global, which unrelated specs
+  # elsewhere in the suite mutate (composition_spec.rb, RBAC-tagged request specs). Without
+  # this tag, "session" entity matching is order-dependent on whatever the last spec to run
+  # left the global registry in (see spec/lib/command_tower/authorization/composition_spec.rb
+  # for the same isolation pattern; the sibling request spec at
+  # spec/requests/command_tower/client_compatibility/evaluate_spec.rb already tags itself
+  # the same way for the identical reason).
   let(:controller_class) { CommandTower::Auth::SessionController }
   let(:action_name) { "show" }
 
