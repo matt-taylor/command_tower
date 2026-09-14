@@ -16,7 +16,8 @@ module CommandTower
           def self.serialize(item)
             ItemSerializer.serialize(item).merge(
               body: item.fetch(:body), metadata: item[:metadata],
-              notificationTypeKey: item.fetch(:notification_type_key)
+              notificationTypeKey: item.fetch(:notification_type_key),
+              content: item.fetch(:content)
             )
           end
         end

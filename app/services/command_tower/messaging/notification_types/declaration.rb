@@ -22,6 +22,7 @@ module CommandTower
         :retention,
         :delivery_status_visible,
         :host_ownership,
+        :inbox_document_composer,
       ) do
         def self.build(
           key:,
@@ -41,7 +42,8 @@ module CommandTower
           priority: nil,
           retention: nil,
           delivery_status_visible: nil,
-          host_ownership: nil
+          host_ownership: nil,
+          inbox_document_composer: nil
         )
           new(
             key: key.nil? ? nil : key.to_s,
@@ -62,6 +64,17 @@ module CommandTower
             retention:,
             delivery_status_visible:,
             host_ownership:,
+            # Rich Messaging Slice 2.5 revision — String class name of a
+            # pure-Ruby Inbox document composer (`.call(communication:) ->
+            # InboxDocument`), lazily `.constantize`d by
+            # `InboxDocumentRenderer` at render time, never at registration
+            # time (mirrors the existing RBAC `Entity#controller` deferred
+            # class-string convention — decouples host `to_prepare`
+            # registration order from composer class-load order). `nil`
+            # means this type intentionally has no custom Inbox document and
+            # renders via `InboxDocumentRenderer#build_generic`. See
+            # artifacts/visual-improvements/rich-messaging/authority/RICH_MESSAGING_RUBY_INBOX_DEFINITION_DISCOVERY.md.
+            inbox_document_composer: inbox_document_composer.nil? ? nil : inbox_document_composer.to_s,
           ).freeze
         end
 

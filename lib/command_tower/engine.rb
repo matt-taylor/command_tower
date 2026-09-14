@@ -22,12 +22,15 @@ module CommandTower
         # ensure defaults are instantiated and all variables are assigned
         CommandTower.config.class_composer_assign_defaults!(children: true)
         CommandTower::CredentialResolution::SmtpActionMailerBridge.apply!
+        CommandTower.config.registry.client_compatibility.apply_env_overlay!
 
         unless Rails.env.test?
           CommandTower.config.impersonation.validate!
           CommandTower.config.registry.audit.finalize!
           CommandTower.config.registry.admin_workspace.finalize!
           CommandTower.config.registry.principal_capabilities.finalize!
+          CommandTower.config.registry.client_compatibility.finalize!
+          CommandTower.config.registry.inbox_presentations.finalize!
           CommandTower.config.admin_scope.finalize!
           # Now that we can confirm all variables are defined, freeze all objects an their children
           CommandTower.config.class_composer_freeze_objects!(behavior: :raise, children: true)
@@ -62,6 +65,7 @@ module CommandTower
         entities = CommandTower::Authorization::Entity.entities
         CommandTower.config.registry.admin_workspace.validate_required_entities!(entities)
         CommandTower.config.registry.principal_capabilities.validate_required_entities!(entities)
+        CommandTower.config.registry.client_compatibility.validate!(entities)
         CommandTower.config.admin_scope.validate_scoped_tools!
       end
       CommandTower::Logging::Subscriber.attach!

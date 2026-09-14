@@ -371,4 +371,13 @@ CommandTower.configure do |config|
 
   # Host-additive principal capability proof (1:1 with host RBAC entity).
   config.registry.principal_capabilities.capability :dummy_admin_example
+
+  # Client-version-compatibility: observe-mode web floor proof. Observe mode
+  # never blocks requests; this only exercises boot validation and the
+  # non-blocking evaluation/logging path for the dummy host.
+  config.registry.client_compatibility.mode = :observe
+  config.registry.client_compatibility.platform :web do |platform|
+    platform.minimum = "1.0.0"
+    platform.recommended = "1.0.0"
+  end
 end

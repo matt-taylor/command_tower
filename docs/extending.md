@@ -19,6 +19,7 @@ Layer map: [architecture.md](architecture.md). Install/configure/migrate/doctor:
 | Model reopen | Product associations / behavior |
 | Initializers | Configuration, including `config.registry.audit.event`, `config.registry.admin_workspace.tool`, and `config.registry.principal_capabilities.capability` |
 | Notification catalogs / channel policy | Host-owned messaging customization |
+| `app/views/command_tower/messaging/rendering/**` | Host override of generic and/or per-`notification_type_key` rendered Email/SMS/Pushover/Push templates — see [messaging_integration_guide.md](messaging_integration_guide.md#rendering-template-overrides) |
 
 ## Internal platform — do not extend
 
@@ -28,7 +29,7 @@ Layer map: [architecture.md](architecture.md). Install/configure/migrate/doctor:
 | ServiceBase | Shared service framework |
 | Serializers | Platform response shaping |
 | Deserializers | Platform request trust boundary |
-| Messaging execution pipeline | Handoff / execution / accept internals |
+| Messaging execution pipeline | Handoff / execution / accept internals, including `Messaging::Rendering::ChannelRenderer` / `TemplateResolver` Ruby classes — hosts customize rendering by dropping ERB views (above), never by reopening or calling these classes |
 | RequestContext | Framework request context |
 | JWT primitives | Token issue / validate plumbing |
 | Internal framework plumbing | Envelope renderer, workflow base mechanics, etc. |

@@ -15,5 +15,6 @@ module CommandTower
     attribute :impersonation_activity_recorded, default: false
     attribute :remote_ip
     attribute :user_agent
+    attribute :client_compatibility_recommendation
   end
 end

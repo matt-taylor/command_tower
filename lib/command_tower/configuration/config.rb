@@ -10,6 +10,7 @@ require "command_tower/configuration/authorization/config"
 require "command_tower/configuration/base"
 require "command_tower/configuration/credentials/config"
 require "command_tower/configuration/email/config"
+require "command_tower/configuration/email_theme/config"
 require "command_tower/configuration/identity/config"
 require "command_tower/configuration/impersonation/config"
 require "command_tower/configuration/jwt/config"
@@ -48,6 +49,11 @@ module CommandTower
         desc: "Email configuration for the app sending Native Rails emails via ActiveMailer. Config changed here will update the Rails Configuration as well",
         allowed: Configuration::Email::Config,
         default: Configuration::Email::Config.new
+
+      add_composer :email_theme,
+        desc: "Semantic email theme tokens shared by Messaging and (later) auth mail templates",
+        allowed: Configuration::EmailTheme::Config,
+        default: Configuration::EmailTheme::Config.new
 
       add_composer :credentials,
         desc: "Deployment provider credentials (typed per provider under config.credentials.<provider>). Consumed by Credential Resolution. Not provider behavior configuration.",

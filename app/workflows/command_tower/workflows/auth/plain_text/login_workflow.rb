@@ -5,6 +5,8 @@ module CommandTower
     module Auth
       module PlainText
         class LoginWorkflow < CommandTower::Workflows::ApplicationWorkflow
+          include CommandTower::Workflows::ClientCompatibility::RecommendationMeta
+
           retry_strategy :none
 
           def call(input:, request_context: nil)
@@ -24,6 +26,7 @@ module CommandTower
                   token_expires_at: data[:expires_at]
                 ),
                 http_status: :created,
+                meta: client_compatibility_meta,
                 response_effects: {
                   set_token: { token: data[:token], expires_at: data[:expires_at] },
                   ensure_csrf_cookie: { rotate: csrf_rotate_on_login? }
