@@ -310,6 +310,7 @@ DEPENDENCIES
   database_cleaner-active_record
   factory_bot
   faker
+  json (< 3)
   mysql2
   null-logger
   puma
