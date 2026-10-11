@@ -2,7 +2,7 @@
 
 How hosts customize and integrate with CommandTower **without forking platform internals**.
 
-**New host?** Start with [Host integration](host_integration_guide.md).
+**New host?** Start with [Bootstrap a new host](bootstrap/README.md).
 
 Layer map: [architecture.md](architecture.md). Install/configure/migrate/doctor: [initializing.md](initializing.md). Testing API: [testing.md](testing.md). HTTP catalog: [api_reference.md](api_reference.md).
 
@@ -42,11 +42,11 @@ Full install narrative: [initializing.md](initializing.md).
 
 | Surface | Notes |
 |---------|--------|
-| `bin/rails command_tower:install` | Migrations + optional configure |
+| `command_tower:install` (`make rails ARGS='command_tower:install'`) | Task name inside the container; migrations + optional configure |
 | `SKIP_CONFIGURE=1` | Migrations only |
 | `SKIP_MOUNT=1` | Initializer without mount |
 | `FORCE=1` | Overwrite initializer |
-| `rails g command_tower:configure` | `--skip-routes`, `--force` |
+| `command_tower:configure` (`make rails ARGS='generate command_tower:configure'`) | `--skip-routes`, `--force` |
 
 ## Mounting and configuration
 

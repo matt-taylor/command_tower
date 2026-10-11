@@ -18,6 +18,22 @@ module CommandTower
         ))
       end
 
+      def conversation
+        deserialized = CommandTower::Deserializers::Messaging::Inbox::ConversationDeserializer.call(params)
+        return render_deserializer_errors unless deserialized.success?
+
+        input = deserialized.input
+        render_application_result(CommandTower::Workflows::Messaging::Inbox::ConversationWorkflow.call(
+          user: current_user,
+          key: input.key,
+          scope: input.scope,
+          around: input.around,
+          before_id: input.before_id,
+          after_id: input.after_id,
+          limit: input.limit,
+        ))
+      end
+
       def show
         run_item_workflow(CommandTower::Workflows::Messaging::Inbox::ShowWorkflow)
       end

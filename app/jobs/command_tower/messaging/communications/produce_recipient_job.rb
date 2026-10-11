@@ -16,6 +16,8 @@ module CommandTower
             body: attrs.fetch("body"),
             platform_enabled_channels: Array(attrs["platform_enabled_channels"]),
             metadata: attrs["metadata"],
+            conversation_key: attrs["conversation_key"],
+            conversation_title: attrs["conversation_title"],
           )
         end
       end

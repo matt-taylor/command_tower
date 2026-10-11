@@ -105,6 +105,35 @@ RSpec.describe CommandTower::Services::Messaging::Communications::ProduceMany, :
     end
   end
 
+  context "when async produce includes a conversation pair" do
+    subject(:result) do
+      call_service.call(execution_mode: :async, conversation_key: "week-5", conversation_title: "Week 5")
+    end
+
+    it "enqueues the pair on each recipient job" do
+      expect(result).to be_success
+      expect(CommandTower::Messaging::Communications::ProduceRecipientJob).to have_been_enqueued.with(
+        users.first.id,
+        hash_including("conversation_key" => "week-5", "conversation_title" => "Week 5"),
+      )
+    end
+  end
+
+  context "when sync produce includes a conversation pair" do
+    subject(:result) { call_service.call(conversation_key: "week-5", conversation_title: "Week 5") }
+
+    let(:stored_keys) do
+      users.map do |user|
+        CommandTower::Messaging::Communication.find_by!(user_id: user.id).conversation_key
+      end
+    end
+
+    it "stores the pair on each communication" do
+      expect(result).to be_success
+      expect(stored_keys).to eq(%w[week-5 week-5])
+    end
+  end
+
   context "when one Produce call fails" do
     before do
       allow(CommandTower::Services::Messaging::Communications::Produce).to receive(:call).and_wrap_original do |method, **kwargs|

@@ -2,7 +2,7 @@
 
 CommandTower owns modern messaging **platform** surfaces. Hosts supply product content, channel policy, and adapter credentials.
 
-Complete install and host RBAC first: [Host integration](host_integration_guide.md) (Steps 1–8 before emitting or wiring phone/Pushover).
+Complete install and host RBAC first: [Bootstrap a new host](bootstrap/README.md) (through [`12-smoke-check.md`](bootstrap/12-smoke-check.md) before emitting or wiring phone/Pushover).
 
 ## Current surfaces
 

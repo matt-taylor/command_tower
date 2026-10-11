@@ -19,7 +19,9 @@ module CommandTower
           metadata: nil,
           preference_state: nil,
           platform_enabled_channels:,
-          message_overrides: nil
+          message_overrides: nil,
+          conversation_key: nil,
+          conversation_title: nil
         )
           @recipient_id = recipient_id
           @notification_type_key = notification_type_key
@@ -30,6 +32,8 @@ module CommandTower
           @preference_state = preference_state
           @platform_enabled_channels = platform_enabled_channels
           @message_overrides = message_overrides
+          @conversation_key = conversation_key
+          @conversation_title = conversation_title
         end
 
         def call
@@ -43,6 +47,8 @@ module CommandTower
             preference_state: @preference_state,
             platform_enabled_channels: @platform_enabled_channels,
             message_overrides: @message_overrides,
+            conversation_key: @conversation_key,
+            conversation_title: @conversation_title,
           }
 
           OperationLogger.around(request:) do
@@ -141,7 +147,16 @@ module CommandTower
         rescue ActiveRecord::RecordNotUnique => error
           resolve_record_not_unique!(error, fingerprint)
         rescue ActiveRecord::RecordInvalid => e
+          if conversation_pair_invalid?(e)
+            raise ValidationError, e.record.errors.full_messages.join("; ")
+          end
+
           raise PersistenceError, e.message
+        end
+
+        def conversation_pair_invalid?(error)
+          names = error.record.errors.attribute_names.map(&:to_sym)
+          names.any? && (names - %i[conversation_key conversation_title]).empty?
         end
 
         def resolve_record_not_unique!(error, fingerprint)

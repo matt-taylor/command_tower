@@ -28,7 +28,10 @@ module CommandTower
               title: @request.fetch(:title),
               body: @request.fetch(:body),
               metadata: freeze_metadata(@request[:metadata]),
+              conversation_key: @request[:conversation_key],
+              conversation_title: @request[:conversation_title],
             )
+            assign_presentation_snapshot!(communication)
 
             Messaging::DestinationPlan.create!(
               communication:,
@@ -55,6 +58,16 @@ module CommandTower
         end
 
         private
+
+        def assign_presentation_snapshot!(communication)
+          snapshot = CommandTower::Messaging::Rendering::InboxPresentationSnapshot.capture(
+            communication:,
+            recipient_id: communication.user_id,
+          )
+          return if snapshot.nil?
+
+          communication.update!(inbox_presentation_snapshot: snapshot)
+        end
 
         def freeze_metadata(metadata)
           return nil if metadata.nil?

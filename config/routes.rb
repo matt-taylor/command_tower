@@ -64,6 +64,7 @@ CommandTower::Engine.routes.draw do
 
     resources :inbox, only: [:index, :show, :destroy], controller: "inbox" do
       collection do
+        get :conversation
         get :unread_count, path: "unread-count"
         post "bulk/read", action: :bulk_read
         post "bulk/unread", action: :bulk_unread

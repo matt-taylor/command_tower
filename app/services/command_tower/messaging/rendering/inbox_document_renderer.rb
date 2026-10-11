@@ -36,6 +36,12 @@ module CommandTower
       # fail open and then let a second node still execute composer domain
       # I/O.
       #
+      # A stored `inbox_presentation_snapshot` replaces that live resolution.
+      # Null means there is no retained presentation (legacy rows, or a
+      # document with no presentation node) and the live composer still runs.
+      # An omitted snapshot drops the presentation node and does not call
+      # the composer. A stored payload is rendered as-is.
+      #
       # The composer's raw result is always projected down to the
       # registration's declared `output_keys` before it reaches
       # `content.blocks[].data` (corrective slice — presentation
@@ -50,6 +56,10 @@ module CommandTower
           new(communication:, recipient_id:).render
         end
 
+        def self.compose_shell(communication)
+          new(communication:, recipient_id: nil).compose_shell
+        end
+
         def initialize(communication:, recipient_id:)
           @communication = communication
           @recipient_id = recipient_id
@@ -57,9 +67,16 @@ module CommandTower
         end
 
         def render
-          document = build_from_type_composer || build_generic
+          document = compose_shell
+          snapshot = stored_presentation_snapshot
+          return resolve_presentation_blocks(document) if snapshot.nil?
+          return drop_presentation_blocks(document) if InboxPresentationSnapshot.omitted?(snapshot)
 
-          resolve_presentation_blocks(document)
+          apply_stored_presentation(document, snapshot)
+        end
+
+        def compose_shell
+          build_from_type_composer || build_generic
         end
 
         private
@@ -107,42 +124,42 @@ module CommandTower
           return nil if @presentation_attempted
 
           @presentation_attempted = true
-          key = block[:key]
-          variant = block[:variant]
+          InboxPresentationResolver.resolve(communication:, recipient_id:, block:)
+        end
 
-          definition = CommandTower.config.registry.inbox_presentations.fetch(key)
-          composer_result = definition.composer_class.constantize.call(communication:, recipient_id:)
+        def stored_presentation_snapshot
+          raw = communication.inbox_presentation_snapshot
+          return nil if raw.blank?
+          return nil unless raw.respond_to?(:stringify_keys)
 
-          # Duck-typed: a registered composer may be a plain class returning a
-          # Hash directly, or a `CommandTower::Services::ApplicationService`
-          # (whose `.call` always returns a `ServiceResult`) — either way the
-          # unwrapped result below is a plain Hash (Rich Messaging Presentation
-          # Authority's composer contract).
-          if composer_result.respond_to?(:success?)
-            return nil unless composer_result.success?
+          raw.stringify_keys
+        end
 
-            raw_data = composer_result.data
-          else
-            raw_data = composer_result
+        def drop_presentation_blocks(document)
+          InboxDocument.build(blocks: document.blocks.reject { |block| block[:type] == "presentation" })
+        end
+
+        def apply_stored_presentation(document, snapshot)
+          applied = false
+          blocks = document.blocks.filter_map do |block|
+            next block unless block[:type] == "presentation"
+            next nil if applied
+
+            applied = true
+            stored_presentation_block(snapshot)
           end
 
-          # Explicit output projection (corrective slice — presentation
-          # ServiceResult/context leak fix): only the keys the presentation's
-          # own registration declares in `output_keys` ever reach
-          # `content.blocks[].data`. This is a declared allow-list owned by
-          # the registration, not an inference from `ApplicationService`
-          # argument metadata — composer inputs (e.g. `communication`,
-          # `recipient_id` on an `ApplicationService`-shaped composer),
-          # incidental intermediate context/result keys, and anything else
-          # are dropped unconditionally here, independent of composer shape.
-          { type: "presentation", key:, variant:, data: raw_data.to_h.slice(*definition.output_keys) }.freeze
-        rescue StandardError
-          # Fail-open: unregistered capability, unresolvable composer class,
-          # or a raising/failing composer must never surface as a 500 on the
-          # Inbox read path, and must never allow a subsequent presentation
-          # block in the same document to still attempt composition (the
-          # budget above is consumed regardless of this outcome).
-          nil
+          InboxDocument.build(blocks:)
+        end
+
+        def stored_presentation_block(snapshot)
+          data = snapshot["data"].respond_to?(:to_h) ? snapshot["data"].to_h.deep_symbolize_keys : {}
+          {
+            type: "presentation",
+            key: snapshot["key"].to_s,
+            variant: snapshot["variant"],
+            data:,
+          }.freeze
         end
 
         def paragraph_block(text)

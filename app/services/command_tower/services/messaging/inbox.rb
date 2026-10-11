@@ -34,7 +34,7 @@ module CommandTower
           def call
             with_recipient do |recipient_id|
               result = CommandTower::Messaging::Inbox.list(recipient_id:, limit:, offset:, scope:)
-              context.items = result.items.map { |item| Inbox.item(item) }
+              context.items = result.items.map { |entry| Inbox.entry(entry) }
               context.pagination = { limit: result.limit, offset: result.offset, total_count: result.total_count }
             end
           end
@@ -80,6 +80,37 @@ module CommandTower
           end
         end
 
+        class Conversation < CommandTower::Services::ApplicationService
+          include FailureMapping
+          validate :user, is_a: User, required: true
+          validate :key, is_a: String, required: true
+          validate :scope, is_a: String, required: false, default: "inbox"
+          validate :around, is_a: [String, Integer], required: false
+          validate :before_id, is_a: Integer, required: false
+          validate :after_id, is_a: Integer, required: false
+          validate :limit, is_a: Integer, required: false
+
+          def call
+            with_recipient do |recipient_id|
+              found = CommandTower::Messaging::Inbox.conversation(
+                recipient_id:, key:, scope:, around:, before_id:, after_id:, limit:,
+              )
+              messages = found.message_ids.map do |inbox_item_id|
+                Inbox.detail(recipient_id:, inbox_item_id:)
+              end
+              context.conversation = {
+                scope: found.scope,
+                subject: found.subject,
+                message_count: found.message_count,
+                unread_count: found.unread_count,
+                inbox_item_ids: found.inbox_item_ids,
+                messages:,
+                window: found.window,
+              }
+            end
+          end
+        end
+
         class UnreadCount < CommandTower::Services::ApplicationService
           include FailureMapping
           validate :user, is_a: User, required: true
@@ -113,6 +144,21 @@ module CommandTower
         class << self
           def item(item)
             { id: item.id, title: item.title, status: item.status, viewed_at: item.viewed_at, created_at: item.created_at, updated_at: item.updated_at }
+          end
+
+          def entry(entry)
+            {
+              kind: entry.kind,
+              id: entry.id,
+              title: entry.title,
+              preview: entry.preview,
+              activity_at: entry.activity_at,
+              created_at: entry.created_at,
+              message_count: entry.message_count,
+              unread_count: entry.unread_count,
+              read: entry.read,
+              inbox_item_ids: entry.inbox_item_ids,
+            }
           end
 
           def detail(recipient_id:, inbox_item_id:)

@@ -2,7 +2,7 @@
 
 Authorization establishes **permission** after authentication. Failed authorization returns `403`.
 
-Host `rbac_groups.yml` is a **required integration step** (Step 4) — see [Host integration](host_integration_guide.md#step-4--host-rbac-required). CommandTower ships CT-owned entity definitions. Hosts grant those names to product roles; they must not copy CT controller mappings. Without a host role that grants Me/Auth entities, authenticated calls return **403**.
+Host `rbac_groups.yml` is a **required integration step** — see [Bootstrap — RBAC](bootstrap/09-rbac.md). CommandTower ships CT-owned entity definitions. Hosts grant those names to product roles; they must not copy CT controller mappings. Without a host role that grants Me/Auth entities, authenticated calls return **403**.
 
 ## Quick usage (host provisional)
 

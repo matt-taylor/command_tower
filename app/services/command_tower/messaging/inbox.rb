@@ -13,6 +13,10 @@ module CommandTower
         Reader.show(recipient_id:, inbox_item_id:)
       end
 
+      def conversation(recipient_id:, key:, scope: Reader::SCOPE_INBOX, around: nil, before_id: nil, after_id: nil, limit: nil)
+        Reader.conversation(recipient_id:, key:, scope:, around:, before_id:, after_id:, limit:)
+      end
+
       def unread_count(recipient_id:)
         Reader.unread_count(recipient_id:)
       end

@@ -336,6 +336,180 @@ RSpec.describe CommandTower::Messaging::Accept::Coordinator, :messaging_accept d
     end
   end
 
+  describe "conversation identity" do
+    context "when a replay supplies a different pair" do
+      let!(:first) { accept.call(conversation_key: "week-5", conversation_title: "Week 5") }
+
+      subject(:replay) { accept.call(conversation_key: "week-6", conversation_title: "Week 6") }
+
+      let(:communication) { CommandTower::Messaging::Communication.find(first.communication_id) }
+
+      it "keeps the original pair" do
+        expect(replay.idempotent_replay).to be(true)
+        expect(replay.communication_id).to eq(first.communication_id)
+        expect(communication.reload.conversation_key).to eq("week-5")
+        expect(communication.conversation_title).to eq("Week 5")
+      end
+    end
+
+    context "when two accepts share a key" do
+      before do
+        accept.call(host_event_identity: "event-a", conversation_key: "week-5", conversation_title: "Week 5")
+        accept.call(host_event_identity: "event-b", conversation_key: "week-5", conversation_title: "Week 5")
+        accept.call(host_event_identity: "event-c")
+      end
+
+      let(:stored_pairs) do
+        CommandTower::Messaging::Communication.where(user_id: user.id).order(:host_event_identity).map do |row|
+          [row.host_event_identity, row.conversation_key]
+        end
+      end
+
+      it "lets two messages share a key and leaves a third null" do
+        expect(stored_pairs).to eq([
+          ["event-a", "week-5"],
+          ["event-b", "week-5"],
+          ["event-c", nil],
+        ])
+      end
+    end
+  end
+
+  describe "presentation snapshot" do
+    let(:doubles) { "CommandTower::Messaging::Rendering::InboxDocumentRendererSpecDoubles" }
+    let(:presentation_composer) do
+      CommandTower::Messaging::Rendering::InboxDocumentRendererSpecDoubles::PresentationComposerDouble
+    end
+
+    context "when the type document has no presentation node" do
+      subject(:result) { accept.call }
+
+      let(:communication) { CommandTower::Messaging::Communication.find(result.communication_id) }
+
+      it "leaves the snapshot null" do
+        expect(communication.inbox_presentation_snapshot).to be_nil
+      end
+    end
+
+    context "when the type document has a presentation node" do
+      before do
+        register_and_seal_notification_types(
+          build_notification_type_declaration(
+            key: notification_type_key,
+            allowed_channels: %w[email sms],
+            default_channels: %w[email],
+            inbox_available: true,
+            user_configurable: true,
+            mandatory: false,
+            default_preference_state: {
+              "channels" => { "email" => true, "sms" => true },
+              "inbox" => true,
+            },
+            inbox_document_composer: "#{doubles}::TypeComposerWithPresentation",
+          ),
+        )
+        CommandTower.config.registry.inbox_presentations.presentation("rich_messaging_proof.make_picks") do |presentation|
+          presentation.composer_class = "#{doubles}::PresentationComposerDouble"
+          presentation.output_keys = [:example]
+        end
+        allow(presentation_composer).to receive(:call).and_call_original
+      end
+
+      subject(:result) { accept.call }
+
+      let(:communication) { CommandTower::Messaging::Communication.find(result.communication_id) }
+
+      it "stores the projected snapshot and one delivery set" do
+        expect(result.idempotent_replay).to be(false)
+        expect(CommandTower::Messaging::Communication.count).to eq(1)
+        expect(CommandTower::Messaging::InboxItem.count).to eq(1)
+        expect(CommandTower::Messaging::ChannelDelivery.count).to eq(1)
+        expect(communication.inbox_presentation_snapshot).to include(
+          "v" => 1,
+          "key" => "rich_messaging_proof.make_picks",
+          "variant" => "compact",
+          "data" => { "example" => "data" },
+        )
+        expect(presentation_composer).to have_received(:call).with(
+          communication: an_object_having_attributes(id: communication.id),
+          recipient_id: user.id,
+        )
+      end
+    end
+
+    context "when presentation capture fails" do
+      before do
+        register_and_seal_notification_types(
+          build_notification_type_declaration(
+            key: notification_type_key,
+            allowed_channels: %w[email sms],
+            default_channels: %w[email],
+            inbox_available: true,
+            user_configurable: true,
+            mandatory: false,
+            default_preference_state: {
+              "channels" => { "email" => true, "sms" => true },
+              "inbox" => true,
+            },
+            inbox_document_composer: "#{doubles}::TypeComposerWithPresentation",
+          ),
+        )
+        CommandTower.config.registry.inbox_presentations.presentation("rich_messaging_proof.make_picks") do |presentation|
+          presentation.composer_class = "#{doubles}::RaisingPresentationComposerDouble"
+          presentation.output_keys = [:example]
+        end
+      end
+
+      subject(:result) { accept.call }
+
+      let(:communication) { CommandTower::Messaging::Communication.find(result.communication_id) }
+
+      it "commits one message and stores omitted rather than null" do
+        expect(result.idempotent_replay).to be(false)
+        expect(CommandTower::Messaging::Communication.count).to eq(1)
+        expect(CommandTower::Messaging::InboxItem.count).to eq(1)
+        expect(CommandTower::Messaging::ChannelDelivery.count).to eq(1)
+        expect(communication.inbox_presentation_snapshot).to eq("v" => 1, "omitted" => true)
+      end
+    end
+
+    context "when the same presentation request is replayed" do
+      before do
+        register_and_seal_notification_types(
+          build_notification_type_declaration(
+            key: notification_type_key,
+            allowed_channels: %w[email sms],
+            default_channels: %w[email],
+            inbox_available: true,
+            user_configurable: true,
+            mandatory: false,
+            default_preference_state: {
+              "channels" => { "email" => true, "sms" => true },
+              "inbox" => true,
+            },
+            inbox_document_composer: "#{doubles}::TypeComposerWithPresentation",
+          ),
+        )
+        CommandTower.config.registry.inbox_presentations.presentation("rich_messaging_proof.make_picks") do |presentation|
+          presentation.composer_class = "#{doubles}::PresentationComposerDouble"
+          presentation.output_keys = [:example]
+        end
+        allow(presentation_composer).to receive(:call).and_call_original
+      end
+
+      let!(:first) { accept.call }
+      let!(:second) { accept.call }
+
+      it "does not capture or deliver again" do
+        expect(second.idempotent_replay).to be(true)
+        expect(second.communication_id).to eq(first.communication_id)
+        expect(CommandTower::Messaging::Communication.count).to eq(1)
+        expect(CommandTower::Messaging::ChannelDelivery.count).to eq(1)
+        expect(presentation_composer).to have_received(:call).once
+      end
+    end
+  end
+
   describe "handoff initialization" do
     subject(:result) { accept.call }
 
