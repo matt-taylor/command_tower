@@ -21,7 +21,7 @@ RSpec.describe CommandTower::Messaging::Inbox, :messaging_inbox do
         expect(result).not_to be_a(ActiveRecord::Base)
         expect(result.items.map(&:id)).to eq([visible.id])
         expect(result.total_count).to eq(1)
-        expect(result.items).to all(be_a(CommandTower::Messaging::Inbox::ItemResult))
+        expect(result.items).to all(be_a(CommandTower::Messaging::Inbox::EntryResult))
         expect(result.items.first).not_to be_a(ActiveRecord::Base)
       end
     end

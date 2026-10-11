@@ -18,6 +18,8 @@ module CommandTower
           validate :body, is_a: String, required: true
           validate :platform_enabled_channels, is_a: Array, required: true
           validate :metadata, is_a: Hash, required: false
+          validate :conversation_key, is_a: String, required: false
+          validate :conversation_title, is_a: String, required: false
           validate :execution_mode, is_one: EXECUTION_MODES, required: false, default: :async
 
           def call
@@ -128,6 +130,8 @@ module CommandTower
               body:,
               metadata:,
               platform_enabled_channels:,
+              conversation_key:,
+              conversation_title:,
             )
           end
 
@@ -139,6 +143,8 @@ module CommandTower
               "body" => body,
               "platform_enabled_channels" => platform_enabled_channels,
               "metadata" => metadata,
+              "conversation_key" => conversation_key,
+              "conversation_title" => conversation_title,
             }
           end
 

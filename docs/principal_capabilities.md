@@ -86,4 +86,4 @@ Me/Auth route gates (`session`, `me`, …) and unimplemented Admin entities are 
 - [API reference](api_reference.md#get-authprincipal-capabilities)
 - [Authorization](authorization.md)
 - [Admin Workspace](admin_workspace.md) — tool manifest only; not a UI permission probe
-- [Host integration](host_integration_guide.md)
+- [Bootstrap a new host](bootstrap/README.md)

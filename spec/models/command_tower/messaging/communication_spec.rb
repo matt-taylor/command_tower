@@ -20,6 +20,48 @@ RSpec.describe CommandTower::Messaging::Communication, type: :model do
   let(:body) { "Your booking was confirmed." }
   let(:metadata) { { "deep_link" => "/bookings/1" } }
 
+  describe "conversation identity" do
+    context "when both values are set" do
+      let(:params) { super().merge(conversation_key: "week-5", conversation_title: "Week 5") }
+
+      it "stores the pair" do
+        expect(communication.conversation_key).to eq("week-5")
+        expect(communication.conversation_title).to eq("Week 5")
+      end
+    end
+
+    context "when only a key is set" do
+      subject(:record) { described_class.new(**params) }
+
+      let(:params) { super().merge(conversation_key: "week-5") }
+
+      it "is invalid" do
+        expect(record).not_to be_valid
+        expect(record.errors[:conversation_title]).to be_present
+      end
+    end
+
+    context "when the key is outside the charset" do
+      subject(:record) { described_class.new(**params) }
+
+      let(:params) { super().merge(conversation_key: "week 5", conversation_title: "Week 5") }
+
+      it "is invalid" do
+        expect(record).not_to be_valid
+        expect(record.errors[:conversation_key]).to be_present
+      end
+    end
+
+    context "when both values are blank" do
+      let(:params) { super().merge(conversation_key: "  ", conversation_title: "") }
+
+      it "normalizes both to null" do
+        expect(communication.conversation_key).to be_nil
+        expect(communication.conversation_title).to be_nil
+      end
+    end
+  end
+
   describe "persistence" do
     it "creates a communication for a recipient" do
       expect(communication).to be_persisted

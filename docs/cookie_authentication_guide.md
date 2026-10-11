@@ -37,6 +37,17 @@ end
 | CSRF `same_site` / `secure` / `path` / `domain` | `nil` (inherit JWT cookie) |
 | CSRF `ttl` | `7.days` |
 
+### Two web apps on one hostname
+
+The browser keys `ct_jwt` and `ct_csrf` by hostname. The port is not part of that key. Two Command Tower web apps on `localhost` overwrite each other’s session. Logout expires both cookies, so a shared CSRF name still logs the other app out on its next POST.
+
+A second product sets both names. The frontend `session.csrfCookieName` matches `csrf.cookie_name`. Leave `header_name` as `X-CSRF-Token`. A host that runs alone keeps `ct_jwt` and `ct_csrf`.
+
+```ruby
+config.jwt.cookie.name = "other_jwt"
+config.jwt.cookie.csrf.cookie_name = "other_csrf"
+```
+
 ## Token extraction order
 
 1. `Authorization: Bearer <token>` header (wins when present)

@@ -240,6 +240,53 @@ RSpec.describe CommandTower::Services::Messaging::Communications::Produce, :mess
                        CommandTower::Errors::InternalError
     end
 
+    context "when no conversation pair is passed" do
+      subject(:result) { described_class.call(**call_kwargs) }
+
+      let(:communication) { CommandTower::Messaging::Communication.find(result.data[:communication_id]) }
+
+      it "leaves the columns null" do
+        expect(communication.conversation_key).to be_nil
+        expect(communication.conversation_title).to be_nil
+      end
+    end
+
+    context "when a conversation pair is passed" do
+      subject(:result) do
+        described_class.call(**call_kwargs, conversation_key: "week-5", conversation_title: "Week 5")
+      end
+
+      let(:communication) { CommandTower::Messaging::Communication.find(result.data[:communication_id]) }
+
+      it "stores the pair" do
+        expect(result).to be_success
+        expect(communication.conversation_key).to eq("week-5")
+        expect(communication.conversation_title).to eq("Week 5")
+      end
+    end
+
+    context "when only a conversation key is passed" do
+      subject(:result) { described_class.call(**call_kwargs, conversation_key: "week-5") }
+
+      it "fails validation and persists nothing" do
+        expect(result).to be_failure
+        expect(result.errors.first).to be_a(CommandTower::Errors::ValidationError)
+        expect(CommandTower::Messaging::Communication.count).to eq(0)
+      end
+    end
+
+    context "when the key is only in metadata" do
+      subject(:result) { described_class.call(**call_kwargs) }
+
+      let(:metadata) { { "conversation_key" => "week-5" } }
+      let(:communication) { CommandTower::Messaging::Communication.find(result.data[:communication_id]) }
+
+      it "does not copy the key onto the columns" do
+        expect(communication.conversation_key).to be_nil
+        expect(communication.conversation_title).to be_nil
+      end
+    end
+
     context "when metadata and title/body are supplied" do
       subject(:result) { described_class.call(**call_kwargs) }
 

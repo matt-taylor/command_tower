@@ -42,6 +42,34 @@ RSpec.describe CommandTower::Workflows::Messaging::Communications::ProduceRecipi
     end
   end
 
+  context "when a conversation pair is passed" do
+    subject(:result) do
+      described_class.call_from_job(
+        user_id: user.id,
+        notification_type_key:,
+        campaign_identity:,
+        title: "Hi",
+        body: "Body",
+        platform_enabled_channels: [],
+        conversation_key: "week-5",
+        conversation_title: "Week 5",
+      )
+    end
+
+    let(:communication) do
+      CommandTower::Messaging::Communication.find_by!(
+        user_id: user.id,
+        host_event_identity: "#{campaign_identity}/#{user.id}",
+      )
+    end
+
+    it "stores the pair from the job attrs" do
+      expect(result).to be_success
+      expect(communication.conversation_key).to eq("week-5")
+      expect(communication.conversation_title).to eq("Week 5")
+    end
+  end
+
   context "when the user is missing" do
     subject(:result) do
       described_class.call_from_job(

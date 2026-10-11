@@ -33,6 +33,7 @@ entities:
     only:
       - index
       - show
+      - conversation
       - open
       - archive
       - destroy

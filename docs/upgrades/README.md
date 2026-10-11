@@ -4,6 +4,7 @@ Host-facing upgrade / change summaries for CommandTower releases.
 
 | Version | Summary |
 |---------|---------|
+| [0.18.0](0.18.0.md) | Inbox conversations: optional Produce identity, grouped list entries, `GET /me/inbox/conversation` window of at most 5, accept-time presentation snapshot |
 | [0.17.0](0.17.0.md) | Client-version-compatibility gating (`observe`/`enforce`); Rich Messaging Inbox `content` documents; host-overridable rendering templates; shared email theming |
 | [0.16.0](0.16.0.md) | Me experience-states (`GET`/`POST complete`); `host_key`; `user_experience_states` migration; `me_experience_states` RBAC |
 | [0.15.0](0.15.0.md) | Me `POST /me/push/test` → Produce (`push_delivery_test`); configurable Expo self-test rate limit composers; `me_push#test` |
@@ -15,4 +16,4 @@ Host-facing upgrade / change summaries for CommandTower releases.
 | [0.11.0](0.11.0.md) | Execution context, audit ledger, Admin Workspace, principal capabilities, impersonation, Admin Users |
 | [0.10.0](0.10.0.md) | Modern Auth/Me/Messaging platform; SchemaHelper removal; host RBAC required |
 
-New hosts should start with [Host integration](../host_integration_guide.md).
+New hosts should start with [Bootstrap a new host](../bootstrap/README.md).

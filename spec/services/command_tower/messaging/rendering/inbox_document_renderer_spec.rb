@@ -360,6 +360,74 @@ RSpec.describe CommandTower::Messaging::Rendering::InboxDocumentRenderer do
         end
       end
 
+      context "when a snapshot payload is stored" do
+        let(:communication) do
+          build(
+            :messaging_communication,
+            notification_type_key: "rich_messaging_with_presentation",
+            body: "Unused",
+            metadata: nil,
+            inbox_presentation_snapshot: {
+              "v" => 1,
+              "key" => "rich_messaging_proof.make_picks",
+              "variant" => "compact",
+              "data" => { "example" => "stored" },
+            },
+          )
+        end
+
+        before do
+          CommandTower.config.registry.inbox_presentations.presentation("rich_messaging_proof.make_picks") do |presentation|
+            presentation.composer_class =
+              "CommandTower::Messaging::Rendering::InboxDocumentRendererSpecDoubles::PresentationComposerDouble"
+            presentation.output_keys = [:example]
+          end
+          allow(CommandTower::Messaging::Rendering::InboxDocumentRendererSpecDoubles::PresentationComposerDouble)
+            .to receive(:call).and_call_original
+        end
+
+        it "renders the stored data and does not call the composer" do
+          expect(document.blocks).to include(
+            {
+              type: "presentation",
+              key: "rich_messaging_proof.make_picks",
+              variant: "compact",
+              data: { example: "stored" },
+            },
+          )
+          expect(CommandTower::Messaging::Rendering::InboxDocumentRendererSpecDoubles::PresentationComposerDouble)
+            .not_to have_received(:call)
+        end
+      end
+
+      context "when the stored snapshot is omitted" do
+        let(:communication) do
+          build(
+            :messaging_communication,
+            notification_type_key: "rich_messaging_with_presentation",
+            body: "Unused",
+            metadata: nil,
+            inbox_presentation_snapshot: { "v" => 1, "omitted" => true },
+          )
+        end
+
+        before do
+          CommandTower.config.registry.inbox_presentations.presentation("rich_messaging_proof.make_picks") do |presentation|
+            presentation.composer_class =
+              "CommandTower::Messaging::Rendering::InboxDocumentRendererSpecDoubles::PresentationComposerDouble"
+            presentation.output_keys = [:example]
+          end
+          allow(CommandTower::Messaging::Rendering::InboxDocumentRendererSpecDoubles::PresentationComposerDouble)
+            .to receive(:call).and_call_original
+        end
+
+        it "drops the presentation block and does not call the composer" do
+          expect(document.blocks.map { |block| block[:type] }).to eq(["paragraph"])
+          expect(CommandTower::Messaging::Rendering::InboxDocumentRendererSpecDoubles::PresentationComposerDouble)
+            .not_to have_received(:call)
+        end
+      end
+
       context "when the registered composer returns extra keys beyond its declared output" do
         before do
           CommandTower.config.registry.inbox_presentations.presentation("rich_messaging_proof.make_picks") do |presentation|

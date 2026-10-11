@@ -8,21 +8,21 @@ The engine is opinionated and configurable. Architecture follows a stable layer 
 
 ## Quick start
 
+**New Rails host?** Start with [Bootstrap a new host](docs/bootstrap/README.md) (Docker + Make only; local bring-up, not deployment).
+
 ```ruby
 # Gemfile
 gem "command_tower"
 ```
 
 ```bash
-bundle install
-bin/rails command_tower:install
-bin/rails db:migrate
-bin/rails command_tower:doctor
+make bundle
+make rails ARGS='command_tower:install'
+make migrate
+make doctor
 ```
 
-Full install, upgrade, configuration, and troubleshooting: [Initializing CommandTower](docs/initializing.md).
-
-After install, complete RBAC, feature gates, and a Me smoke check: [Host integration guide](docs/host_integration_guide.md) (**start here for a new Rails host**).
+Those `make` targets run inside Compose. Do not run `bundle` or `bin/rails` on the Mac. Full install contract: [Initializing CommandTower](docs/initializing.md).
 
 ## Architecture
 
@@ -40,7 +40,7 @@ See [Architecture](docs/architecture.md) and [ServiceBase](app/services/command_
 
 | Guide | Purpose |
 |-------|---------|
-| [Host integration](docs/host_integration_guide.md) | **Start here** — step-by-step new Rails host path |
+| [Bootstrap a new host](docs/bootstrap/README.md) | **Start here** — ordered Docker/Make new-host path |
 | [Upgrades](docs/upgrades/README.md) | Release upgrade summaries (see [0.11.0](docs/upgrades/0.11.0.md)) |
 | [Initializing](docs/initializing.md) | Install, configure, migrate, doctor, upgrades |
 | [Testing](docs/testing.md) | Shared FactoryBot / `CommandTower::Testing` |

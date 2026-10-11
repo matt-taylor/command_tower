@@ -30,10 +30,23 @@ module CommandTower
                dependent: :destroy,
                inverse_of: :communication
 
+      # Text column. The snapshot column uses the JSON attribute caster below
+      # instead of this coder. A second serialize pass would store a JSON
+      # string inside a JSON document on MySQL.
       serialize :metadata, coder: JSON, type: Hash
+
+      # MariaDB reports JSON columns as LONGTEXT. The text caster would write
+      # a Ruby hash string and fail `json_valid`. Forcing the JSON caster
+      # writes one JSON document on MySQL and on MariaDB.
+      attribute :inbox_presentation_snapshot, :json
+
+      CONVERSATION_KEY_FORMAT = /\A[A-Za-z0-9][A-Za-z0-9._:-]{0,127}\z/
 
       validates :notification_type_key, :title, :body, presence: true
       validates :execution_handoff_status, presence: true
+      validate :conversation_identity_is_a_pair
+
+      before_validation :normalize_conversation_identity
 
       scope :needing_handoff_recovery, lambda { |grace_before:|
         where(status: STATUS_ACCEPTED, execution_handoff_status: HANDOFF_RECOVERABLE_STATUSES)
@@ -54,6 +67,24 @@ module CommandTower
 
       def handoff_recoverable?
         HANDOFF_RECOVERABLE_STATUSES.include?(execution_handoff_status)
+      end
+
+      private
+
+      def normalize_conversation_identity
+        self.conversation_key = nil if conversation_key.blank?
+        self.conversation_title = nil if conversation_title.blank?
+      end
+
+      def conversation_identity_is_a_pair
+        if conversation_key.present? ^ conversation_title.present?
+          errors.add(:conversation_key, "must be provided with a title")
+          errors.add(:conversation_title, "must be provided with a key")
+        end
+        return if conversation_key.blank?
+        return if conversation_key.match?(CONVERSATION_KEY_FORMAT)
+
+        errors.add(:conversation_key, "is invalid")
       end
     end
   end

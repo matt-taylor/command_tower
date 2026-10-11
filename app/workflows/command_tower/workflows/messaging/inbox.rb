@@ -26,9 +26,23 @@ module CommandTower
             result = CommandTower::Services::Messaging::Inbox::List.call(user:, limit:, offset:, scope:)
             return result_or_failure(result) unless result.success?
 
-            payload = result.data[:items].map { |item| CommandTower::Serializers::Messaging::Inbox::ItemSerializer.serialize(item) }
+            payload = result.data[:items].map { |item| CommandTower::Serializers::Messaging::Inbox::EntrySerializer.serialize(item) }
             meta = CommandTower::Serializers::Messaging::Inbox::PaginationMetaSerializer.serialize(result.data[:pagination])
             success(payload:, meta:, http_status: :ok)
+          end
+        end
+
+        class ConversationWorkflow < BaseWorkflow
+          def call(user:, key:, scope:, around: nil, before_id: nil, after_id: nil, limit: nil)
+            result = CommandTower::Services::Messaging::Inbox::Conversation.call(
+              user:, key:, scope:, around:, before_id:, after_id:, limit:,
+            )
+            return result_or_failure(result) unless result.success?
+
+            success(
+              payload: CommandTower::Serializers::Messaging::Inbox::ConversationSerializer.serialize(result.data[:conversation]),
+              http_status: :ok,
+            )
           end
         end
 

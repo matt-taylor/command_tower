@@ -16,6 +16,8 @@ RSpec.describe "CommandTower migration baseline" do
       20260817000003_create_command_tower_impersonation_sessions.rb
       20260826140000_add_deleted_at_to_users.rb
       20260906180000_create_user_experience_states.rb
+      20261010000001_add_inbox_presentation_snapshot_to_messaging_communications.rb
+      20261010000002_add_conversation_identity_to_messaging_communications.rb
     ]
   end
 
@@ -125,7 +127,10 @@ RSpec.describe "CommandTower migration baseline" do
         "host_event_identity",
         "accept_request_fingerprint",
         "status",
-        "execution_handoff_status"
+        "execution_handoff_status",
+        "inbox_presentation_snapshot",
+        "conversation_key",
+        "conversation_title"
       )
       expect(delivery_columns).to include("execution_claimed_at", "execution_attempt_count", "status")
     end

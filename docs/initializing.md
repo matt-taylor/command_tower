@@ -1,31 +1,38 @@
 # Initializing CommandTower
 
-CommandTower is a Rails engine. The install flow below gets the engine **mounted, migrated, and doctor-checked**. That alone is not a fully usable Me/Auth host — complete RBAC, feature gates, and a smoke check via the [Host integration guide](host_integration_guide.md).
+CommandTower is a Rails engine. This page is the **install / flags / schema / doctor contract**. A new host does not start here — follow [Bootstrap a new host](bootstrap/README.md) (Docker + Make, in order). That alone is not a fully usable Me/Auth host; bootstrap continues through RBAC, feature gates, and `GET /me`.
+
+Ruby/Rails runs **inside Compose**. Operator commands below are `make …`. `bin/rails command_tower:install` is the **task name** inside the container, not a host-machine command.
 
 Back to [README](../README.md).
 
 ## Quick start
 
-```bash
-# Gemfile: gem "command_tower"  (or path/git source)
-bundle install
+New hosts: [Bootstrap](bootstrap/README.md) (author Docker/Make first, then `make rails-new`, then pin the gem). After the gem is pinned:
 
-bin/rails command_tower:install
-bin/rails db:migrate
-bin/rails command_tower:doctor
+```bash
+make rails ARGS='command_tower:install'
+make migrate
+make doctor
 ```
 
 `command_tower:install` does **not** run `db:migrate`. Installing and migrating stay separate on purpose.
 
+If the host owns `/api/healthz` (or any route that must sit **before** the engine mount):
+
+```bash
+SKIP_MOUNT=1 make rails ARGS='command_tower:install'
+```
+
 ### After install
 
-Continue with [Host integration](host_integration_guide.md):
+Continue with [Bootstrap](bootstrap/README.md) from the RBAC / gates / smoke steps:
 
-1. Host `rbac_groups.yml` product role that **grants** CT-owned Me/Auth entity names (required — otherwise authenticated Me/Auth calls **403**)
+1. Host `rbac_groups.yml` product role that **grants** CT-owned Me/Auth entity names (required — otherwise authenticated Me/Auth calls **403**) — [`bootstrap/09-rbac.md`](bootstrap/09-rbac.md)
 2. Set `authorization.default_membership_role` (for example `"member"`) or assign roles some other supported way
 3. Enable feature gates you need (login, reset, availability, …)
-4. Smoke-check `GET /me` with a Bearer token
-5. Wire messaging catalog/adapters when you emit or use phone/Pushover
+4. Smoke-check `GET /me` — [`bootstrap/12-smoke-check.md`](bootstrap/12-smoke-check.md)
+5. Wire messaging catalog/adapters when you emit or use phone/Pushover — [`bootstrap/13-optional.md`](bootstrap/13-optional.md)
 
 ### What `command_tower:install` does
 
@@ -41,22 +48,24 @@ Continue with [Host integration](host_integration_guide.md):
 | `SKIP_MOUNT=1` | Generate initializer but do not mount routes |
 | `FORCE=1` | Overwrite an existing `config/initializers/command_tower.rb` |
 
-Examples:
+Examples (Make; flags enter the container via the `rails` recipe in [`bootstrap/01-docker-make-compose.md`](bootstrap/01-docker-make-compose.md)):
 
 ```bash
-SKIP_CONFIGURE=1 bin/rails command_tower:install
-SKIP_MOUNT=1 bin/rails command_tower:install
-FORCE=1 bin/rails command_tower:install
+SKIP_CONFIGURE=1 make rails ARGS='command_tower:install'
+SKIP_MOUNT=1 make rails ARGS='command_tower:install'
+FORCE=1 make rails ARGS='command_tower:install'
 ```
+
+Task names inside the container remain `command_tower:install` (and `command_tower:install:migrations`). Do not run `bin/rails` on the Mac.
 
 ## Configure generator (optional)
 
 Prefer `command_tower:install` for greenfield hosts. The generator remains available:
 
 ```bash
-bin/rails generate command_tower:configure
-bin/rails generate command_tower:configure --skip-routes
-bin/rails generate command_tower:configure --force
+make rails ARGS='generate command_tower:configure'
+make rails ARGS='generate command_tower:configure --skip-routes'
+make rails ARGS='generate command_tower:configure --force'
 ```
 
 The generator:
@@ -75,8 +84,8 @@ CommandTower is the **sole authoring authority** for CommandTower-owned schema (
 Handled by `command_tower:install` (step 1). Equivalent migration-only command:
 
 ```bash
-bin/rails command_tower:install:migrations
-bin/rails db:migrate
+make rails ARGS='command_tower:install:migrations'
+make migrate
 ```
 
 `command_tower:install:migrations` is the standard Rails engine task (wrapper around `railties:install:migrations`). Re-running installation is **idempotent**: already-installed CommandTower migrations are skipped.
@@ -86,9 +95,9 @@ Rails may **retimestamp** newly copied host files. That is normal. Do not hand-e
 ### Upgrade workflow
 
 1. Bump/release the CommandTower gem dependency in the host.
-2. Run `bin/rails command_tower:install:migrations` (or `SKIP_CONFIGURE=1 bin/rails command_tower:install`).
-3. Run `bin/rails db:migrate`.
-4. Optionally run `bin/rails command_tower:doctor`.
+2. Run `SKIP_CONFIGURE=1 make rails ARGS='command_tower:install'` (or `make rails ARGS='command_tower:install:migrations'`).
+3. Run `make migrate`.
+4. Optionally run `make doctor`.
 
 Do not re-run configure on hosts that already customize the initializer unless you intend to regenerate it (`FORCE=1`).
 
@@ -120,7 +129,7 @@ The generated initializer documents available options via class_composer. Defaul
 ## Doctor
 
 ```bash
-bin/rails command_tower:doctor
+make doctor
 ```
 
 Checks Rails version compatibility, engine baseline migrations, host-installed migration copies, JWT / session secrets, and messaging adapter names. Failures abort with remediation text; warnings print but allow success.
@@ -151,12 +160,12 @@ Doctor does **not** probe Redis/SMTP connectivity.
 If the host already has a bespoke initializer and mount:
 
 ```bash
-SKIP_CONFIGURE=1 bin/rails command_tower:install
-# same as: bin/rails command_tower:install:migrations
-bin/rails db:migrate
+SKIP_CONFIGURE=1 make rails ARGS='command_tower:install'
+# same task as: make rails ARGS='command_tower:install:migrations'
+make migrate
 ```
 
-Do not run `rails g command_tower:configure` unless you intentionally want stock scaffolding.
+Do not run `rails g command_tower:configure` unless you intentionally want stock scaffolding (`make rails ARGS='generate command_tower:configure'`).
 
 ## Test suite factories
 

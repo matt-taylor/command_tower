@@ -11,6 +11,7 @@ module CommandTower
           :title,
           :body,
           :metadata,
+          :inbox_presentation_snapshot,
           :created_at,
           :destination_plan,
           :inbox_item,

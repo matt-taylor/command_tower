@@ -15,7 +15,9 @@ module CommandTower
             title:,
             body:,
             platform_enabled_channels:,
-            metadata: nil
+            metadata: nil,
+            conversation_key: nil,
+            conversation_title: nil
           )
             user = User.find_by(id: user_id)
             unless user
@@ -34,6 +36,8 @@ module CommandTower
               body:,
               metadata:,
               platform_enabled_channels:,
+              conversation_key:,
+              conversation_title:,
             )
 
             unless result.success?

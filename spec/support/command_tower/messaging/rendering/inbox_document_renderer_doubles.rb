@@ -32,6 +32,16 @@ module CommandTower
         # Emits two presentation nodes in one document — used to prove the
         # one-attempt cap is consumed on the first attempt regardless of
         # outcome, not on the first success.
+        class TypeComposerWithTwoRegisteredPresentations
+          def self.call(communication:)
+            InboxDocument.compose do |doc|
+              doc.paragraph "Composed narrative"
+              doc.presentation "rich_messaging_proof.make_picks", variant: :compact
+              doc.presentation "rich_messaging_proof.second", variant: :compact
+            end
+          end
+        end
+
         class TypeComposerWithTwoPresentations
           def self.call(communication:)
             InboxDocument.compose do |doc|
@@ -60,6 +70,12 @@ module CommandTower
         class PresentationComposerDouble
           def self.call(communication:, recipient_id:)
             { example: "data" }
+          end
+        end
+
+        class SecondPresentationComposerDouble
+          def self.call(communication:, recipient_id:)
+            { example: "second" }
           end
         end
 
