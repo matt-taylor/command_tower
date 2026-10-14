@@ -154,7 +154,7 @@ module CommandTower
 
           def load_delivery(channel_delivery_id)
             CommandTower::Messaging::ChannelDelivery.includes(
-              communication: %i[user destination_plan],
+              communication: %i[user destination_plan inbox_item],
             ).find_by(id: channel_delivery_id)
           end
 
@@ -172,6 +172,7 @@ module CommandTower
               communication:,
               channel_key: delivery.channel_key,
               recipient_address:,
+              channel_delivery: delivery,
             )
 
             CommandTower::Messaging::Execution::OperationLogger.render_succeeded(
@@ -204,18 +205,21 @@ module CommandTower
               CommandTower::Messaging::Execution::OperationLogger.adapter_accepted(
                 channel_delivery: delivery,
                 delivery_attempt: attempt,
+                provider_metadata: result.provider_metadata,
               )
             elsif result.retryable_failure?
               CommandTower::Messaging::Execution::OperationLogger.adapter_retryable(
                 channel_delivery: delivery,
                 delivery_attempt: attempt,
                 error_code: result.error_code,
+                provider_metadata: result.provider_metadata,
               )
             else
               CommandTower::Messaging::Execution::OperationLogger.adapter_terminal(
                 channel_delivery: delivery,
                 delivery_attempt: attempt,
                 error_code: result.error_code,
+                provider_metadata: result.provider_metadata,
               )
             end
           end

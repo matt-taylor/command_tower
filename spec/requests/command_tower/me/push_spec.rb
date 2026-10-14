@@ -198,21 +198,28 @@ RSpec.describe "Me push", :with_rbac_setup, type: :request do
         category_order: 1,
         type_order: 1,
         settings_visible: false,
+        deep_link_required: true,
       )
     end
     let(:previous_limit) { CommandTower.config.messaging.expo.self_test_per_user_hour }
     let(:previous_channels) { CommandTower.config.messaging.platform_enabled_channels }
 
     around do |example|
+      previous_home = CommandTower.config.messaging.expo.home_deep_link
+      previous_self_test = CommandTower.config.messaging.expo.self_test_deep_link
       with_expo_fake_adapter!.call do
         CommandTower.config.messaging.allow_fake_adapter = true
         CommandTower.config.messaging.expo.self_test_per_user_hour = 2
+        CommandTower.config.messaging.expo.home_deep_link = "pickem://home"
+        CommandTower.config.messaging.expo.self_test_deep_link = "/account/push-notifications"
         CommandTower.config.messaging.platform_enabled_channels = -> { %w[inbox push] }
         register_and_seal_notification_types(push_delivery_test)
         example.run
       ensure
         CommandTower.config.messaging.expo.self_test_per_user_hour = previous_limit
         CommandTower.config.messaging.platform_enabled_channels = previous_channels
+        CommandTower.config.messaging.expo.home_deep_link = previous_home
+        CommandTower.config.messaging.expo.self_test_deep_link = previous_self_test
       end
     end
 

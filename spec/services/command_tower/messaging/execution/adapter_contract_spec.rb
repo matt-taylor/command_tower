@@ -149,4 +149,30 @@ RSpec.describe CommandTower::Messaging::Execution::AdapterResult do
       expect { invoke }.to raise_error(CommandTower::Messaging::Execution::InvalidAdapterContractError)
     end
   end
+
+  context "without provider_metadata" do
+    subject(:result) { described_class.build(outcome: :success) }
+
+    it "defaults provider_metadata to nil" do
+      expect(result.provider_metadata).to be_nil
+    end
+  end
+
+  context "with a provider_metadata hash" do
+    subject(:result) { described_class.build(outcome: :success, provider_metadata:) }
+
+    let(:provider_metadata) { { "expo" => { "endpoints" => [{ "endpoint_id" => 1 }] } } }
+
+    it "carries the hash" do
+      expect(result.provider_metadata).to eq(provider_metadata)
+    end
+  end
+
+  context "with a non-hash provider_metadata" do
+    subject(:invoke) { described_class.build(outcome: :success, provider_metadata: "expo") }
+
+    it "raises InvalidAdapterContractError" do
+      expect { invoke }.to raise_error(CommandTower::Messaging::Execution::InvalidAdapterContractError)
+    end
+  end
 end

@@ -45,6 +45,15 @@ module CommandTower
             info("messaging.execution.recovered", channel_delivery:)
           end
 
+          # One aggregate event per recovery sweep. Counts only; nothing when nothing happened.
+          def receipts_collected(counts)
+            counts = counts.to_h.slice(*ExpoReceiptCollection::COUNT_KEYS)
+            return if counts.values.sum.zero?
+
+            failed = counts[:poll_failure_count].to_i.positive? || counts[:update_failure_count].to_i.positive?
+            emit(failed ? :error : :info, "messaging.execution.receipts.collected", **counts)
+          end
+
           def attempt_started(channel_delivery:, delivery_attempt:)
             emit_attempt("messaging.execution.attempt.started", channel_delivery:, delivery_attempt:)
           end
@@ -59,6 +68,28 @@ module CommandTower
               channel_delivery:,
               delivery_attempt:,
               level: :error,
+            )
+          end
+
+          def push_destination_fallback(communication:, reason_code:, level:, channel_delivery: nil)
+            emit(
+              level,
+              "messaging.execution.push_destination.fallback",
+              channel_delivery:,
+              communication_id: communication.id,
+              notification_type_key: communication.notification_type_key.to_s,
+              reason_code:,
+            )
+          end
+
+          def push_presentation_fallback(communication:, reason_code:, channel_delivery: nil)
+            emit(
+              :warn,
+              "messaging.execution.push_presentation.fallback",
+              channel_delivery:,
+              communication_id: communication.id,
+              notification_type_key: communication.notification_type_key.to_s,
+              reason_code:,
             )
           end
 
@@ -110,32 +141,35 @@ module CommandTower
             )
           end
 
-          def adapter_accepted(channel_delivery:, delivery_attempt:)
+          def adapter_accepted(channel_delivery:, delivery_attempt:, provider_metadata: nil)
             emit_adapter(
               :info,
               "messaging.execution.adapter.accepted",
               channel_delivery:,
               delivery_attempt:,
+              **provider_metadata_counts(provider_metadata),
             )
           end
 
-          def adapter_retryable(channel_delivery:, delivery_attempt:, error_code:)
+          def adapter_retryable(channel_delivery:, delivery_attempt:, error_code:, provider_metadata: nil)
             emit_adapter(
               :error,
               "messaging.execution.adapter.retryable",
               channel_delivery:,
               delivery_attempt:,
               error_code:,
+              **provider_metadata_counts(provider_metadata),
             )
           end
 
-          def adapter_terminal(channel_delivery:, delivery_attempt:, error_code:)
+          def adapter_terminal(channel_delivery:, delivery_attempt:, error_code:, provider_metadata: nil)
             emit_adapter(
               :error,
               "messaging.execution.adapter.terminal",
               channel_delivery:,
               delivery_attempt:,
               error_code:,
+              **provider_metadata_counts(provider_metadata),
             )
           end
 
@@ -178,14 +212,30 @@ module CommandTower
             )
           end
 
-          def emit_adapter(level, event, channel_delivery:, delivery_attempt:, error_code: nil)
+          # extra: optional error_code and provider_metadata counts.
+          def emit_adapter(level, event, channel_delivery:, delivery_attempt:, **extra)
             emit(
               level,
               event,
               channel_delivery:,
               delivery_attempt_id: delivery_attempt.id,
-              error_code:,
+              error_code: nil,
+              **extra,
             )
+          end
+
+          # Counts only; the per-device record stays on the attempt row.
+          def provider_metadata_counts(provider_metadata)
+            endpoints = provider_metadata.is_a?(Hash) ? provider_metadata.dig("expo", "endpoints") : nil
+            return {} unless endpoints.is_a?(Array)
+
+            ticket_statuses = endpoints.pluck("ticket_status")
+            {
+              endpoint_count: endpoints.size,
+              ticket_ok_count: ticket_statuses.count("ok"),
+              ticket_error_count: ticket_statuses.count { |status| %w[error missing].include?(status) },
+              receipt_pending_count: endpoints.count { |endpoint| endpoint["receipt_status"] == "pending" },
+            }
           end
 
           def info(event, channel_delivery:)

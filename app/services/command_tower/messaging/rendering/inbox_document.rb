@@ -92,6 +92,16 @@ module CommandTower
             self
           end
 
+          # ISO-8601 instant with an explicit offset, stored as UTC. Blank,
+          # unparseable, and offset-less values add no block.
+          def instant(at)
+            utc = normalized_instant(at)
+            return self unless utc
+
+            @blocks << { type: "instant", at: utc.iso8601 }.freeze
+            self
+          end
+
           def blocks
             @blocks
           end
@@ -114,6 +124,23 @@ module CommandTower
           # whatever scheme is active), not a safe same-app-only destination.
           def safe_internal_path?(path)
             path.is_a?(String) && path.start_with?("/") && !path.start_with?("//")
+          end
+
+          EXPLICIT_ZONE_ISO = /\A\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})\z/
+
+          def normalized_instant(at)
+            case at
+            when Time
+              at.getutc
+            when String
+              stripped = at.strip
+              return nil if stripped.empty?
+              return nil unless EXPLICIT_ZONE_ISO.match?(stripped)
+
+              Time.iso8601(stripped).getutc
+            end
+          rescue ArgumentError
+            nil
           end
 
           def safe_href?(href)

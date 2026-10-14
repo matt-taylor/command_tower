@@ -126,6 +126,72 @@ RSpec.describe CommandTower::Messaging::NotificationTypes::Registry,
       expect(registry.seal).to be(true)
       expect(registry.sealed?).to be(true)
     end
+
+    context "with sound references" do
+      let(:host_sounds) { [{ id: "chime", label: "Chime", asset: "chime.wav" }] }
+      let(:sound) { { default: "default", allowed: %w[default chime] } }
+
+      around do |example|
+        previous = CommandTower.config.messaging.sounds
+        example.run
+      ensure
+        CommandTower.config.messaging.sounds = previous
+      end
+
+      before do
+        CommandTower.config.messaging.sounds = host_sounds
+        registry.register(build_notification_type_declaration(key: "booking.success", sound:))
+      end
+
+      it "seals when every named sound is registered" do
+        expect(registry.seal).to be(true)
+      end
+
+      context "when a declaration names an unregistered sound" do
+        let(:sound) { { default: "default", allowed: %w[default bell] } }
+
+        it "rejects the seal and names the type and sound" do
+          expect { registry.seal }.to raise_error(
+            CommandTower::Messaging::NotificationTypes::InvalidDeclarationError,
+            /booking\.success: sound references unregistered sound ids: bell/,
+          )
+        end
+
+        it "does not seal the registry" do
+          expect { registry.seal }.to raise_error(CommandTower::Messaging::NotificationTypes::InvalidDeclarationError)
+          expect(registry.sealed?).to be(false)
+        end
+      end
+
+      context "when the host sound catalog is invalid" do
+        let(:host_sounds) { [{ id: "chime", label: "Chime", asset: "" }] }
+
+        it "rejects the seal" do
+          expect { registry.seal }.to raise_error(
+            CommandTower::Messaging::NotificationTypes::InvalidDeclarationError,
+            /invalid sound catalog: sounds\[0\] asset must be present/,
+          )
+        end
+      end
+    end
+
+    context "when the sound is unregistered but the registry is only registering" do
+      let(:declaration) do
+        build_notification_type_declaration(key: "booking.success", sound: { default: "bell" })
+      end
+
+      it "does not check the catalog at register time" do
+        expect(registry.register(declaration)).to eq(declaration)
+      end
+    end
+
+    context "with a declaration built without the NPB fields" do
+      before { registry.register(build_notification_type_declaration(key: "booking.success")) }
+
+      it "seals as before" do
+        expect(registry.seal).to be(true)
+      end
+    end
   end
 
   describe "#lookup / #registered? / #enumerate" do
@@ -272,6 +338,84 @@ RSpec.describe CommandTower::Messaging::NotificationTypes::Registry,
       it "uses category_key then type key as ordering tie-breakers" do
         expect(described_class.instance.catalog.map(&:key)).to eq(%w[alpha beta])
         expect(described_class.instance.catalog.first.declarations.map(&:key)).to eq(%w[a.type c.type])
+      end
+    end
+  end
+
+  describe "#seal home deep link" do
+    let(:push_type) do
+      build_notification_type_declaration(
+        key: "alerts.push",
+        allowed_channels: %w[push],
+        default_channels: %w[push],
+        inbox_available: true,
+        default_preference_state: { "channels" => { "push" => true }, "inbox" => true },
+      )
+    end
+
+    around do |example|
+      previous_adapter = CommandTower.config.messaging.expo.adapter
+      previous_home = CommandTower.config.messaging.expo.home_deep_link
+      example.run
+    ensure
+      CommandTower.config.messaging.expo.adapter = previous_adapter
+      CommandTower.config.messaging.expo.home_deep_link = previous_home
+    end
+
+    context "when the adapter is disabled" do
+      before do
+        CommandTower.config.messaging.expo.adapter = "disabled"
+        CommandTower.config.messaging.expo.home_deep_link = nil
+        registry.register(push_type)
+      end
+
+      it "does not require home" do
+        expect { registry.seal }.not_to raise_error
+      end
+    end
+
+    context "when the adapter is enabled and home is blank" do
+      before do
+        CommandTower.config.messaging.expo.adapter = "fake"
+        CommandTower.config.messaging.expo.home_deep_link = "  "
+        registry.register(push_type)
+      end
+
+      it "rejects the catalog" do
+        expect { registry.seal }.to raise_error(
+          CommandTower::Messaging::NotificationTypes::InvalidDeclarationError,
+          /home_deep_link must be configured/,
+        )
+      end
+    end
+
+    context "when home is a callable" do
+      let(:home_calls) { [] }
+
+      before do
+        CommandTower.config.messaging.expo.adapter = "fake"
+        CommandTower.config.messaging.expo.home_deep_link = lambda {
+          home_calls << true
+          "pickem://home"
+        }
+        registry.register(push_type)
+      end
+
+      it "accepts the catalog without calling the callable" do
+        expect { registry.seal }.not_to raise_error
+        expect(home_calls).to be_empty
+      end
+    end
+
+    context "when no push type is registered" do
+      before do
+        CommandTower.config.messaging.expo.adapter = "fake"
+        CommandTower.config.messaging.expo.home_deep_link = nil
+        registry.register(build_notification_type_declaration(key: "mail.only"))
+      end
+
+      it "does not require home" do
+        expect { registry.seal }.not_to raise_error
       end
     end
   end

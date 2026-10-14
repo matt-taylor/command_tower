@@ -6,10 +6,165 @@ RSpec.describe CommandTower::Messaging::NotificationTypes::DeclarationValidator,
     subject(:errors) { described_class.validate(declaration) }
 
     let(:declaration) { build_notification_type_declaration }
+    let(:permitted_choice) { CommandTower::Messaging::NotificationTypes::PermittedChoice }
+    let(:normal_urgency) { permitted_choice.new(default: "normal", allowed: %w[normal].freeze) }
+    let(:default_sound) { permitted_choice.new(default: "default", allowed: %w[default].freeze) }
 
     context "when the declaration is valid" do
       it "returns no errors" do
         expect(errors).to be_empty
+      end
+    end
+
+    context "when a push type is inbox-backed" do
+      let(:declaration) do
+        build_notification_type_declaration(
+          allowed_channels: %w[push],
+          default_channels: %w[push],
+          inbox_available: true,
+          default_preference_state: { "channels" => { "push" => true }, "inbox" => true },
+        )
+      end
+
+      it "returns no errors" do
+        expect(errors).to be_empty
+      end
+    end
+
+    context "when a push type declares deep_link_required" do
+      let(:declaration) do
+        build_notification_type_declaration(
+          allowed_channels: %w[push],
+          default_channels: %w[push],
+          inbox_available: false,
+          deep_link_required: true,
+          default_preference_state: { "channels" => { "push" => true }, "inbox" => false },
+        )
+      end
+
+      it "returns no errors" do
+        expect(errors).to be_empty
+      end
+    end
+
+    context "when a push type is neither inbox-backed nor deep_link_required" do
+      let(:declaration) do
+        build_notification_type_declaration(
+          allowed_channels: %w[push],
+          default_channels: %w[push],
+          inbox_available: false,
+          default_preference_state: { "channels" => { "push" => true }, "inbox" => false },
+        )
+      end
+
+      it "rejects the declaration" do
+        expect(errors).to include(
+          "push-capable types must be inbox-backed or declare deep_link_required",
+        )
+      end
+    end
+
+    context "when urgency is a valid restricted choice" do
+      let(:declaration) do
+        build_notification_type_declaration(urgency: { default: "normal", allowed: %w[normal time_sensitive] })
+      end
+
+      it "returns no errors" do
+        expect(errors).to be_empty
+      end
+    end
+
+    context "when urgency is the full catalog" do
+      let(:declaration) { build_notification_type_declaration(urgency: { default: "normal", allowed: "all" }) }
+
+      it "returns no errors" do
+        expect(errors).to be_empty
+      end
+    end
+
+    context "when sound is a valid restricted choice" do
+      let(:declaration) do
+        build_notification_type_declaration(sound: { default: "default", allowed: %w[default chime] })
+      end
+
+      it "returns no errors" do
+        expect(errors).to be_empty
+      end
+    end
+
+    context "when sound is the full catalog" do
+      let(:declaration) { build_notification_type_declaration(sound: { default: "chime", allowed: "all" }) }
+
+      it "returns no errors" do
+        expect(errors).to be_empty
+      end
+    end
+
+    context "when urgency names an unknown level" do
+      let(:declaration) { build_notification_type_declaration(urgency: { default: "loud" }) }
+
+      it "rejects the level" do
+        expect(errors).to include('urgency has unknown urgency level: "loud"')
+      end
+    end
+
+    context "when urgency is not a hash" do
+      let(:declaration) { build_notification_type_declaration(urgency: "normal") }
+
+      it "rejects the value" do
+        expect(errors).to include("urgency must be a hash with default and allowed")
+      end
+    end
+
+    context "when urgency has no default" do
+      let(:declaration) { build_notification_type_declaration(urgency: { allowed: %w[normal] }) }
+
+      it "rejects the missing default" do
+        expect(errors).to include("urgency default must be present")
+      end
+    end
+
+    context "when the urgency default is not permitted" do
+      let(:declaration) do
+        build_notification_type_declaration(urgency: { default: "critical", allowed: %w[normal time_sensitive] })
+      end
+
+      it "rejects a default outside allowed" do
+        expect(errors).to include("urgency default must be one of allowed")
+      end
+    end
+
+    context "when urgency allowed is empty" do
+      let(:declaration) { build_notification_type_declaration(urgency: { default: "normal", allowed: [] }) }
+
+      it "rejects an empty list" do
+        expect(errors).to include('urgency allowed must be "all" or a non-empty array')
+      end
+    end
+
+    context "when urgency allowed has duplicates" do
+      let(:declaration) do
+        build_notification_type_declaration(urgency: { default: "normal", allowed: %w[normal normal] })
+      end
+
+      it "rejects duplicates" do
+        expect(errors).to include("urgency allowed contains duplicates")
+      end
+    end
+
+    context "when a sound id is malformed" do
+      let(:declaration) { build_notification_type_declaration(sound: { default: "Chime Bell" }) }
+
+      it "rejects the id" do
+        expect(errors).to include('sound has malformed sound id: "Chime Bell"')
+      end
+    end
+
+    context "when sound allowed is not \"all\" or an array" do
+      let(:declaration) { build_notification_type_declaration(sound: { default: "default", allowed: 5 }) }
+
+      it "rejects the value" do
+        expect(errors).to include('sound allowed must be "all" or a non-empty array')
       end
     end
 
@@ -219,6 +374,10 @@ RSpec.describe CommandTower::Messaging::NotificationTypes::DeclarationValidator,
           delivery_status_visible: nil,
           host_ownership: nil,
           inbox_document_composer: nil,
+          badge_eligible: false,
+          urgency: normal_urgency,
+          sound: default_sound,
+          deep_link_required: false,
         )
       end
 
@@ -252,11 +411,63 @@ RSpec.describe CommandTower::Messaging::NotificationTypes::DeclarationValidator,
           delivery_status_visible: nil,
           host_ownership: nil,
           inbox_document_composer: nil,
+          badge_eligible: false,
+          urgency: normal_urgency,
+          sound: default_sound,
+          deep_link_required: false,
         )
       end
 
       it "rejects a non-boolean settings_visible" do
         expect(errors).to include("settings_visible must be a boolean")
+      end
+    end
+  end
+
+  describe ".sound_reference_errors" do
+    subject(:errors) { described_class.sound_reference_errors(declaration, catalog_ids: %w[default chime]) }
+
+    context "when every named sound is registered" do
+      let(:declaration) do
+        build_notification_type_declaration(sound: { default: "default", allowed: %w[default chime] })
+      end
+
+      it "returns no errors" do
+        expect(errors).to be_empty
+      end
+    end
+
+    context "when the type uses the full catalog with a registered default" do
+      let(:declaration) { build_notification_type_declaration(sound: { default: "chime", allowed: "all" }) }
+
+      it "returns no errors" do
+        expect(errors).to be_empty
+      end
+    end
+
+    context "when an allowed sound is not registered" do
+      let(:declaration) do
+        build_notification_type_declaration(sound: { default: "default", allowed: %w[default bell] })
+      end
+
+      it "names the missing id" do
+        expect(errors).to eq(["sound references unregistered sound ids: bell"])
+      end
+    end
+
+    context "when the default sound is not registered" do
+      let(:declaration) { build_notification_type_declaration(sound: { default: "bell", allowed: "all" }) }
+
+      it "names the missing default" do
+        expect(errors).to eq(["sound references unregistered sound ids: bell"])
+      end
+    end
+
+    context "when the sound is not a permitted choice" do
+      let(:declaration) { build_notification_type_declaration(sound: "default") }
+
+      it "leaves the report to .validate" do
+        expect(errors).to be_empty
       end
     end
   end

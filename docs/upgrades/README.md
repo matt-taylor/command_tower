@@ -4,6 +4,7 @@ Host-facing upgrade / change summaries for CommandTower releases.
 
 | Version | Summary |
 |---------|---------|
+| [0.19.0](0.19.0.md) | Push presentation: badge, urgency, sound, deep links; Expo ticket and receipt metadata; preference urgency and sound |
 | [0.18.0](0.18.0.md) | Inbox conversations: optional Produce identity, grouped list entries, `GET /me/inbox/conversation` window of at most 5, accept-time presentation snapshot |
 | [0.17.0](0.17.0.md) | Client-version-compatibility gating (`observe`/`enforce`); Rich Messaging Inbox `content` documents; host-overridable rendering templates; shared email theming |
 | [0.16.0](0.16.0.md) | Me experience-states (`GET`/`POST complete`); `host_key`; `user_experience_states` migration; `me_experience_states` RBAC |

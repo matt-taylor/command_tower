@@ -17,6 +17,7 @@ module CommandTower
               :receipt,
               :outcome,
               :error_code,
+              :submitted,
               keyword_init: true,
             )
 
@@ -29,6 +30,7 @@ module CommandTower
             def call(request:)
               raise ArgumentError, "request must be an AdapterRequest" unless request.is_a?(AdapterRequest)
 
+              attempts = nil
               rendered = request.rendered
               unless rendered.is_a?(Rendering::RenderedPushPayload)
                 return AdapterResult.build(outcome: :terminal_failure, error_code: "render_failed")
@@ -43,25 +45,43 @@ module CommandTower
                 return AdapterResult.build(outcome: :terminal_failure, error_code: "recipient_missing")
               end
 
-              delivery = Messaging::ChannelDelivery.includes(:communication).find_by(id: request.channel_delivery_id)
+              delivery = Messaging::ChannelDelivery.includes(communication: :inbox_item).find_by(id: request.channel_delivery_id)
               owner_user_id = delivery&.communication&.user_id
               if owner_user_id.nil?
                 return AdapterResult.build(outcome: :terminal_failure, error_code: "recipient_missing")
               end
 
-              attempts = build_endpoint_attempts(owner_user_id:, endpoint_ids:)
+              history = EndpointTicketHistory.call(
+                channel_delivery_id: delivery.id,
+                excluding_attempt_id: request.attempt_id,
+              )
+              unsettled_ids = endpoint_ids - history.settled_endpoint_ids
+              return settled_only_result(history) if unsettled_ids.empty?
+
+              attempts = build_endpoint_attempts(owner_user_id:, endpoint_ids: unsettled_ids)
               return attempts if attempts.is_a?(AdapterResult)
 
               case @configuration.adapter_name
               when "fake", "log"
                 AdapterResult.build(outcome: :success, normalized_provider_status: "accepted")
               when "http"
-                deliver_http(attempts:, rendered:, owner_user_id:)
+                deliver_http(
+                  attempts:,
+                  rendered:,
+                  owner_user_id:,
+                  history:,
+                  communication: delivery.communication,
+                )
               else
                 AdapterResult.build(outcome: :terminal_failure, error_code: "adapter_unconfigured")
               end
             rescue StandardError
-              AdapterResult.build(outcome: :retryable_failure, error_code: "expo_transient")
+              # Keep the endpoint facts already recorded; the outcome stays today's rescue-all result.
+              AdapterResult.build(
+                outcome: :retryable_failure,
+                error_code: "expo_transient",
+                provider_metadata: provider_metadata_for(attempts),
+              )
             end
 
             private
@@ -86,13 +106,14 @@ module CommandTower
               attempts
             end
 
-            def deliver_http(attempts:, rendered:, owner_user_id:)
+            def deliver_http(attempts:, rendered:, owner_user_id:, history:, communication:)
               sendable = attempts.select { |attempt| attempt.token.present? && attempt.outcome.nil? }
-              messages = sendable.map { |attempt| expo_message(token: attempt.token, rendered:) }
+              messages = sendable.map { |attempt| expo_message(token: attempt.token, rendered:, communication:) }
 
+              sendable.each { |attempt| attempt.submitted = true }
               send_result = @http_client.send_messages(messages)
               unless send_result[:ok]
-                return map_http_failure(send_result[:status_code])
+                return map_http_failure(send_result[:status_code], attempts:, history:)
               end
 
               tickets = Array(send_result[:tickets])
@@ -124,19 +145,49 @@ module CommandTower
                 mark_invalid_if_needed!(owner_user_id:, attempt:)
               end
 
-              aggregate_result(attempts)
+              aggregate_result(attempts, history:)
             end
 
-            def expo_message(token:, rendered:)
+            # Every eligible endpoint already holds an accepted ticket or a recorded terminal
+            # ticket error from an earlier attempt, so there is nothing to send.
+            def settled_only_result(history)
+              if history.accepted?
+                return AdapterResult.build(
+                  outcome: :success,
+                  normalized_provider_status: "accepted",
+                  provider_message_id: history.first_accepted_ticket_id,
+                )
+              end
+
+              AdapterResult.build(
+                outcome: :terminal_failure,
+                error_code: history.first_terminal_error_code || "expo_rejected",
+              )
+            end
+
+            def expo_message(token:, rendered:, communication:)
               message = {
                 "to" => token,
                 "title" => rendered.title,
                 "body" => rendered.body,
-                "sound" => "default",
+                "sound" => rendered.sound || "default",
               }
-              if rendered.deep_link.present?
-                message["data"] = { "deepLink" => rendered.deep_link }
+              interruption_level = InterruptionLevel.call(
+                urgency: rendered.urgency,
+                supported: @configuration.supported_interruption_levels,
+              )
+              message["interruptionLevel"] = interruption_level if interruption_level
+              message["threadId"] = rendered.thread_id if rendered.thread_id
+              # nil omits the field. 0 is a real count and must be sent. In Ruby, 0 is truthy.
+              message["badge"] = rendered.badge unless rendered.badge.nil?
+              data = {}
+              data["deepLink"] = rendered.deep_link if rendered.deep_link.present?
+              item = communication&.inbox_item
+              if item&.live_for_push?
+                data["inboxItemId"] = item.id.to_s
+                data["inboxEntryId"] = communication.conversation_key.presence || item.id.to_s
               end
+              message["data"] = data if data.any?
               message
             end
 
@@ -195,31 +246,101 @@ module CommandTower
               nil
             end
 
-            def map_http_failure(status_code)
-              if status_code.to_i >= 500 || status_code.to_i == 429
-                AdapterResult.build(outcome: :retryable_failure, error_code: "expo_transient")
-              else
-                AdapterResult.build(outcome: :terminal_failure, error_code: "expo_rejected")
-              end
+            # 5xx and 429 stay retryable. Any other non-success response is terminal for this
+            # attempt even when an earlier attempt had accepted tickets; those tickets are carried
+            # into the metadata so the accepted facts stay visible on this row.
+            def map_http_failure(status_code, attempts:, history:)
+              retryable = status_code.to_i >= 500 || status_code.to_i == 429
+              outcome = retryable ? :retryable_failure : :terminal_failure
+              error_code = retryable ? "expo_transient" : "expo_rejected"
+              attempts.each { |attempt| attempt.error_code ||= error_code if attempt.submitted }
+              carried = retryable ? [] : carried_accepted_entries(history)
+
+              AdapterResult.build(outcome:, error_code:, provider_metadata: provider_metadata_for(attempts, carried:))
             end
 
-            def aggregate_result(attempts)
+            # Delivery-wide aggregation: this attempt's endpoints plus tickets recorded earlier.
+            def aggregate_result(attempts, history:)
               successes = attempts.select { |attempt| attempt.outcome == :success }
-              if successes.any?
-                first_ticket_id = successes.filter_map { |attempt| attempt.ticket&.dig(:id) }.first
+              first_ticket_id = successes.filter_map { |attempt| attempt.ticket&.dig(:id) }.first
+              metadata = provider_metadata_for(attempts)
+
+              if attempts.any? { |attempt| attempt.outcome == :retryable_failure }
+                return AdapterResult.build(
+                  outcome: :retryable_failure,
+                  error_code: "expo_transient",
+                  provider_message_id: first_ticket_id,
+                  provider_metadata: metadata,
+                )
+              end
+
+              if successes.any? || history.accepted?
                 return AdapterResult.build(
                   outcome: :success,
                   normalized_provider_status: "accepted",
-                  provider_message_id: first_ticket_id,
+                  provider_message_id: first_ticket_id || history.first_accepted_ticket_id,
+                  provider_metadata: metadata,
                 )
               end
 
               if attempts.all? { |attempt| attempt.outcome == :terminal_failure }
-                error_code = attempts.map(&:error_code).compact.first || "expo_rejected"
-                return AdapterResult.build(outcome: :terminal_failure, error_code:)
+                error_code = attempts.filter_map(&:error_code).first ||
+                  history.first_terminal_error_code ||
+                  "expo_rejected"
+                return AdapterResult.build(outcome: :terminal_failure, error_code:, provider_metadata: metadata)
               end
 
-              AdapterResult.build(outcome: :retryable_failure, error_code: "expo_transient")
+              AdapterResult.build(
+                outcome: :retryable_failure,
+                error_code: "expo_transient",
+                provider_metadata: metadata,
+              )
+            end
+
+            def carried_accepted_entries(history)
+              history.accepted_ticket_ids.map do |endpoint_id, ticket_id|
+                entry = { "endpoint_id" => endpoint_id, "ticket_status" => "ok" }
+                entry["ticket_id"] = ticket_id if ticket_id.present?
+                entry
+              end
+            end
+
+            # Per-device facts as recorded so far. Endpoints never submitted to Expo carry
+            # no ticket or receipt status. No tokens, bodies, or exceptions are included.
+            def provider_metadata_for(attempts, carried: [])
+              return nil unless attempts.is_a?(Array) && attempts.any?(&:submitted)
+
+              { "expo" => { "endpoints" => attempts.map { |attempt| endpoint_metadata(attempt) } + carried } }
+            end
+
+            def endpoint_metadata(attempt)
+              entry = { "endpoint_id" => attempt.endpoint_id }
+              if attempt.submitted
+                ticket_id = attempt.ticket&.dig(:id)
+                entry["ticket_id"] = ticket_id if ticket_id.present?
+                entry["ticket_status"] = ticket_status_for(attempt)
+                entry["receipt_status"] = receipt_status_for(attempt)
+              end
+              entry["error_code"] = attempt.error_code if attempt.error_code.present?
+              entry
+            end
+
+            def ticket_status_for(attempt)
+              case attempt.ticket&.dig(:status)
+              when "ok" then "ok"
+              when "error" then "error"
+              else "missing"
+              end
+            end
+
+            def receipt_status_for(attempt)
+              return "unchecked" unless ticket_status_for(attempt) == "ok"
+
+              case attempt.receipt&.dig(:status)
+              when "ok" then "ok"
+              when "error" then "error"
+              else "pending"
+              end
             end
           end
         end

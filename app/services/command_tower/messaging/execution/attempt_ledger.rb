@@ -55,6 +55,7 @@ module CommandTower
                 finished_at: now,
                 normalized_provider_status: result.normalized_provider_status,
                 provider_message_id: result.provider_message_id,
+                provider_metadata: result.provider_metadata,
                 error_code: nil,
                 error_class: nil,
               )
@@ -65,6 +66,7 @@ module CommandTower
                 finished_at: now,
                 normalized_provider_status: result.normalized_provider_status,
                 provider_message_id: result.provider_message_id,
+                provider_metadata: result.provider_metadata,
                 error_code: result.error_code,
                 error_class: nil,
               )
@@ -75,6 +77,7 @@ module CommandTower
                 finished_at: now,
                 normalized_provider_status: result.normalized_provider_status,
                 provider_message_id: result.provider_message_id,
+                provider_metadata: result.provider_metadata,
                 error_code: result.error_code,
                 error_class: nil,
               )

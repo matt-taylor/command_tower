@@ -72,7 +72,34 @@ module CommandTower
             errors << "settings_visible must be a boolean"
           end
 
+          validate_permitted_choice(
+            errors, declaration.urgency, field: "urgency",
+            valid_value: ->(value) { URGENCY_LEVELS.include?(value) },
+            invalid_message: "unknown urgency level"
+          )
+          validate_permitted_choice(
+            errors, declaration.sound, field: "sound",
+            valid_value: ->(value) { SoundCatalog::ID_FORMAT.match?(value) },
+            invalid_message: "malformed sound id"
+          )
+
+          if push_capable?(declaration) && !declaration.inbox_available && !declaration.deep_link_required
+            errors << "push-capable types must be inbox-backed or declare deep_link_required"
+          end
+
           errors
+        end
+
+        # Seal-time check: every sound a declaration names is registered in the catalog.
+        def self.sound_reference_errors(declaration, catalog_ids:)
+          choice = declaration&.sound
+          return [] unless choice.is_a?(PermittedChoice)
+
+          named = ([choice.default] + (choice.allowed.is_a?(Array) ? choice.allowed : [])).compact.uniq
+          missing = named - catalog_ids
+          return [] if missing.empty?
+
+          ["sound references unregistered sound ids: #{missing.join(', ')}"]
         end
 
         def self.validate_category_consistency!(declaration, peers:)
@@ -130,6 +157,41 @@ module CommandTower
           end
         end
         private_class_method :validate_non_negative_integer
+
+        def self.validate_permitted_choice(errors, choice, field:, valid_value:, invalid_message:)
+          unless choice.is_a?(PermittedChoice)
+            errors << "#{field} must be a hash with default and allowed"
+            return
+          end
+
+          default = choice.default
+          allowed = choice.allowed
+          values = []
+
+          if default.is_a?(String) && !default.strip.empty?
+            values << default
+          else
+            errors << "#{field} default must be present"
+          end
+
+          # "all" permits every value in the universe, so only the default is checked.
+          if allowed.is_a?(Array) && allowed.any?
+            values.concat(allowed)
+            errors << "#{field} allowed contains duplicates" if allowed.uniq.size != allowed.size
+            errors << "#{field} default must be one of allowed" if default && allowed.exclude?(default)
+          elsif allowed != "all"
+            errors << "#{field} allowed must be \"all\" or a non-empty array"
+          end
+
+          bad = values.uniq.reject { |value| value.is_a?(String) && valid_value.call(value) }
+          errors << "#{field} has #{invalid_message}: #{bad.map(&:inspect).join(', ')}" if bad.any?
+        end
+        private_class_method :validate_permitted_choice
+
+        def self.push_capable?(declaration)
+          declaration.allowed_channels.is_a?(Array) && declaration.allowed_channels.include?("push")
+        end
+        private_class_method :push_capable?
 
         def self.validate_channel_list(errors, channels, field:)
           channels.each do |channel|

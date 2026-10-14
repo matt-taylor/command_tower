@@ -95,6 +95,74 @@ RSpec.describe CommandTower::Messaging::Execution::Recovery, :messaging_accept d
     end
   end
 
+  context "when a mixed multi-device delivery reaches the attempt limit" do
+    let!(:delivery) do
+      build_delivery.call(
+        status: "failed_retryable",
+        attempt_count: CommandTower::Messaging::DeliveryRetryPolicy::MAX_ATTEMPTS,
+      )
+    end
+
+    before do
+      clear_enqueued_jobs
+      CommandTower::Messaging::DeliveryAttempt.create!(
+        channel_delivery: delivery,
+        status: "failed_retryable",
+        started_at: 1.minute.ago,
+        provider_metadata: { "expo" => { "endpoints" => [
+          { "endpoint_id" => 1, "ticket_id" => "t-1", "ticket_status" => "ok", "receipt_status" => "ok" },
+          { "endpoint_id" => 2, "ticket_status" => "missing", "receipt_status" => "unchecked",
+            "error_code" => "expo_transient" },
+        ] } },
+      )
+    end
+
+    it "does not redrive it and reports the retries as exhausted" do
+      described_class.call(grace_window: 1.minute)
+
+      expect(delivery.reload.status).to eq("failed_retryable")
+      expect(CommandTower::Messaging::DeliveryRetryPolicy.retries_exhausted?(delivery)).to eq(true)
+      expect(CommandTower::Messaging::ChannelDeliveryExecutionJob).not_to have_been_enqueued
+    end
+  end
+
+  context "with the receipt collection step" do
+    let!(:delivery) { build_delivery.call(status: "failed_retryable", attempt_count: 2) }
+    let(:call_order) { [] }
+
+    before do
+      clear_enqueued_jobs
+      allow(CommandTower::Messaging::Execution::ExpoReceiptCollection).to receive(:call) do
+        call_order << (delivery.reload.status == "queued" ? :after_redrive : :before_redrive)
+        raise "receipt failure" if raise_in_collection
+
+        {}
+      end
+    end
+
+    context "when it succeeds" do
+      let(:raise_in_collection) { false }
+
+      it "runs after the redrive steps" do
+        described_class.call(grace_window: 1.minute)
+
+        expect(call_order).to eq([:after_redrive])
+        expect(CommandTower::Messaging::ChannelDeliveryExecutionJob).to have_been_enqueued.with(delivery.id)
+      end
+    end
+
+    context "when it raises" do
+      let(:raise_in_collection) { true }
+
+      it "does not fail the sweep or undo the redrive" do
+        expect { described_class.call(grace_window: 1.minute) }.not_to raise_error
+
+        expect(delivery.reload.status).to eq("queued")
+        expect(CommandTower::Messaging::ChannelDeliveryExecutionJob).to have_been_enqueued.with(delivery.id)
+      end
+    end
+  end
+
   context "with default grace and max attempts from DeliveryRetryPolicy" do
     let!(:delivery) do
       build_delivery.call(status: "failed_retryable", attempt_count: 1, updated_at: 5.minutes.ago)

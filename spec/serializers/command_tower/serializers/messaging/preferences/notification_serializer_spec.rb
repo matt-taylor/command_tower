@@ -16,6 +16,13 @@ RSpec.describe CommandTower::Serializers::Messaging::Preferences::NotificationSe
       inbox_enabled: true,
       channels: { "email" => true, "sms" => false },
       stored_override_present: false,
+      urgency: { default: "normal", allowed: %w[normal], selectable: false, effective: "normal" },
+      sound: {
+        default: "default",
+        allowed: [{ id: "default", label: "System Default" }],
+        selectable: false,
+        effective: "default",
+      },
     )
   end
 
@@ -30,6 +37,13 @@ RSpec.describe CommandTower::Serializers::Messaging::Preferences::NotificationSe
       inboxAvailable: true,
       allowedChannels: %w[email sms],
       availableChannels: %w[email],
+      urgency: { default: "normal", allowed: %w[normal], selectable: false, effective: "normal" },
+      sound: {
+        default: "default",
+        allowed: [{ id: "default", label: "System Default" }],
+        selectable: false,
+        effective: "default",
+      },
       preferences: {
         inboxEnabled: true,
         channels: { "email" => true, "sms" => false },

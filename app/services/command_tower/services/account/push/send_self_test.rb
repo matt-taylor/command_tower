@@ -31,13 +31,19 @@ module CommandTower
               return
             end
 
+            deep_link = CommandTower.config.messaging.expo.resolve_self_test_deep_link
+            if deep_link.nil?
+              context.fail!(application_error: CommandTower::Errors::Account::PushTestDestinationError.new)
+              return
+            end
+
             produce_result = CommandTower::Services::Messaging::Communications::Produce.call(
               user:,
               notification_type_key: NOTIFICATION_TYPE_KEY,
               host_event_identity: "push_delivery_test/#{user.id}/#{SecureRandom.uuid}",
               title: TITLE,
               body: BODY,
-              metadata: {},
+              metadata: { "deep_link" => deep_link },
               platform_enabled_channels: CommandTower::Services::Messaging::Preferences::PlatformEnabledChannels.call,
             )
             unless produce_result.success?

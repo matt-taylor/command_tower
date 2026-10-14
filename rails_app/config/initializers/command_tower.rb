@@ -226,6 +226,8 @@ CommandTower.configure do |config|
   # Expo Push (Messaging channel "push"). access_token optional (Bearer only when set).
   # config.messaging.expo.adapter = "disabled"
   # config.messaging.expo.access_token = ""
+  # Host push sounds (System Default, id "default", is built in and needs no asset):
+  # config.messaging.sounds = [{ id: "chime", label: "Chime", asset: "chime.wav" }]
 
   # ##############################
   # #                            #

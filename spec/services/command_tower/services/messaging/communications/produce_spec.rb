@@ -310,5 +310,53 @@ RSpec.describe CommandTower::Services::Messaging::Communications::Produce, :mess
         )
       end
     end
+
+    context "when the type requires a deep link" do
+      before do
+        register_and_seal_notification_types(
+          build_notification_type_declaration(
+            key: notification_type_key,
+            allowed_channels: %w[email sms],
+            default_channels: %w[email],
+            inbox_available: true,
+            deep_link_required: true,
+            user_configurable: true,
+            mandatory: false,
+            default_preference_state: {
+              "channels" => { "email" => true, "sms" => true },
+              "inbox" => true,
+            },
+          ),
+        )
+      end
+
+      context "when deep_link is blank" do
+        subject(:result) { described_class.call(**call_kwargs) }
+
+        let(:metadata) { { "deep_link" => "  " } }
+
+        before { allow(CommandTower::Messaging).to receive(:accept) }
+
+        it "rejects before Accept" do
+          expect(result).to be_failure
+          expect(result.errors.first).to be_a(CommandTower::Errors::ValidationError)
+          expect(result.errors.first.details).to eq(messaging: "deep_link is required")
+          expect(CommandTower::Messaging).not_to have_received(:accept)
+          expect(CommandTower::Messaging::Communication.count).to eq(0)
+        end
+      end
+
+      context "when deep_link is present" do
+        subject(:result) { described_class.call(**call_kwargs) }
+
+        let(:metadata) { { deep_link: "/bookings/9" } }
+        let(:communication) { CommandTower::Messaging::Communication.find(result.data[:communication_id]) }
+
+        it "accepts the communication" do
+          expect(result).to be_success
+          expect(communication.metadata["deep_link"]).to eq("/bookings/9")
+        end
+      end
+    end
   end
 end

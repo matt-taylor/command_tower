@@ -11,6 +11,7 @@ RSpec.describe CommandTower::Workflows::Me::ErrorMapping do
       CommandTower::Errors::Account::PhoneVerificationThrottledError => :too_many_requests,
       CommandTower::Errors::Account::PushTestRateLimitError => :too_many_requests,
       CommandTower::Errors::Account::PushTestNoEndpointError => :unprocessable_entity,
+      CommandTower::Errors::Account::PushTestDestinationError => :unprocessable_entity,
       CommandTower::Errors::Account::PushCapabilityUnavailableError => :service_unavailable,
       CommandTower::Errors::Account::SmsCapabilityUnavailableError => :service_unavailable,
       CommandTower::Errors::Account::PhoneVerificationSendFailedError => :bad_gateway,

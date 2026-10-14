@@ -168,7 +168,90 @@ RSpec.describe CommandTower::Messaging::Inbox, :messaging_inbox do
       it "counts only unviewed, non-archived, non-deleted items for the recipient" do
         expect(result).to be_a(CommandTower::Messaging::Inbox::UnreadCountResult)
         expect(result.count).to eq(1)
+        expect(result.badge_count).to eq(0)
         expect(result.recipient_id).to eq(user.id)
+      end
+    end
+
+    context "when declarations differ in badge eligibility", :messaging_notification_types do
+      before do
+        register_and_seal_notification_types(
+          build_notification_type_declaration(key: "badge.on", badge_eligible: true),
+          build_notification_type_declaration(
+            key: "badge.off",
+            badge_eligible: false,
+            category_key: "other",
+            category_label: "Other",
+          ),
+        )
+      end
+
+      let(:typed_inbox) do
+        lambda do |notification_type_key, **inbox_attrs|
+          communication = create(:messaging_communication, user:, notification_type_key:)
+          create(:messaging_inbox_item, communication:, **inbox_attrs)
+        end
+      end
+
+      it "counts eligible unread items in badge_count and every unread item in count" do
+        typed_inbox.call("badge.on")
+        typed_inbox.call("badge.off")
+
+        result = described_class.unread_count(recipient_id: user.id)
+
+        expect(result.count).to eq(2)
+        expect(result.badge_count).to eq(1)
+      end
+
+      context "when an eligible item is viewed and restored" do
+        let!(:eligible_item) { typed_inbox.call("badge.on") }
+
+        it "drops a viewed eligible item from both counts and restores both when marked unread" do
+          expect(described_class.unread_count(recipient_id: user.id)).to have_attributes(count: 1, badge_count: 1)
+
+          described_class.mark_viewed(recipient_id: user.id, inbox_item_id: eligible_item.id)
+          expect(described_class.unread_count(recipient_id: user.id)).to have_attributes(count: 0, badge_count: 0)
+
+          described_class.mark_unviewed(recipient_id: user.id, inbox_item_id: eligible_item.id)
+          expect(described_class.unread_count(recipient_id: user.id)).to have_attributes(count: 1, badge_count: 1)
+        end
+      end
+
+      it "excludes archived and deleted eligible items from both counts" do
+        typed_inbox.call("badge.on")
+        typed_inbox.call("badge.on", archived_at: Time.current, status: "archived")
+        typed_inbox.call("badge.on", deleted_at: Time.current, status: "deleted")
+
+        result = described_class.unread_count(recipient_id: user.id)
+
+        expect(result.count).to eq(1)
+        expect(result.badge_count).to eq(1)
+      end
+
+      it "leaves an unregistered type out of badge_count" do
+        typed_inbox.call("badge.on")
+        typed_inbox.call("not.registered")
+
+        result = described_class.unread_count(recipient_id: user.id)
+
+        expect(result.count).to eq(2)
+        expect(result.badge_count).to eq(1)
+      end
+
+      context "when a channel preference turns every destination off" do
+        before do
+          typed_inbox.call("badge.on")
+          create(
+            :messaging_notification_preference,
+            user:,
+            notification_type_key: "badge.on",
+            state: { "channels" => { "push" => false, "email" => false }, "inbox" => false },
+          )
+        end
+
+        it "does not consult channel preferences" do
+          expect(described_class.unread_count(recipient_id: user.id)).to have_attributes(count: 1, badge_count: 1)
+        end
       end
     end
   end

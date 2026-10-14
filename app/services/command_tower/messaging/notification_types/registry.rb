@@ -88,10 +88,35 @@ module CommandTower
             DeclarationValidator.validate!(declaration)
           end
 
+          validate_sound_references!
+
           @declarations.each_value do |declaration|
             peers = @declarations.values.reject { |peer| peer.equal?(declaration) || peer.key == declaration.key }
             DeclarationValidator.validate_category_consistency!(declaration, peers:)
           end
+
+          validate_home_deep_link_configuration!
+        end
+
+        # Sound ids are checked at seal, not register, so host initializer order cannot matter.
+        def validate_sound_references!
+          catalog_errors = SoundCatalog.validation_errors
+          raise InvalidDeclarationError, "invalid sound catalog: #{catalog_errors.join('; ')}" if catalog_errors.any?
+
+          @declarations.each_value do |declaration|
+            errors = DeclarationValidator.sound_reference_errors(declaration, catalog_ids: SoundCatalog.ids)
+            raise InvalidDeclarationError, "#{declaration.key}: #{errors.join('; ')}" if errors.any?
+          end
+        end
+
+        # Presence only. A Proc is configured and is not called here.
+        def validate_home_deep_link_configuration!
+          return if CommandTower.config.messaging.expo.adapter.to_s == "disabled"
+          return unless @declarations.values.any? { |declaration| declaration.allowed_channels.include?("push") }
+          return if CommandTower.config.messaging.expo.home_deep_link_configured?
+
+          raise InvalidDeclarationError,
+            "home_deep_link must be configured when a push-capable type is registered and the Expo adapter is enabled"
         end
 
         def type_sort_key(declaration)

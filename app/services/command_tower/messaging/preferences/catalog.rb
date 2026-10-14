@@ -75,6 +75,11 @@ module CommandTower
           available =
             declaration.allowed_channels & @platform_enabled_channels & recipient_ready_keys
 
+          blocks = EffectiveChoice.call(
+            declaration:,
+            stored: Store.find(recipient_id: @recipient_id, notification_type_key: declaration.key),
+          )
+
           ::CommandTower::Messaging::Preferences::CatalogNotificationResult.build(
             key: declaration.key,
             label: declaration.label,
@@ -88,6 +93,8 @@ module CommandTower
             inbox_enabled:,
             channels:,
             stored_override_present: evaluation.stored_override_present,
+            urgency: blocks[:urgency],
+            sound: blocks[:sound],
           )
         end
       end

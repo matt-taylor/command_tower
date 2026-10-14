@@ -58,6 +58,24 @@ RSpec.describe CommandTower::Messaging::Preferences::Evaluator, :messaging_prefe
       end
     end
 
+    context "when the stored state also has urgency and sound" do
+      let(:preference_state) do
+        {
+          "channels" => { "email" => true, "sms" => false },
+          "inbox" => true,
+          "urgency" => "time_sensitive",
+          "sound" => "chime",
+        }
+      end
+
+      subject(:result) { evaluate }
+
+      it "does not change the permitted channels or inbox" do
+        expect(result.permitted_channels).to contain_exactly("email")
+        expect(result.inbox_permitted).to be(true)
+      end
+    end
+
     context "when recipient preference disables a channel" do
       let(:preference_state) do
         build_preference_state(

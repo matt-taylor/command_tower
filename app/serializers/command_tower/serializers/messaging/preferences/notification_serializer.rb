@@ -16,6 +16,8 @@ module CommandTower
               inboxAvailable: notification.inbox_available,
               allowedChannels: notification.allowed_channels,
               availableChannels: notification.available_channels,
+              urgency: notification.urgency,
+              sound: notification.sound,
               preferences: {
                 inboxEnabled: notification.inbox_enabled,
                 channels: notification.channels,

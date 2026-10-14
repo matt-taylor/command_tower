@@ -23,6 +23,7 @@ RSpec.describe "Me preferences", :with_rbac_setup, :messaging_preferences, type:
         },
         settings_visible: true,
         user_configurable: true,
+        urgency: { default: "normal", allowed: %w[normal time_sensitive] },
       ),
       build_notification_type_declaration(
         key: "password_changed",
@@ -96,6 +97,14 @@ RSpec.describe "Me preferences", :with_rbac_setup, :messaging_preferences, type:
         "inboxEnabled" => true,
         "storedOverridePresent" => false,
       )
+      expect(booking["urgency"]).to include(
+        "default" => "normal",
+        "allowed" => %w[normal time_sensitive],
+        "selectable" => true,
+        "effective" => "normal",
+      )
+      expect(booking["sound"]["allowed"]).to eq([{ "id" => "default", "label" => "System Default" }])
+      expect(booking["sound"]).not_to have_key("asset")
     end
 
     it "reflects stored overrides" do
@@ -129,6 +138,19 @@ RSpec.describe "Me preferences", :with_rbac_setup, :messaging_preferences, type:
         "inboxEnabled" => false,
         "storedOverridePresent" => true,
       )
+    end
+
+    it "stores a permitted urgency beside the channel preferences" do
+      patch "/me/preferences/booking_confirmation",
+            headers: headers,
+            params: { preferences: { urgency: "time_sensitive", inboxEnabled: true, channels: { email: true } } },
+            as: :json
+
+      expect(response).to have_http_status(:ok)
+      notification = response.parsed_body.dig("data", "notification")
+      expect(notification["urgency"]).to include("effective" => "time_sensitive", "selectable" => true)
+      expect(notification["preferences"]).to include("inboxEnabled" => true)
+      expect(notification["sound"]).not_to have_key("asset")
     end
 
     it "resets to defaults when preferences is empty" do

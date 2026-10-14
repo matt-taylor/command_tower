@@ -23,6 +23,10 @@ module CommandTower
         :delivery_status_visible,
         :host_ownership,
         :inbox_document_composer,
+        :badge_eligible,
+        :urgency,
+        :sound,
+        :deep_link_required,
       ) do
         def self.build(
           key:,
@@ -43,7 +47,11 @@ module CommandTower
           retention: nil,
           delivery_status_visible: nil,
           host_ownership: nil,
-          inbox_document_composer: nil
+          inbox_document_composer: nil,
+          badge_eligible: false,
+          urgency: nil,
+          sound: nil,
+          deep_link_required: false
         )
           new(
             key: key.nil? ? nil : key.to_s,
@@ -75,6 +83,16 @@ module CommandTower
             # renders via `InboxDocumentRenderer#build_generic`. See
             # artifacts/visual-improvements/rich-messaging/authority/RICH_MESSAGING_RUBY_INBOX_DEFINITION_DISCOVERY.md.
             inbox_document_composer: inbox_document_composer.nil? ? nil : inbox_document_composer.to_s,
+            # Notification Product Behavior (NPB-1). All default to today's behavior.
+            # `badge_eligible`: unread inbox items of this type count toward the app-icon badge.
+            # `urgency` / `sound`: `{ default:, allowed: [ids] | "all" }`; nil is fixed
+            # "normal" / "default". Invalid input is kept so DeclarationValidator reports it.
+            badge_eligible: !!badge_eligible,
+            urgency: PermittedChoice.from(urgency, fallback_default: "normal"),
+            sound: PermittedChoice.from(sound, fallback_default: "default"),
+            # NPB-5. Push-capable types that are not inbox-backed must set this
+            # so Produce can reject a missing metadata deep_link.
+            deep_link_required: !!deep_link_required,
           ).freeze
         end
 

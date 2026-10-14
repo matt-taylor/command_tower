@@ -28,10 +28,47 @@ RSpec.describe "Me inbox", :with_rbac_setup, :messaging_inbox, type: :request do
   end
 
   it "returns unread count" do
+    CommandTower::Messaging::NotificationTypes.reset!
+
     get "/me/inbox/unread-count", headers: headers
 
     expect(response).to have_http_status(:ok)
     expect(response.parsed_body.dig("data", "count")).to eq(1)
+    expect(response.parsed_body.dig("data", "badgeCount")).to eq(0)
+  end
+
+  context "when unread items differ in badge eligibility", :messaging_notification_types do
+    before do
+      register_and_seal_notification_types(
+        build_notification_type_declaration(key: "badge.on", badge_eligible: true),
+        build_notification_type_declaration(
+          key: "badge.off",
+          badge_eligible: false,
+          category_key: "other",
+          category_label: "Other",
+        ),
+      )
+    end
+
+    let!(:inbox_item) { nil }
+    let!(:eligible_item) do
+      communication = create(:messaging_communication, user:, notification_type_key: "badge.on")
+      create(:messaging_inbox_item, communication:)
+    end
+    let!(:ineligible_item) do
+      communication = create(:messaging_communication, user:, notification_type_key: "badge.off")
+      create(:messaging_inbox_item, communication:)
+    end
+
+    it "returns count and badgeCount" do
+      get "/me/inbox/unread-count", headers: headers
+
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body.dig("data", "count")).to eq(2)
+      expect(response.parsed_body.dig("data", "badgeCount")).to eq(1)
+      expect(eligible_item).to be_present
+      expect(ineligible_item).to be_present
+    end
   end
 
   it "shows, opens, archives, and deletes an owned item" do
@@ -417,6 +454,7 @@ RSpec.describe "Me inbox", :with_rbac_setup, :messaging_inbox, type: :request do
     it "counts inbox items" do
       expect(count_response).to have_http_status(:ok)
       expect(count_response.parsed_body.dig("data", "count")).to eq(2)
+      expect(count_response.parsed_body.dig("data", "badgeCount")).to eq(0)
     end
   end
 

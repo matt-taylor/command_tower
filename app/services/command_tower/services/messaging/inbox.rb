@@ -116,7 +116,11 @@ module CommandTower
           validate :user, is_a: User, required: true
 
           def call
-            with_recipient { |recipient_id| context.count = CommandTower::Messaging::Inbox.unread_count(recipient_id:).count }
+            with_recipient do |recipient_id|
+              result = CommandTower::Messaging::Inbox.unread_count(recipient_id:)
+              context.count = result.count
+              context.badge_count = result.badge_count
+            end
           end
         end
 

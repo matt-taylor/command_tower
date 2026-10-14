@@ -121,6 +121,42 @@ RSpec.describe CommandTower::Workflows::Messaging::Execution::DeliverWorkflow, :
     end
   end
 
+  context "when the adapter result carries provider_metadata" do
+    let(:provider_metadata) do
+      {
+        "expo" => {
+          "endpoints" => [
+            { "endpoint_id" => 1, "ticket_id" => "t-1", "ticket_status" => "ok", "receipt_status" => "pending" },
+            { "endpoint_id" => 2, "ticket_status" => "missing", "receipt_status" => "unchecked" },
+          ],
+        },
+      }
+    end
+    let(:adapter) do
+      instance_double(
+        CommandTower::Messaging::Execution::Adapters::FakeAdapter,
+        call: CommandTower::Messaging::Execution::AdapterResult.build(
+          outcome: :success,
+          normalized_provider_status: "accepted",
+          provider_message_id: "t-1",
+          provider_metadata:,
+        ),
+      )
+    end
+
+    let(:attempt) { delivery.delivery_attempts.sole }
+
+    subject(:invoke) { described_class.call(channel_delivery_id: delivery.id, executor: adapter) }
+
+    before { invoke }
+
+    it "stores the metadata on the attempt without changing delivery status or provider_message_id" do
+      expect(delivery.reload.status).to eq("accepted_by_provider")
+      expect(attempt.provider_message_id).to eq("t-1")
+      expect(attempt.provider_metadata).to eq(provider_metadata)
+    end
+  end
+
   context "when no executor is injected under :test delivery" do
     around do |example|
       previous_fake = CommandTower.config.messaging.allow_fake_adapter
@@ -770,12 +806,15 @@ RSpec.describe CommandTower::Workflows::Messaging::Execution::DeliverWorkflow, :
     around do |example|
       previous = CommandTower.config.messaging.expo.adapter
       previous_fake = CommandTower.config.messaging.allow_fake_adapter
+      previous_home = CommandTower.config.messaging.expo.home_deep_link
       CommandTower.config.messaging.expo.adapter = "fake"
       CommandTower.config.messaging.allow_fake_adapter = false
+      CommandTower.config.messaging.expo.home_deep_link = "pickem://home"
       example.run
     ensure
       CommandTower.config.messaging.expo.adapter = previous
       CommandTower.config.messaging.allow_fake_adapter = previous_fake
+      CommandTower.config.messaging.expo.home_deep_link = previous_home
     end
 
     before do
@@ -808,6 +847,299 @@ RSpec.describe CommandTower::Workflows::Messaging::Execution::DeliverWorkflow, :
       it "passes eligible_endpoint_ids into AdapterRequest for push fan-out" do
         expect(adapter).to have_received(:call)
         expect(delivery.reload.status).to eq("accepted_by_provider")
+      end
+    end
+
+    context "when home cannot be resolved" do
+      let(:adapter) { instance_double(CommandTower::Messaging::Execution::Adapters::FakeAdapter) }
+
+      before do
+        CommandTower.config.messaging.expo.home_deep_link = nil
+        allow(adapter).to receive(:call)
+      end
+
+      it "fails the attempt terminally and does not call Expo" do
+        described_class.call(channel_delivery_id: delivery.id, executor: adapter)
+
+        expect(adapter).not_to have_received(:call)
+        expect(delivery.reload.status).to eq("failed_terminal")
+      end
+    end
+
+    context "when retrying a multi-device Expo delivery with the real adapter" do
+      let(:expo_configuration) do
+        instance_double(
+          CommandTower::Messaging::Execution::Adapters::Expo::Configuration,
+          expo_configured?: true,
+          adapter_name: "http",
+          api_base_url: "https://exp.host/--/api/v2/push",
+          timeout_seconds: 5,
+          access_token: "",
+          supported_interruption_levels: supported_levels,
+        )
+      end
+      let(:supported_levels) { %w[normal] }
+      let(:http_client) { instance_double(CommandTower::Messaging::Execution::Adapters::Expo::HttpClient) }
+      let(:executor) do
+        CommandTower::Messaging::Execution::Adapters::Expo::Adapter.new(
+          configuration: expo_configuration,
+          http_client:,
+        )
+      end
+      let(:posted_tokens) { [] }
+      let(:second_endpoint) { create_push_endpoint.call("ExponentPushToken[deliver2222]") }
+      let(:third_endpoint) { create_push_endpoint.call("ExponentPushToken[deliver3333]") }
+      let(:create_push_endpoint) do
+        lambda do |address|
+          view = CommandTower::Messaging::Endpoints.create(owner_user_id: user.id, channel_key: "push", address:)
+          record = CommandTower::Messaging::Endpoint.find(view.id)
+          record.update!(verification_state: "verified", verified_at: Time.current)
+          record
+        end
+      end
+      let(:ok_ticket) { ->(id) { { status: "ok", id:, message: nil, error: nil } } }
+      let(:run_delivery) do
+        lambda do |response|
+          delivery.update!(status: "queued")
+          allow(http_client).to receive(:send_messages) do |messages|
+            posted_tokens << messages.pluck("to")
+            response
+          end
+          described_class.call(channel_delivery_id: delivery.id, executor:)
+          delivery.reload
+        end
+      end
+      let(:attempt_metadata) do
+        ->(index) { delivery.delivery_attempts.order(:id).to_a[index].provider_metadata.dig("expo", "endpoints") }
+      end
+
+      before do
+        second_endpoint
+        third_endpoint
+        allow(http_client).to receive(:get_receipts) do |ticket_ids|
+          {
+            ok: true,
+            status_code: 200,
+            receipts: ticket_ids.index_with { { status: "ok", message: nil, error: nil } },
+          }
+        end
+      end
+
+      context "with the member's urgency and sound choices" do
+        let(:sent_messages) { [] }
+        let(:host_sounds) { [{ id: "chime", label: "Chime", asset: "chime.wav" }] }
+        let(:type_key) { communication.notification_type_key }
+        let(:badge_eligible) { false }
+
+        around do |example|
+          previous = CommandTower.config.messaging.sounds
+          example.run
+        ensure
+          CommandTower.config.messaging.sounds = previous
+          CommandTower::Messaging::NotificationTypes.reset!
+        end
+
+        before do
+          CommandTower.config.messaging.sounds = host_sounds
+          CommandTower::Messaging::NotificationTypes.reset!
+          CommandTower::Messaging::NotificationTypes.register(
+            CommandTower::Messaging::NotificationTypes::Declaration.build(
+              key: type_key,
+              allowed_channels: %w[push],
+              default_channels: %w[push],
+              inbox_available: true,
+              user_configurable: true,
+              mandatory: false,
+              default_preference_state: { "channels" => { "push" => true }, "inbox" => true },
+              label: "Example",
+              category_key: "example",
+              category_order: 1,
+              category_label: "Example",
+              type_order: 1,
+              urgency: { default: "normal", allowed: %w[normal time_sensitive] },
+              sound: { default: "default", allowed: %w[default chime] },
+              badge_eligible:,
+            ),
+          )
+          CommandTower::Messaging::NotificationTypes.seal
+          create(
+            :messaging_notification_preference,
+            user:,
+            notification_type_key: type_key,
+            state: { "channels" => {}, "inbox" => true, "urgency" => "time_sensitive", "sound" => "chime" },
+          )
+        end
+
+        let(:deliver_and_capture) do
+          lambda do
+            delivery.update!(status: "queued")
+            allow(http_client).to receive(:send_messages) do |messages|
+              sent_messages << messages.first
+              { ok: true, status_code: 200, tickets: [ok_ticket.call("t-#{sent_messages.size}")] }
+            end
+            described_class.call(channel_delivery_id: delivery.id, executor:)
+            delivery.reload
+          end
+        end
+
+        context "when the host supports time sensitive" do
+          let(:supported_levels) { %w[normal time_sensitive] }
+
+          it "sends the stored sound asset and the Expo interruption level" do
+            deliver_and_capture.call
+
+            expect(sent_messages.first).to include("sound" => "chime.wav", "interruptionLevel" => "time-sensitive")
+            expect(sent_messages.first).not_to have_key("badge")
+          end
+        end
+
+        context "when the host keeps the default supported levels" do
+          it "sends the sound but no interruption level" do
+            deliver_and_capture.call
+
+            expect(sent_messages.first).to include("sound" => "chime.wav")
+            expect(sent_messages.first).not_to have_key("interruptionLevel")
+            expect(sent_messages.first).not_to have_key("badge")
+          end
+        end
+
+        context "when the member changes the choice between attempts" do
+          let(:supported_levels) { %w[normal time_sensitive] }
+
+          before do
+            deliver_and_capture.call
+            CommandTower::Messaging::NotificationPreference.find_by!(user_id: user.id, notification_type_key: type_key)
+              .update!(state: { "channels" => {}, "inbox" => true })
+            deliver_and_capture.call
+          end
+
+          it "sent the stored choice on the first attempt" do
+            expect(sent_messages.first).to include("sound" => "chime.wav", "interruptionLevel" => "time-sensitive")
+            expect(sent_messages.first).not_to have_key("badge")
+          end
+
+          it "re-reads the preference and sends the defaults on the next attempt" do
+            expect(sent_messages.last).to include("sound" => "default")
+            expect(sent_messages.last).not_to have_key("interruptionLevel")
+            expect(sent_messages.last).not_to have_key("badge")
+          end
+        end
+
+        context "when the type is badge eligible" do
+          let(:badge_eligible) { true }
+
+          before { create(:messaging_inbox_item, communication:) }
+
+          context "when the unread item is sent" do
+            before { deliver_and_capture.call }
+
+            it "posts the absolute eligible unread count" do
+              expect(sent_messages.first).to include("badge" => 1)
+            end
+          end
+
+          context "when the item is viewed between attempts" do
+            before do
+              deliver_and_capture.call
+              communication.inbox_item.update!(viewed_at: Time.current, status: "viewed")
+              deliver_and_capture.call
+            end
+
+            it "posted the count including the item on the first attempt" do
+              expect(sent_messages.first).to include("badge" => 1)
+            end
+
+            it "recounts and posts zero after the item is viewed" do
+              expect(sent_messages.last).to include("badge" => 0)
+            end
+          end
+        end
+      end
+
+      context "with mixed outcomes over three attempts" do
+        before do
+          run_delivery.call(ok: true, status_code: 200, tickets: [ok_ticket.call("t-1")])
+          run_delivery.call(ok: true, status_code: 200, tickets: [ok_ticket.call("t-2")])
+          run_delivery.call(ok: true, status_code: 200, tickets: [ok_ticket.call("t-3")])
+        end
+
+        it "ends accepted after three attempts and sends only to unsettled devices" do
+          expect(delivery.status).to eq("accepted_by_provider")
+          expect(delivery.execution_attempt_count).to eq(3)
+          expect(posted_tokens.map(&:size)).to eq([3, 2, 1])
+          expect(delivery.delivery_attempts.order(:id).pluck(:status))
+            .to eq(%w[failed_retryable failed_retryable succeeded])
+        end
+
+        it "records each attempt's own devices" do
+          expect(attempt_metadata.call(0).pluck("ticket_status")).to eq(%w[ok missing missing])
+          expect(attempt_metadata.call(1).pluck("ticket_status")).to eq(%w[ok missing])
+          expect(attempt_metadata.call(2).pluck("ticket_status")).to eq(%w[ok])
+          expect(delivery.delivery_attempts.order(:id).last.provider_message_id).to eq("t-3")
+        end
+      end
+
+      context "when the first attempt is retryable" do
+        before { run_delivery.call(ok: true, status_code: 200, tickets: [ok_ticket.call("t-1")]) }
+
+        it "is failed_retryable with one attempt and a retry is expected" do
+          expect(delivery.status).to eq("failed_retryable")
+          expect(delivery.execution_attempt_count).to eq(1)
+          expect(CommandTower::Messaging::DeliveryRetryPolicy.retry_expected?(delivery)).to eq(true)
+        end
+      end
+
+      context "when a retry gets a whole-request 400 after a device was accepted" do
+        before do
+          run_delivery.call(ok: true, status_code: 200, tickets: [ok_ticket.call("t-1")])
+          run_delivery.call(ok: false, status_code: 400, tickets: [])
+          delivery.update_columns(updated_at: 5.minutes.ago)
+          clear_enqueued_jobs
+        end
+
+        it "ends failed_terminal with the accepted ticket carried in the attempt metadata" do
+          expect(delivery.status).to eq("failed_terminal")
+          expect(delivery.execution_attempt_count).to eq(2)
+          expect(posted_tokens.map(&:size)).to eq([3, 2])
+          expect(attempt_metadata.call(1).find { |entry| entry["ticket_id"] == "t-1" })
+            .to include("ticket_status" => "ok")
+        end
+
+        it "is not redriven by recovery" do
+          CommandTower::Messaging::Execution::Recovery.call(grace_window: 1.minute)
+
+          expect(delivery.reload.status).to eq("failed_terminal")
+          expect(CommandTower::Messaging::ChannelDeliveryExecutionJob).not_to have_been_enqueued
+        end
+      end
+
+      context "when receipts were still pending at send time and arrive later" do
+        let(:late_receipts) { { "t-2" => { status: "error", message: "gone", error: "DeviceNotRegistered" } } }
+        let(:accepted_tickets) { %w[t-1 t-2 t-3].map { |id| ok_ticket.call(id) } }
+
+        before do
+          allow(http_client).to receive(:get_receipts).and_return(ok: true, status_code: 200, receipts: {})
+          run_delivery.call(ok: true, status_code: 200, tickets: accepted_tickets)
+          CommandTower.config.messaging.expo.adapter = "http"
+          allow(CommandTower::Messaging::Execution::Adapters::Expo::HttpClient).to receive(:new).and_return(http_client)
+          allow(http_client).to receive(:get_receipts).and_return(ok: true, status_code: 200, receipts: late_receipts)
+          clear_enqueued_jobs
+          CommandTower::Messaging::Execution::Recovery.call
+        end
+
+        it "records the late receipt and invalidates the endpoint without resending" do
+          expect(attempt_metadata.call(0).pluck("receipt_status")).to eq(%w[pending error pending])
+          expect(attempt_metadata.call(0)[1]).to include("error_code" => "expo_device_invalid")
+          expect(second_endpoint.reload.lifecycle_state).to eq("invalid")
+          expect(posted_tokens.size).to eq(1)
+        end
+
+        it "keeps the delivery status and attempt count" do
+          expect(delivery.reload.status).to eq("accepted_by_provider")
+          expect(delivery.execution_attempt_count).to eq(1)
+          expect(delivery.delivery_attempts.count).to eq(1)
+          expect(CommandTower::Messaging::ChannelDeliveryExecutionJob).not_to have_been_enqueued
+        end
       end
     end
 

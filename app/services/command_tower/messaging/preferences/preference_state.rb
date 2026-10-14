@@ -3,7 +3,7 @@
 module CommandTower
   module Messaging
     module Preferences
-      PreferenceState = Data.define(:channels, :inbox) do
+      PreferenceState = Data.define(:channels, :inbox, :urgency, :sound) do
         def self.normalize(raw)
           return nil if raw.nil?
 
@@ -31,17 +31,35 @@ module CommandTower
 
           inbox = hash.key?("inbox") ? !!hash["inbox"] : nil
 
-          new(channels:, inbox:).freeze
+          new(
+            channels:,
+            inbox:,
+            urgency: optional_string(hash["urgency"]),
+            sound: optional_string(hash["sound"]),
+          ).freeze
         end
 
         def self.from_declaration_default(default_preference_state)
-          normalize(default_preference_state) || new(channels: {}.freeze, inbox: nil).freeze
+          normalize(default_preference_state) || new(channels: {}.freeze, inbox: nil, urgency: nil, sound: nil).freeze
         end
+
+        def self.optional_string(value)
+          return nil unless value.is_a?(String)
+
+          stripped = value.strip
+          stripped.empty? ? nil : stripped
+        end
+        private_class_method :optional_string
 
         def merge_over(base)
           merged_channels = base.channels.merge(channels)
           merged_inbox = inbox.nil? ? base.inbox : inbox
-          self.class.new(channels: merged_channels.freeze, inbox: merged_inbox).freeze
+          self.class.new(
+            channels: merged_channels.freeze,
+            inbox: merged_inbox,
+            urgency: urgency.nil? ? base.urgency : urgency,
+            sound: sound.nil? ? base.sound : sound,
+          ).freeze
         end
 
         def channel_enabled?(channel_key, default: true)
@@ -53,6 +71,8 @@ module CommandTower
         def to_raw_hash
           hash = { "channels" => channels.to_h }
           hash["inbox"] = inbox unless inbox.nil?
+          hash["urgency"] = urgency unless urgency.nil?
+          hash["sound"] = sound unless sound.nil?
           hash
         end
       end

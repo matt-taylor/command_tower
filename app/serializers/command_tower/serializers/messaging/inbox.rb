@@ -73,7 +73,7 @@ module CommandTower
 
         class UnreadCountSerializer
           def self.serialize(payload)
-            { count: payload.fetch(:count) }
+            { count: payload.fetch(:count), badgeCount: payload.fetch(:badge_count) }
           end
         end
 

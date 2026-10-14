@@ -35,6 +35,12 @@ module CommandTower
         deleted_at.present?
       end
 
+      # NPB-5. Archived rows still open the inbox. Deleted rows do not.
+      # ChannelRenderer and the Expo adapter both use this predicate.
+      def live_for_push?
+        !deleted?
+      end
+
       def unread?
         !viewed? && !archived? && !deleted?
       end

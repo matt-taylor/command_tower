@@ -80,6 +80,13 @@ RSpec.describe CommandTower::Messaging::Rendering::RenderError do
 end
 
 RSpec.describe CommandTower::Messaging::Rendering::ChannelRenderer, :messaging_accept do
+  around do |example|
+    previous_home = CommandTower.config.messaging.expo.home_deep_link
+    example.run
+  ensure
+    CommandTower.config.messaging.expo.home_deep_link = previous_home
+  end
+
   let(:user) { create(:user, email: "recipient@example.com") }
   let(:communication) do
     create(
@@ -263,9 +270,125 @@ RSpec.describe CommandTower::Messaging::Rendering::ChannelRenderer, :messaging_a
       end
     end
 
-    context "for push without deep_link" do
+    context "for push presentation" do
+      subject(:payload) do
+        described_class.render(communication:, channel_key: "push", recipient_address: "99")
+      end
+
+      before { communication.update!(title: "Hi", body: "Body", metadata: { "deep_link" => "pickem://x" }) }
+
+      it "renders the default presentation for an unregistered type and records one fallback" do
+        expect(CommandTower::Messaging::Execution::OperationLogger).to receive(:push_presentation_fallback)
+          .with(communication:, reason_code: "type_unregistered", channel_delivery: nil)
+
+        expect(payload).to have_attributes(sound: nil, urgency: "normal", thread_id: nil, badge: nil)
+      end
+
+      context "with a registered type and a conversation" do
+        let(:host_sounds) { [{ id: "chime", label: "Chime", asset: "chime.wav" }] }
+        let(:badge_eligible) { false }
+
+        around do |example|
+          previous = CommandTower.config.messaging.sounds
+          example.run
+        ensure
+          CommandTower.config.messaging.sounds = previous
+          CommandTower::Messaging::NotificationTypes.reset!
+        end
+
+        before do
+          CommandTower.config.messaging.sounds = host_sounds
+          CommandTower::Messaging::NotificationTypes.reset!
+          CommandTower::Messaging::NotificationTypes.register(
+            CommandTower::Messaging::NotificationTypes::Declaration.build(
+              key: communication.notification_type_key,
+              allowed_channels: %w[push],
+              default_channels: %w[push],
+              inbox_available: true,
+              user_configurable: true,
+              mandatory: false,
+              default_preference_state: { "channels" => { "push" => true }, "inbox" => true },
+              label: "Example",
+              category_key: "example",
+              category_label: "Example",
+              category_order: 1,
+              type_order: 1,
+              urgency: { default: "normal", allowed: %w[normal time_sensitive] },
+              sound: { default: "default", allowed: %w[default chime] },
+              badge_eligible:,
+            ),
+          )
+          CommandTower::Messaging::NotificationTypes.seal
+          create(
+            :messaging_notification_preference,
+            user:,
+            notification_type_key: communication.notification_type_key,
+            state: { "channels" => {}, "inbox" => true, "urgency" => "time_sensitive", "sound" => "chime" },
+          )
+          communication.update!(conversation_key: "league.1.period.2", conversation_title: "Friends · Week 2")
+        end
+
+        it "carries the effective sound, urgency, and conversation thread" do
+          expect(payload).to have_attributes(
+            sound: "chime.wav",
+            urgency: "time_sensitive",
+            thread_id: "league.1.period.2",
+            deep_link: "pickem://x",
+            badge: nil,
+          )
+        end
+
+        context "when the type is badge eligible and has an unread inbox item" do
+          let(:badge_eligible) { true }
+
+          before { create(:messaging_inbox_item, communication:) }
+
+          it "carries the eligible unread count and the same deep link" do
+            expect(payload).to have_attributes(badge: 1, deep_link: "pickem://x")
+          end
+        end
+
+        it "does not add presentation to email, SMS, or Pushover renders" do
+          expect(CommandTower::Messaging::Rendering::PushPresentation).not_to receive(:call)
+
+          described_class.render(communication:, channel_key: "email", recipient_address: "a@example.com")
+        end
+      end
+    end
+
+    context "for push with deep_link metadata when Home is a callable" do
+      let(:home_calls) { [] }
+
+      before do
+        communication.update!(
+          title: "Announcement",
+          body: "Season opens tonight.",
+          metadata: { "deep_link" => "pickem://announcements/1" },
+        )
+        CommandTower.config.messaging.expo.home_deep_link = lambda {
+          home_calls << true
+          "pickem://home"
+        }
+      end
+
+      subject(:payload) do
+        described_class.render(
+          communication:,
+          channel_key: "push",
+          recipient_address: "99",
+        )
+      end
+
+      it "keeps the metadata deep link and does not call Home" do
+        expect(payload.deep_link).to eq("pickem://announcements/1")
+        expect(home_calls).to be_empty
+      end
+    end
+
+    context "for push without deep_link and a live inbox item" do
       before do
         communication.update!(title: "Hi", body: "Body only", metadata: nil)
+        create(:messaging_inbox_item, communication:)
       end
 
       subject(:payload) do
@@ -276,9 +399,212 @@ RSpec.describe CommandTower::Messaging::Rendering::ChannelRenderer, :messaging_a
         )
       end
 
-      it "renders a nil deep_link when metadata has none" do
+      it "renders a nil deep_link when a live inbox item is the destination" do
+        expect(CommandTower::Messaging::Execution::OperationLogger).not_to receive(:push_destination_fallback)
         expect(payload.deep_link).to be_nil
         expect(payload.body).to eq("Body only")
+      end
+    end
+
+    context "for push without deep_link and an archived inbox item" do
+      before do
+        communication.update!(title: "Hi", body: "Still there", metadata: nil)
+        create(:messaging_inbox_item, :archived, communication:)
+      end
+
+      subject(:payload) do
+        described_class.render(
+          communication:,
+          channel_key: "push",
+          recipient_address: "7",
+        )
+      end
+
+      it "treats an archived item as a live destination" do
+        expect(CommandTower::Messaging::Execution::OperationLogger).not_to receive(:push_destination_fallback)
+        expect(payload.deep_link).to be_nil
+      end
+    end
+
+    context "for push with a deep link and a live inbox item" do
+      before do
+        communication.update!(
+          title: "Both",
+          body: "Link and inbox",
+          metadata: { "deep_link" => "pickem://announcements/2" },
+        )
+        create(:messaging_inbox_item, communication:)
+      end
+
+      subject(:payload) do
+        described_class.render(
+          communication:,
+          channel_key: "push",
+          recipient_address: "7",
+        )
+      end
+
+      it "keeps the metadata deep link" do
+        expect(payload.deep_link).to eq("pickem://announcements/2")
+      end
+    end
+
+    context "for a destinationless push" do
+      before do
+        communication.update!(title: "Hi", body: "Nowhere", metadata: nil)
+        CommandTower.config.messaging.expo.home_deep_link = "pickem://home"
+      end
+
+      subject(:payload) do
+        described_class.render(
+          communication:,
+          channel_key: "push",
+          recipient_address: "7",
+        )
+      end
+
+      it "substitutes Home and logs destination_missing without creating an inbox item" do
+        expect(CommandTower::Messaging::Execution::OperationLogger).to receive(:push_destination_fallback).with(
+          communication:,
+          reason_code: "destination_missing",
+          level: :error,
+          channel_delivery: nil,
+        )
+
+        expect { payload.deep_link }.not_to change(CommandTower::Messaging::InboxItem, :count)
+        expect(payload.deep_link).to eq("pickem://home")
+      end
+    end
+
+    context "for a destinationless push when inbox was turned off" do
+      before do
+        communication.update!(title: "Hi", body: "Inbox off", metadata: nil)
+        create(
+          :messaging_destination_plan,
+          communication:,
+          decision: {
+            "selected_channels" => %w[push],
+            "inbox_selected" => false,
+            "mandatory" => false,
+            "platform_enabled_channels" => %w[push],
+            "excluded_destinations" => [
+              { "destination" => "inbox", "reason_class" => "suppressed_by_preference" },
+            ],
+          },
+        )
+        CommandTower.config.messaging.expo.home_deep_link = "pickem://home"
+      end
+
+      subject(:payload) do
+        described_class.render(
+          communication:,
+          channel_key: "push",
+          recipient_address: "7",
+        )
+      end
+
+      it "substitutes Home and logs inbox_disabled at info" do
+        expect(CommandTower::Messaging::Execution::OperationLogger).to receive(:push_destination_fallback).with(
+          communication:,
+          reason_code: "inbox_disabled",
+          level: :info,
+          channel_delivery: nil,
+        )
+        expect(payload.deep_link).to eq("pickem://home")
+        expect(communication.reload.inbox_item).to be_nil
+      end
+    end
+
+    context "for a destinationless push excluded by policy" do
+      before do
+        communication.update!(title: "Hi", body: "Policy", metadata: nil)
+        create(
+          :messaging_destination_plan,
+          communication:,
+          decision: {
+            "selected_channels" => %w[push],
+            "inbox_selected" => false,
+            "mandatory" => false,
+            "platform_enabled_channels" => %w[push],
+            "excluded_destinations" => [
+              { "destination" => "inbox", "reason_class" => "skipped_by_policy" },
+            ],
+          },
+        )
+        CommandTower.config.messaging.expo.home_deep_link = "pickem://home"
+      end
+
+      subject(:payload) do
+        described_class.render(
+          communication:,
+          channel_key: "push",
+          recipient_address: "7",
+        )
+      end
+
+      it "substitutes Home and logs destination_missing" do
+        expect(CommandTower::Messaging::Execution::OperationLogger).to receive(:push_destination_fallback).with(
+          communication:,
+          reason_code: "destination_missing",
+          level: :error,
+          channel_delivery: nil,
+        )
+        expect(payload.deep_link).to eq("pickem://home")
+      end
+    end
+
+    context "for a destinationless push whose inbox item was deleted" do
+      before do
+        communication.update!(title: "Hi", body: "Deleted", metadata: nil)
+        create(:messaging_inbox_item, :deleted, communication:)
+        CommandTower.config.messaging.expo.home_deep_link = "pickem://home"
+      end
+
+      subject(:payload) do
+        described_class.render(
+          communication:,
+          channel_key: "push",
+          recipient_address: "7",
+        )
+      end
+
+      it "substitutes Home and logs destination_missing" do
+        expect(CommandTower::Messaging::Execution::OperationLogger).to receive(:push_destination_fallback).with(
+          communication:,
+          reason_code: "destination_missing",
+          level: :error,
+          channel_delivery: nil,
+        )
+        expect(payload.deep_link).to eq("pickem://home")
+      end
+    end
+
+    context "for a destinationless push when Home cannot be resolved" do
+      before do
+        communication.update!(title: "Hi", body: "No home", metadata: nil)
+        CommandTower.config.messaging.expo.home_deep_link = lambda { " " }
+      end
+
+      subject(:payload) do
+        described_class.render(
+          communication:,
+          channel_key: "push",
+          recipient_address: "7",
+        )
+      end
+
+      it "fails terminally and does not invent a link" do
+        expect(CommandTower::Messaging::Execution::OperationLogger).to receive(:push_destination_fallback).with(
+          communication:,
+          reason_code: "home_deep_link_unresolved",
+          level: :error,
+          channel_delivery: nil,
+        )
+
+        expect { payload }.to raise_error(CommandTower::Messaging::Rendering::RenderError) { |error|
+          expect(error.code).to eq("render_failed")
+          expect(error.error_class).to eq("HomeDeepLinkUnresolved")
+        }
       end
     end
 
@@ -418,6 +744,8 @@ RSpec.describe CommandTower::Messaging::Rendering::ChannelRenderer, :messaging_a
           metadata: nil,
         )
       end
+
+      before { create(:messaging_inbox_item, communication: communication_with_type) }
 
       subject(:push_payload) do
         described_class.render(
