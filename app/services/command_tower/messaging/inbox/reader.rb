@@ -65,12 +65,25 @@ module CommandTower
 
           def unread_count(recipient_id:)
             recipient_id = require_recipient_id!(recipient_id)
+            unread = Scope.for_recipient(recipient_id).merge(Messaging::InboxItem.unread)
 
-            count = Scope.for_recipient(recipient_id).merge(Messaging::InboxItem.unread).count
-            UnreadCountResult.build(recipient_id:, count:)
+            UnreadCountResult.build(
+              recipient_id:,
+              count: unread.count,
+              badge_count: badge_eligible_count(unread),
+            )
           end
 
           private
+
+          # Unread rows whose declaration is badge_eligible. Unregistered keys are absent
+          # from that set. Channel preferences are not consulted.
+          def badge_eligible_count(unread)
+            keys = CommandTower::Messaging::NotificationTypes.enumerate.select(&:badge_eligible).map(&:key)
+            return 0 if keys.empty?
+
+            unread.where(messaging_communications: { notification_type_key: keys }).count
+          end
 
           def require_recipient_id!(recipient_id)
             raise ValidationError, "recipient_id is required" if blank?(recipient_id)

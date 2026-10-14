@@ -118,6 +118,84 @@ RSpec.describe "Messaging execution observability", :messaging_accept do
     end
   end
 
+  context "when the adapter result carries per-device provider_metadata" do
+    let(:accepted_event_name) { "command_tower.messaging.execution.adapter.accepted" }
+    let(:count_keys) { %i[endpoint_count ticket_ok_count ticket_error_count receipt_pending_count] }
+    let(:provider_metadata) do
+      {
+        "expo" => {
+          "endpoints" => [
+            { "endpoint_id" => 11, "ticket_id" => "t-1", "ticket_status" => "ok", "receipt_status" => "pending" },
+            {
+              "endpoint_id" => 12, "ticket_id" => "ticket-second-9f3a",
+              "ticket_status" => "ok", "receipt_status" => "ok"
+            },
+            {
+              "endpoint_id" => 13, "ticket_status" => "error",
+              "receipt_status" => "unchecked", "error_code" => "expo_rejected"
+            },
+            { "endpoint_id" => 14, "ticket_status" => "missing", "receipt_status" => "unchecked" },
+            { "endpoint_id" => 15, "error_code" => "recipient_missing" },
+          ],
+        },
+      }
+    end
+    let(:adapter) do
+      instance_double(
+        CommandTower::Messaging::Execution::Adapters::FakeAdapter,
+        call: CommandTower::Messaging::Execution::AdapterResult.build(
+          outcome: :success,
+          normalized_provider_status: "accepted",
+          provider_message_id: "t-1",
+          provider_metadata:,
+        ),
+      )
+    end
+    let(:accepted_event) do
+      payloads.find { |payload| (payload[:event] || payload["event"]) == accepted_event_name }
+    end
+    let(:dump) { serialized.call(payloads) }
+
+    before do
+      CommandTower::Workflows::Messaging::Execution::DeliverWorkflow.call(
+        channel_delivery_id: delivery.id,
+        executor: adapter,
+      )
+    end
+
+    it "adds counts to adapter.accepted and nothing identifying" do
+      expect(accepted_event.slice(*count_keys)).to eq(
+        endpoint_count: 5,
+        ticket_ok_count: 2,
+        ticket_error_count: 2,
+        receipt_pending_count: 1,
+      )
+      expect(dump).not_to include("ExponentPushToken")
+      expect(dump).not_to include("ticket-second-9f3a")
+      expect(dump).not_to include("Secret Title Payload")
+    end
+  end
+
+  context "when the adapter result has no provider_metadata" do
+    let(:accepted_event_name) { "command_tower.messaging.execution.adapter.accepted" }
+    let(:count_keys) { %i[endpoint_count ticket_ok_count ticket_error_count receipt_pending_count] }
+    let(:adapter) { CommandTower::Messaging::Execution::Adapters::FakeAdapter.new(outcome: :success) }
+    let(:accepted_event) do
+      payloads.find { |payload| (payload[:event] || payload["event"]) == accepted_event_name }
+    end
+
+    before do
+      CommandTower::Workflows::Messaging::Execution::DeliverWorkflow.call(
+        channel_delivery_id: delivery.id,
+        executor: adapter,
+      )
+    end
+
+    it "adds no count fields" do
+      expect(accepted_event.keys).not_to include(*count_keys)
+    end
+  end
+
   context "when adapter returns terminal failure" do
     let(:adapter) do
       CommandTower::Messaging::Execution::Adapters::FakeAdapter.new(
@@ -141,6 +219,47 @@ RSpec.describe "Messaging execution observability", :messaging_accept do
       expect(terminal_event).to be_present
       expect(terminal_event[:error_code] || terminal_event["error_code"]).to eq("smtp_rejected")
       expect(serialized.call(payloads)).not_to include(user.email)
+    end
+  end
+
+  context "when the receipt sweep reports counts" do
+    let(:event_name) { "command_tower.messaging.execution.receipts.collected" }
+    let(:counts) do
+      {
+        attempt_count: 2, receipt_ok_count: 1, receipt_error_count: 1, receipt_unchecked_count: 0,
+        invalidated_count: 1, poll_failure_count: 0, update_failure_count: 0
+      }
+    end
+    let(:events) { payloads.select { |payload| payload[:event] == event_name } }
+    let(:identifying_keys) { %i[channel_delivery_id communication_id delivery_attempt_id endpoint_id ticket_id] }
+
+    context "with activity and no failures" do
+      before { CommandTower::Messaging::Execution::OperationLogger.receipts_collected(counts) }
+
+      it "emits one info event with counts only" do
+        expect(events.size).to eq(1)
+        expect(events.first.slice(*counts.keys)).to eq(counts)
+        expect(events.first[:log_level].to_s).to eq("info")
+        expect(events.first.keys & identifying_keys).to be_empty
+      end
+    end
+
+    context "with a failure count" do
+      let(:failing_counts) { counts.merge(update_failure_count: 1) }
+
+      before { CommandTower::Messaging::Execution::OperationLogger.receipts_collected(failing_counts) }
+
+      it "emits at error level" do
+        expect(events.first[:log_level].to_s).to eq("error")
+      end
+    end
+
+    context "with every count zero" do
+      before { CommandTower::Messaging::Execution::OperationLogger.receipts_collected(counts.transform_values { 0 }) }
+
+      it "emits nothing" do
+        expect(events).to be_empty
+      end
     end
   end
 end

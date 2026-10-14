@@ -26,6 +26,7 @@ module CommandTower
                CommandTower::Errors::Account::PushoverVerificationFailedError,
                CommandTower::Errors::Account::PushEndpointNotFoundError,
                CommandTower::Errors::Account::PushTestNoEndpointError,
+               CommandTower::Errors::Account::PushTestDestinationError,
                CommandTower::Errors::ValidationError
             :unprocessable_entity
           when CommandTower::Errors::Account::PhoneVerificationThrottledError,

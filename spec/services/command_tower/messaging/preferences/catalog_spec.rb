@@ -212,5 +212,13 @@ RSpec.describe CommandTower::Messaging::Preferences::Catalog, :messaging_prefere
       expect(result).to be_a(CommandTower::Messaging::Preferences::CatalogResult)
       expect(result.categories.length).to eq(1)
     end
+
+    let(:notification) { result.categories.first.notifications.first }
+
+    it "reports fixed urgency and System Default sound" do
+      expect(notification.urgency).to include(selectable: false, effective: "normal", default: "normal")
+      expect(notification.sound).to include(selectable: false, effective: "default")
+      expect(notification.sound[:allowed].first).not_to have_key(:asset)
+    end
   end
 end

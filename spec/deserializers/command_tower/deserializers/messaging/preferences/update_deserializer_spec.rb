@@ -59,6 +59,33 @@ RSpec.describe CommandTower::Deserializers::Messaging::Preferences::UpdateDeseri
       end
     end
 
+    context "with urgency and sound" do
+      subject(:result) do
+        described_class.call(
+          notification_type_key: "booking_confirmation",
+          preferences: { "urgency" => " time_sensitive ", "sound" => "chime" },
+        )
+      end
+
+      it "keeps the stripped strings" do
+        expect(result).to be_success
+        expect(result.input.preference_state).to eq("urgency" => "time_sensitive", "sound" => "chime")
+      end
+    end
+
+    context "when urgency is not a string" do
+      subject(:result) do
+        described_class.call(
+          notification_type_key: "booking_confirmation",
+          preferences: { "urgency" => true },
+        )
+      end
+
+      it "rejects the value" do
+        expect(result).to be_failure
+      end
+    end
+
     context "with unexpected preference fields" do
       subject(:result) do
         described_class.call(

@@ -8,6 +8,7 @@ module CommandTower
         :normalized_provider_status,
         :provider_message_id,
         :error_code,
+        :provider_metadata,
       ) do
         OUTCOMES = %i[success retryable_failure terminal_failure].freeze
 
@@ -15,7 +16,8 @@ module CommandTower
           outcome:,
           normalized_provider_status: nil,
           provider_message_id: nil,
-          error_code: nil
+          error_code: nil,
+          provider_metadata: nil
         )
           raise InvalidAdapterContractError, "arbitrary hashes are not accepted as outcome" if outcome.is_a?(Hash)
           raise InvalidAdapterContractError, "raw exception objects are not accepted" if exception_like?(outcome) ||
@@ -28,12 +30,14 @@ module CommandTower
           validate_optional_string!(normalized_provider_status, "normalized_provider_status")
           validate_optional_string!(provider_message_id, "provider_message_id")
           validate_optional_string!(error_code, "error_code")
+          validate_optional_hash!(provider_metadata, "provider_metadata")
 
           new(
             outcome: normalized_outcome,
             normalized_provider_status:,
             provider_message_id:,
             error_code:,
+            provider_metadata:,
           ).freeze
         end
 
@@ -52,6 +56,12 @@ module CommandTower
           raise InvalidAdapterContractError, "#{field_name} must be a String" unless value.is_a?(String)
         end
         private_class_method :validate_optional_string!
+
+        def self.validate_optional_hash!(value, field_name)
+          return if value.nil?
+          raise InvalidAdapterContractError, "#{field_name} must be a Hash" unless value.is_a?(Hash)
+        end
+        private_class_method :validate_optional_hash!
 
         def self.exception_like?(value)
           value.is_a?(Exception)

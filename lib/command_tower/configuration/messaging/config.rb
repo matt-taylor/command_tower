@@ -46,6 +46,16 @@ module CommandTower
           default: ->(_selection) { [] },
           default_shown: "->(_selection) { [] }"
 
+        add_composer :sounds,
+          desc: "Host-registered push sounds appended to the engine's System Default " \
+                "(id \"default\", no bundled asset). Array of { id:, label:, asset: } hashes; " \
+                "`asset` is the native file reference. Ids are lowercase snake_case and unique. " \
+                "Physical asset availability is verified by the iOS app, not here. " \
+                "Validated at notification-type registry seal.",
+          allowed: Array,
+          default: [],
+          default_shown: "[]"
+
         add_composer :sms,
           desc: "Messaging notification SMS delivery configuration (not Identity OTP)",
           allowed: Sms,

@@ -18,6 +18,8 @@ module CommandTower
         20260906180000_create_user_experience_states.rb
         20261010000001_add_inbox_presentation_snapshot_to_messaging_communications.rb
         20261010000002_add_conversation_identity_to_messaging_communications.rb
+        20261012000001_add_provider_metadata_to_messaging_delivery_attempts.rb
+        20261012000002_add_finished_at_index_to_messaging_delivery_attempts.rb
       ].freeze
 
       module_function

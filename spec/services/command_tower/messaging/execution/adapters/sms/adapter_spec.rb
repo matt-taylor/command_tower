@@ -182,7 +182,9 @@ RSpec.describe CommandTower::Messaging::Execution::Adapters::Sms::Adapter do
 
     it "does not leak raw provider objects outside AdapterResult" do
       expect(result).to be_a(CommandTower::Messaging::Execution::AdapterResult)
-      expect(result.members).to eq(%i[outcome normalized_provider_status provider_message_id error_code])
+      expect(result.members).to eq(
+        %i[outcome normalized_provider_status provider_message_id error_code provider_metadata],
+      )
     end
   end
 end

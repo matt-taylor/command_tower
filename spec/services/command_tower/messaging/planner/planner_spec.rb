@@ -287,6 +287,128 @@ RSpec.describe CommandTower::Messaging::Planner::Planner, :messaging_planner do
       end
     end
   end
+
+  # NPB-1: Inbox, Push, and Email are independent channels on today's declaration fields.
+  context "with channel shapes" do
+    let(:notification_type_key) { "shape.type" }
+    let(:allowed_channels) { %w[email push] }
+    let(:default_channels) { %w[email push] }
+    let(:inbox_available) { true }
+    let(:default_state) { { "channels" => { "email" => true, "push" => true }, "inbox" => true } }
+    let(:stored_state) { nil }
+
+    around do |example|
+      previous = CommandTower.config.messaging.expo.adapter
+      previous_home = CommandTower.config.messaging.expo.home_deep_link
+      CommandTower.config.messaging.expo.adapter = "fake"
+      CommandTower.config.messaging.expo.home_deep_link = "pickem://home"
+      example.run
+    ensure
+      CommandTower.config.messaging.expo.adapter = previous
+      CommandTower.config.messaging.expo.home_deep_link = previous_home
+    end
+
+    before do
+      endpoint = CommandTower::Messaging::Endpoints.create(
+        owner_user_id: user.id,
+        channel_key: "push",
+        address: "ExponentPushToken[shape0001]",
+      )
+      CommandTower::Messaging::Endpoint.find(endpoint.id).update!(
+        verification_state: "verified",
+        verified_at: Time.current,
+      )
+      register_and_seal_notification_types(
+        build_notification_type_declaration(
+          key: notification_type_key,
+          allowed_channels:,
+          default_channels:,
+          inbox_available:,
+          deep_link_required: Array(allowed_channels).include?("push") && !inbox_available,
+          default_preference_state: default_state,
+        ),
+      )
+      unless stored_state.nil?
+        upsert_notification_preference!(
+          recipient_id:,
+          notification_type_key:,
+          preference_state: stored_state,
+        )
+      end
+    end
+
+    subject(:result) { plan.call }
+
+    context "with an inbox-only type" do
+      let(:allowed_channels) { [] }
+      let(:default_channels) { [] }
+      let(:default_state) { { "channels" => {}, "inbox" => true } }
+
+      it "selects the inbox and no external channel" do
+        expect(result.selected_channels).to be_empty
+        expect(result.inbox_selected).to be(true)
+      end
+    end
+
+    context "with a push-only type" do
+      let(:allowed_channels) { %w[push] }
+      let(:default_channels) { %w[push] }
+      let(:inbox_available) { false }
+      let(:default_state) { { "channels" => { "push" => true }, "inbox" => false } }
+
+      it "selects push and not the inbox" do
+        expect(result.selected_channels).to eq(%w[push])
+        expect(result.inbox_selected).to be(false)
+      end
+    end
+
+    context "with a push opt-in type" do
+      let(:allowed_channels) { %w[push] }
+      let(:default_channels) { %w[push] }
+      let(:default_state) { { "channels" => { "push" => false }, "inbox" => true } }
+
+      it "selects only the inbox until the member opts in" do
+        expect(result.selected_channels).to be_empty
+        expect(result.inbox_selected).to be(true)
+      end
+
+      context "when the member turns push on" do
+        let(:stored_state) { build_preference_state(channels: { "push" => true }, inbox: true) }
+
+        it "selects push and the inbox" do
+          expect(result.selected_channels).to eq(%w[push])
+          expect(result.inbox_selected).to be(true)
+        end
+      end
+    end
+
+    context "when the member turns push off" do
+      let(:stored_state) { build_preference_state(channels: { "push" => false }, inbox: true) }
+
+      it "leaves email and the inbox selected" do
+        expect(result.selected_channels).to eq(%w[email])
+        expect(result.inbox_selected).to be(true)
+      end
+    end
+
+    context "when the member turns the inbox off" do
+      let(:stored_state) { build_preference_state(channels: { "email" => true, "push" => true }, inbox: false) }
+
+      it "leaves email and push selected" do
+        expect(result.selected_channels).to contain_exactly("email", "push")
+        expect(result.inbox_selected).to be(false)
+      end
+    end
+
+    context "when the member turns email off" do
+      let(:stored_state) { build_preference_state(channels: { "email" => false }, inbox: true) }
+
+      it "leaves push and the inbox selected" do
+        expect(result.selected_channels).to eq(%w[push])
+        expect(result.inbox_selected).to be(true)
+      end
+    end
+  end
 end
 
 RSpec.describe CommandTower::Messaging::Planner, :messaging_planner do

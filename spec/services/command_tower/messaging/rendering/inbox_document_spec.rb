@@ -202,5 +202,57 @@ RSpec.describe CommandTower::Messaging::Rendering::InboxDocument do
         expect(document.blocks).to eq([])
       end
     end
+
+    context "when authoring an instant" do
+      let(:utc) { Time.utc(2026, 10, 14, 1, 0, 0) }
+
+      context "with a Time" do
+        subject(:document) { described_class.compose { |doc| doc.instant(utc) } }
+
+        it "stores it as UTC ISO-8601" do
+          expect(document.schema).to eq("inbox_document_v1")
+          expect(document.blocks).to eq([{ type: "instant", at: "2026-10-14T01:00:00Z" }])
+        end
+      end
+
+      context "with an offset ISO string" do
+        subject(:document) { described_class.compose { |doc| doc.instant("2026-10-13T18:00:00-07:00") } }
+
+        it "normalizes it to UTC" do
+          expect(document.blocks).to eq([{ type: "instant", at: "2026-10-14T01:00:00Z" }])
+        end
+      end
+
+      context "with blank, offset-less, and invalid values" do
+        subject(:document) do
+          described_class.compose do |doc|
+            doc.paragraph "Kept"
+            doc.instant(" ")
+            doc.instant("2026-10-14T01:00:00")
+            doc.instant("not-a-time")
+            doc.instant(nil)
+            doc.cta "Open", path: "/inbox"
+          end
+        end
+
+        it "omits them without raising" do
+          expect(document.blocks.map { |block| block[:type] }).to eq(%w[paragraph cta])
+        end
+      end
+
+      context "with paragraph and cta beside a valid instant" do
+        subject(:document) do
+          described_class.compose do |doc|
+            doc.paragraph "Before"
+            doc.instant(utc)
+            doc.cta "Open", path: "/inbox"
+          end
+        end
+
+        it "keeps all three blocks" do
+          expect(document.blocks.map { |block| block[:type] }).to eq(%w[paragraph instant cta])
+        end
+      end
+    end
   end
 end

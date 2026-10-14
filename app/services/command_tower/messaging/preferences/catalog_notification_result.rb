@@ -16,6 +16,8 @@ module CommandTower
         :inbox_enabled,
         :channels,
         :stored_override_present,
+        :urgency,
+        :sound,
       ) do
         def self.build(
           key:,
@@ -29,7 +31,9 @@ module CommandTower
           available_channels:,
           inbox_enabled:,
           channels:,
-          stored_override_present:
+          stored_override_present:,
+          urgency:,
+          sound:
         )
           frozen_channels =
             channels.to_h.transform_keys(&:to_s).transform_values { |value| !!value }.freeze
@@ -47,8 +51,29 @@ module CommandTower
             inbox_enabled: !!inbox_enabled,
             channels: frozen_channels,
             stored_override_present: !!stored_override_present,
+            urgency: freeze_block(urgency),
+            sound: freeze_block(sound),
           ).freeze
         end
+
+        def self.freeze_block(block)
+          hash = block.to_h
+          allowed = hash[:allowed]
+          frozen_allowed =
+            if allowed.is_a?(Array) && allowed.first.is_a?(Hash)
+              allowed.map { |entry| entry.to_h.transform_keys(&:to_sym).freeze }.freeze
+            else
+              Array(allowed).map(&:to_s).freeze
+            end
+
+          {
+            default: hash[:default].to_s,
+            allowed: frozen_allowed,
+            selectable: !!hash[:selectable],
+            effective: hash[:effective].to_s,
+          }.freeze
+        end
+        private_class_method :freeze_block
       end
     end
   end

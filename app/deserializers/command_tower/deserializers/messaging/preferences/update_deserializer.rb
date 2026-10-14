@@ -8,7 +8,7 @@ module CommandTower
           Input = Data.define(:notification_type_key, :preference_state)
 
           ROUTING_KEYS = %w[controller action format notification_type_key preference].freeze
-          ALLOWED_PREFERENCE_KEYS = %w[inboxEnabled channels].freeze
+          ALLOWED_PREFERENCE_KEYS = %w[inboxEnabled channels urgency sound].freeze
 
           def call(params)
             raw = normalize_hash(params)
@@ -86,6 +86,15 @@ module CommandTower
               return failure(errors: { message: "invalid_inbox_enabled" }) unless [true, false].include?(inbox)
 
               state["inbox"] = inbox
+            end
+
+            %w[urgency sound].each do |field|
+              next unless preferences.key?(field)
+
+              value = preferences[field]
+              return failure(errors: { message: "invalid_#{field}" }) unless value.is_a?(String) && !value.strip.empty?
+
+              state[field] = value.strip
             end
 
             state

@@ -35,6 +35,10 @@ module CommandTower
           declaration = lookup_declaration!(key)
           validate_writable!(declaration)
 
+          raw = preference_state.to_h.transform_keys(&:to_s)
+          validate_choice!(declaration, raw, "urgency")
+          validate_choice!(declaration, raw, "sound")
+
           normalized = PreferenceState.normalize(preference_state)
           if normalized.nil?
             raise InvalidPreferenceWriteError, "preference_state must be present"
@@ -84,6 +88,12 @@ module CommandTower
 
           raise InvalidPreferenceWriteError,
                 "preference channels outside allowed set: #{extras.join(', ')}"
+        end
+
+        def validate_choice!(declaration, raw, field)
+          return unless raw.key?(field)
+
+          EffectiveChoice.validate_write!(declaration:, field: field.to_sym, value: raw[field])
         end
 
         def validate_inbox!(declaration, normalized)

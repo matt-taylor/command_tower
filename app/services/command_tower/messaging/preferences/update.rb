@@ -85,7 +85,7 @@ module CommandTower
           end
 
           hash = @preference_state.to_h.transform_keys(&:to_s)
-          unknown_keys = hash.keys - %w[channels inbox]
+          unknown_keys = hash.keys - %w[channels inbox urgency sound]
           if unknown_keys.any?
             raise InvalidPreferenceWriteError,
                   "unsupported preference keys: #{unknown_keys.join(', ')}"
@@ -94,7 +94,12 @@ module CommandTower
           channels = parse_channels!(declaration, hash["channels"])
           inbox = parse_inbox!(declaration, hash)
 
-          PreferenceState.new(channels: channels.freeze, inbox:).freeze
+          PreferenceState.new(
+            channels: channels.freeze,
+            inbox:,
+            urgency: parse_choice!(declaration, hash, "urgency"),
+            sound: parse_choice!(declaration, hash, "sound"),
+          ).freeze
         end
 
         def parse_channels!(declaration, channels_raw)
@@ -136,6 +141,13 @@ module CommandTower
           hash["inbox"]
         end
 
+        def parse_choice!(declaration, hash, field)
+          return nil unless hash.key?(field)
+
+          EffectiveChoice.validate_write!(declaration:, field: field.to_sym, value: hash[field])
+          hash[field].strip
+        end
+
         def sparsify(declaration, candidate)
           defaults = PreferenceState.from_declaration_default(declaration.default_preference_state)
           sparse_channels = {}
@@ -154,9 +166,22 @@ module CommandTower
               candidate.inbox
             end
 
-          return nil if sparse_channels.empty? && sparse_inbox.nil?
+          sparse_urgency = sparse_choice(candidate.urgency, declaration.urgency.default)
+          sparse_sound = sparse_choice(candidate.sound, declaration.sound.default)
+          return nil if sparse_channels.empty? && sparse_inbox.nil? && sparse_urgency.nil? && sparse_sound.nil?
 
-          PreferenceState.new(channels: sparse_channels.freeze, inbox: sparse_inbox).freeze
+          PreferenceState.new(
+            channels: sparse_channels.freeze,
+            inbox: sparse_inbox,
+            urgency: sparse_urgency,
+            sound: sparse_sound,
+          ).freeze
+        end
+
+        def sparse_choice(value, default)
+          return nil if value.nil? || value == default
+
+          value
         end
 
         def persist_reset!
@@ -227,6 +252,11 @@ module CommandTower
           available =
             declaration.allowed_channels & @platform_enabled_channels & recipient_ready_keys
 
+          blocks = EffectiveChoice.call(
+            declaration:,
+            stored: Store.find(recipient_id: @recipient_id, notification_type_key: @notification_type_key),
+          )
+
           ::CommandTower::Messaging::Preferences::CatalogNotificationResult.build(
             key: declaration.key,
             label: declaration.label,
@@ -240,6 +270,8 @@ module CommandTower
             inbox_enabled:,
             channels:,
             stored_override_present: evaluation.stored_override_present,
+            urgency: blocks[:urgency],
+            sound: blocks[:sound],
           )
         end
       end

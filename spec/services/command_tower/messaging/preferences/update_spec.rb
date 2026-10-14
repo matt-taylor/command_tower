@@ -331,4 +331,170 @@ RSpec.describe CommandTower::Messaging::Preferences::Update, :messaging_preferen
       expect(result.stored_override_present).to be(true)
     end
   end
+
+  context "when urgency is fixed" do
+    subject(:invoke) { update!.call(preference_state: { "urgency" => "normal" }) }
+
+    it "rejects the write" do
+      expect { invoke }.to raise_error(
+        CommandTower::Messaging::Preferences::InvalidPreferenceWriteError,
+        /urgency is not selectable/,
+      )
+    end
+  end
+
+  context "with a restricted urgency" do
+    before do
+      register_and_seal_notification_types(
+        build_notification_type_declaration(
+          key: notification_type_key,
+          allowed_channels: %w[email sms],
+          default_channels: %w[email],
+          inbox_available: true,
+          user_configurable: true,
+          mandatory: false,
+          settings_visible: true,
+          default_preference_state: {
+            "channels" => { "email" => true, "sms" => true },
+            "inbox" => true,
+          },
+          urgency: { default: "normal", allowed: %w[normal time_sensitive] },
+        ),
+      )
+    end
+
+    context "when the member chooses a permitted level" do
+      subject(:result) { update!.call(preference_state: { "urgency" => "time_sensitive" }) }
+
+      let(:stored) do
+        result
+        CommandTower::Messaging::Preferences.find_stored(recipient_id: user.id, notification_type_key:)
+      end
+
+      it "stores the level and leaves channels unchanged" do
+        expect(stored.urgency).to eq("time_sensitive")
+        expect(stored.channels).to eq({})
+        expect(result.channels["email"]).to be(true)
+        expect(result.urgency[:effective]).to eq("time_sensitive")
+      end
+    end
+
+    context "when the member submits the default" do
+      subject(:result) { update!.call(preference_state: { "urgency" => "normal" }) }
+
+      let(:stored) do
+        result
+        CommandTower::Messaging::Preferences.find_stored(recipient_id: user.id, notification_type_key:)
+      end
+
+      it "does not store an override" do
+        expect(stored).to be_nil
+        expect(result.urgency[:effective]).to eq("normal")
+      end
+    end
+
+    context "when the level is outside the permitted list" do
+      subject(:invoke) { update!.call(preference_state: { "urgency" => "critical" }) }
+
+      it "rejects the write" do
+        expect { invoke }.to raise_error(
+          CommandTower::Messaging::Preferences::InvalidPreferenceWriteError,
+          /urgency is not permitted/,
+        )
+      end
+    end
+
+    context "when a later write omits urgency" do
+      before do
+        update!.call(preference_state: { "urgency" => "time_sensitive", "channels" => { "email" => false } })
+      end
+
+      subject(:result) { update!.call(preference_state: { "channels" => { "email" => false } }) }
+
+      let(:stored) do
+        result
+        CommandTower::Messaging::Preferences.find_stored(recipient_id: user.id, notification_type_key:)
+      end
+
+      it "clears the urgency override and keeps the channel" do
+        expect(stored.urgency).to be_nil
+        expect(stored.channels).to eq("email" => false)
+        expect(result.urgency[:effective]).to eq("normal")
+      end
+    end
+
+    context "when preferences is empty" do
+      before { update!.call(preference_state: { "urgency" => "time_sensitive" }) }
+
+      subject(:result) { update!.call(preference_state: {}) }
+
+      let(:stored) do
+        result
+        CommandTower::Messaging::Preferences.find_stored(recipient_id: user.id, notification_type_key:)
+      end
+
+      it "resets the row" do
+        expect(stored).to be_nil
+        expect(result.stored_override_present).to be(false)
+      end
+    end
+  end
+
+  context "with a full sound catalog" do
+    let(:host_sounds) { [{ id: "chime", label: "Chime", asset: "chime.wav" }] }
+
+    around do |example|
+      previous = CommandTower.config.messaging.sounds
+      CommandTower.config.messaging.sounds = host_sounds
+      example.run
+    ensure
+      CommandTower.config.messaging.sounds = previous
+    end
+
+    before do
+      register_and_seal_notification_types(
+        build_notification_type_declaration(
+          key: notification_type_key,
+          allowed_channels: %w[email],
+          default_channels: %w[email],
+          inbox_available: true,
+          user_configurable: true,
+          settings_visible: true,
+          default_preference_state: { "channels" => { "email" => true }, "inbox" => true },
+          sound: { default: "default", allowed: "all" },
+        ),
+      )
+    end
+
+    context "when the member chooses a registered sound" do
+      subject(:result) { update!.call(preference_state: { "sound" => "chime" }) }
+
+      let(:stored) do
+        result
+        CommandTower::Messaging::Preferences.find_stored(recipient_id: user.id, notification_type_key:)
+      end
+
+      it "stores the sound without an asset name in the block" do
+        expect(stored.sound).to eq("chime")
+        expect(result.sound[:effective]).to eq("chime")
+        expect(result.sound[:allowed]).to eq(
+          [
+            { id: "default", label: "System Default" },
+            { id: "chime", label: "Chime" },
+          ],
+        )
+      end
+    end
+
+    context "when the sound is not registered" do
+      subject(:invoke) { update!.call(preference_state: { "sound" => "bell" }) }
+
+      it "rejects the write" do
+        expect { invoke }.to raise_error(
+          CommandTower::Messaging::Preferences::InvalidPreferenceWriteError,
+          /sound is not permitted/,
+        )
+      end
+    end
+  end
 end

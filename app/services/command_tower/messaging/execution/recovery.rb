@@ -23,9 +23,17 @@ module CommandTower
           recover_queued!
           recover_failed!
           recover_stale_executing!
+          collect_expo_receipts!
         end
 
         private
+
+        # Runs last so it can never block a redrive. It only reads receipts and updates metadata.
+        def collect_expo_receipts!
+          ExpoReceiptCollection.call
+        rescue StandardError
+          OperationLogger.receipts_collected(update_failure_count: 1)
+        end
 
         def grace_before
           @grace_window.ago

@@ -104,6 +104,40 @@ RSpec.describe CommandTower::Messaging::Preferences::Store, :messaging_preferenc
       }.to raise_error(CommandTower::Messaging::Preferences::UnknownTypeError)
     end
 
+    context "when urgency is not permitted" do
+      subject(:invoke) do
+        described_class.upsert!(
+          recipient_id: user.id,
+          notification_type_key:,
+          preference_state: { "channels" => { "email" => true }, "urgency" => "critical" },
+        )
+      end
+
+      it "rejects the write" do
+        expect { invoke }.to raise_error(
+          CommandTower::Messaging::Preferences::InvalidPreferenceWriteError,
+          /urgency is not selectable/,
+        )
+      end
+    end
+
+    context "when sound is not registered" do
+      subject(:invoke) do
+        described_class.upsert!(
+          recipient_id: user.id,
+          notification_type_key:,
+          preference_state: { "channels" => { "email" => true }, "sound" => "chime" },
+        )
+      end
+
+      it "rejects the write" do
+        expect { invoke }.to raise_error(
+          CommandTower::Messaging::Preferences::InvalidPreferenceWriteError,
+          /sound is not selectable/,
+        )
+      end
+    end
+
     it "rejects non-user-configurable types" do
       expect {
         described_class.upsert!(

@@ -3,6 +3,9 @@
 module CommandTower
   module Messaging
     module NotificationTypes
+      # Push urgency levels a declaration may permit (D-8). IOS maps them to the OS.
+      URGENCY_LEVELS = %w[normal time_sensitive critical].freeze
+
       module_function
 
       def register(declaration)

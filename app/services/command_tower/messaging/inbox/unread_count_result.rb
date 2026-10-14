@@ -3,11 +3,12 @@
 module CommandTower
   module Messaging
     module Inbox
-      UnreadCountResult = Data.define(:recipient_id, :count) do
-        def self.build(recipient_id:, count:)
+      UnreadCountResult = Data.define(:recipient_id, :count, :badge_count) do
+        def self.build(recipient_id:, count:, badge_count:)
           new(
             recipient_id:,
             count: Integer(count),
+            badge_count: Integer(badge_count),
           ).freeze
         end
       end

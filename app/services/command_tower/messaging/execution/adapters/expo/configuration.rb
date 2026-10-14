@@ -34,6 +34,11 @@ module CommandTower
             def access_token
               CommandTower.config.messaging.expo.access_token.to_s.strip
             end
+
+            # Urgency levels the host's shipped binary can honor. Normal is always supported.
+            def supported_interruption_levels
+              (Array(CommandTower.config.messaging.expo.interruption_levels).map(&:to_s) | ["normal"]).freeze
+            end
           end
         end
       end

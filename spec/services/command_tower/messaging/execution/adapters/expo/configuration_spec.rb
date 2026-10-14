@@ -4,8 +4,10 @@ RSpec.describe CommandTower::Messaging::Execution::Adapters::Expo::Configuration
   around do |example|
     previous_adapter = CommandTower.config.messaging.expo.adapter
     previous_token = CommandTower.config.messaging.expo.access_token
+    previous_levels = CommandTower.config.messaging.expo.interruption_levels
     example.run
   ensure
+    CommandTower.config.messaging.expo.interruption_levels = previous_levels
     CommandTower.config.messaging.expo.adapter = previous_adapter
     CommandTower.config.messaging.expo.access_token = previous_token
   end
@@ -37,6 +39,32 @@ RSpec.describe CommandTower::Messaging::Execution::Adapters::Expo::Configuration
 
     it "is not configured when disabled" do
       expect(described_class.expo_configured?).to be(false)
+    end
+  end
+
+  describe "#supported_interruption_levels" do
+    subject(:levels) { described_class.new.supported_interruption_levels }
+
+    before { CommandTower.config.messaging.expo.interruption_levels = configured_levels }
+
+    context "with the default" do
+      let(:configured_levels) { ["normal"] }
+
+      it { is_expected.to eq(%w[normal]) }
+    end
+
+    context "with configured levels" do
+      let(:configured_levels) { %w[normal time_sensitive] }
+
+      it { is_expected.to eq(%w[normal time_sensitive]) }
+    end
+
+    context "when Normal is omitted" do
+      let(:configured_levels) { %w[time_sensitive] }
+
+      it "still includes Normal" do
+        expect(levels).to eq(%w[time_sensitive normal])
+      end
     end
   end
 end

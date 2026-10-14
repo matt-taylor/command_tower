@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_10_10_000002) do
+ActiveRecord::Schema[7.2].define(version: 2026_10_12_000002) do
   create_table "command_tower_audit_events", charset: "utf8mb3", force: :cascade do |t|
     t.string "action", null: false
     t.bigint "actor_user_id"
@@ -126,11 +126,13 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_10_000002) do
     t.datetime "finished_at"
     t.string "normalized_provider_status"
     t.string "provider_message_id"
+    t.json "provider_metadata"
     t.datetime "started_at", null: false
     t.string "status", null: false
     t.datetime "updated_at", null: false
     t.index ["channel_delivery_id", "status"], name: "index_messaging_delivery_attempts_on_delivery_and_status"
     t.index ["channel_delivery_id"], name: "index_messaging_delivery_attempts_on_channel_delivery_id"
+    t.index ["finished_at"], name: "index_messaging_delivery_attempts_on_finished_at"
   end
 
   create_table "messaging_destination_plans", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|

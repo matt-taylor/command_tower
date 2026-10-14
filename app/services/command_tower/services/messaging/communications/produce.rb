@@ -25,6 +25,15 @@ module CommandTower
               return
             end
 
+            if missing_required_deep_link?
+              context.fail!(
+                application_error: CommandTower::Errors::ValidationError.new(
+                  details: { messaging: "deep_link is required" },
+                ),
+              )
+              return
+            end
+
             accept_result = CommandTower::Messaging.accept(
               recipient_id: recipient_result.data[:recipient_id],
               notification_type_key:,
@@ -64,6 +73,24 @@ module CommandTower
             context.fail!(application_error: CommandTower::Errors::InternalError.new)
           rescue CommandTower::Messaging::Accept::Error
             context.fail!(application_error: CommandTower::Errors::InternalError.new)
+          end
+
+          private
+
+          def missing_required_deep_link?
+            return false unless CommandTower::Messaging::NotificationTypes.registered?(notification_type_key)
+
+            declaration = CommandTower::Messaging::NotificationTypes.lookup(notification_type_key)
+            return false unless declaration.deep_link_required
+
+            !metadata_deep_link_present?
+          end
+
+          def metadata_deep_link_present?
+            return false unless metadata.is_a?(Hash)
+
+            value = metadata["deep_link"] || metadata[:deep_link]
+            value.is_a?(String) && !value.strip.empty?
           end
         end
       end
