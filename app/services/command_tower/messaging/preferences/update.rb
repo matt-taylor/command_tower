@@ -91,12 +91,32 @@ module CommandTower
                   "unsupported preference keys: #{unknown_keys.join(', ')}"
           end
 
-          channels = parse_channels!(declaration, hash["channels"])
-          inbox = parse_inbox!(declaration, hash)
+          patch = build_patch_partial!(declaration, hash)
+          patch.merge_over(stored_member_state)
+        end
+
+        def stored_member_state
+          Store.find(
+            recipient_id: @recipient_id,
+            notification_type_key: @notification_type_key,
+          ) || empty_stored_member_state
+        end
+
+        def empty_stored_member_state
+          PreferenceState.new(channels: {}.freeze, inbox: nil, urgency: nil, sound: nil).freeze
+        end
+
+        def build_patch_partial!(declaration, hash)
+          channels =
+            if hash.key?("channels")
+              parse_channels!(declaration, hash["channels"])
+            else
+              {}.freeze
+            end
 
           PreferenceState.new(
             channels: channels.freeze,
-            inbox:,
+            inbox: parse_inbox!(declaration, hash),
             urgency: parse_choice!(declaration, hash, "urgency"),
             sound: parse_choice!(declaration, hash, "sound"),
           ).freeze
