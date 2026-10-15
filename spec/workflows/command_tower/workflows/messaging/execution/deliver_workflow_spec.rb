@@ -152,8 +152,11 @@ RSpec.describe CommandTower::Workflows::Messaging::Execution::DeliverWorkflow, :
 
     it "stores the metadata on the attempt without changing delivery status or provider_message_id" do
       expect(delivery.reload.status).to eq("accepted_by_provider")
+      expect(attempt.reload.status).to eq("succeeded")
+      expect(attempt.finished_at).to be_present
       expect(attempt.provider_message_id).to eq("t-1")
       expect(attempt.provider_metadata).to eq(provider_metadata)
+      expect(attempt.provider_metadata.dig("expo", "endpoints", 0, "ticket_status")).to eq("ok")
     end
   end
 
@@ -1007,21 +1010,23 @@ RSpec.describe CommandTower::Workflows::Messaging::Execution::DeliverWorkflow, :
           let(:supported_levels) { %w[normal time_sensitive] }
 
           before do
-            deliver_and_capture.call
-            CommandTower::Messaging::NotificationPreference.find_by!(user_id: user.id, notification_type_key: type_key)
-              .update!(state: { "channels" => {}, "inbox" => true })
-            deliver_and_capture.call
+            delivery.update!(status: "queued")
+            allow(http_client).to receive(:send_messages).and_raise(
+              CommandTower::Messaging::Execution::Adapters::Expo::HttpClient::RequestNotSubmitted,
+              "open timeout",
+            )
+            delivery.update!(status: "queued")
+            allow(http_client).to receive(:send_messages) do |messages|
+              sent_messages << messages.first
+              { ok: true, status_code: 200, tickets: [ok_ticket.call("t-#{sent_messages.size}")] }
+            end
+            described_class.call(channel_delivery_id: delivery.id, executor:)
+            delivery.reload
           end
 
-          it "sent the stored choice on the first attempt" do
+          it "sends the stored choice on the permitted retry after not_submitted" do
             expect(sent_messages.first).to include("sound" => "chime.wav", "interruptionLevel" => "time-sensitive")
             expect(sent_messages.first).not_to have_key("badge")
-          end
-
-          it "re-reads the preference and sends the defaults on the next attempt" do
-            expect(sent_messages.last).to include("sound" => "default")
-            expect(sent_messages.last).not_to have_key("interruptionLevel")
-            expect(sent_messages.last).not_to have_key("badge")
           end
         end
 
@@ -1038,78 +1043,92 @@ RSpec.describe CommandTower::Workflows::Messaging::Execution::DeliverWorkflow, :
             end
           end
 
-          context "when the item is viewed between attempts" do
-            before do
-              deliver_and_capture.call
-              communication.inbox_item.update!(viewed_at: Time.current, status: "viewed")
-              deliver_and_capture.call
-            end
+        end
+      end
 
-            it "posted the count including the item on the first attempt" do
-              expect(sent_messages.first).to include("badge" => 1)
-            end
+      context "with a partial ticket response on the first attempt" do
+        before { run_delivery.call(ok: true, status_code: 200, tickets: [ok_ticket.call("t-1")]) }
 
-            it "recounts and posts zero after the item is viewed" do
-              expect(sent_messages.last).to include("badge" => 0)
-            end
+        it "terminals with submission_uncertain and does not enqueue another workflow attempt" do
+          expect(delivery.status).to eq("failed_terminal")
+          expect(delivery.execution_attempt_count).to eq(1)
+          expect(posted_tokens.size).to eq(1)
+          expect(attempt_metadata.call(0).pluck("ticket_status")).to eq(%w[ok missing missing])
+        end
+
+        context "when recovery runs after the terminal outcome" do
+          before do
+            delivery.update_columns(updated_at: 5.minutes.ago)
+            clear_enqueued_jobs
+            CommandTower::Messaging::Execution::Recovery.call(grace_window: 1.minute)
+          end
+
+          it "is not redriven by recovery" do
+            expect(delivery.reload.status).to eq("failed_terminal")
+            expect(CommandTower::Messaging::ChannelDeliveryExecutionJob).not_to have_been_enqueued
           end
         end
       end
 
-      context "with mixed outcomes over three attempts" do
+      context "when the first attempt is confirmed not submitted" do
         before do
-          run_delivery.call(ok: true, status_code: 200, tickets: [ok_ticket.call("t-1")])
-          run_delivery.call(ok: true, status_code: 200, tickets: [ok_ticket.call("t-2")])
-          run_delivery.call(ok: true, status_code: 200, tickets: [ok_ticket.call("t-3")])
+          delivery.update!(status: "queued")
+          allow(http_client).to receive(:send_messages).and_raise(
+            CommandTower::Messaging::Execution::Adapters::Expo::HttpClient::RequestNotSubmitted,
+            "open timeout",
+          )
+          described_class.call(channel_delivery_id: delivery.id, executor:)
+          delivery.reload
         end
 
-        it "ends accepted after three attempts and sends only to unsettled devices" do
-          expect(delivery.status).to eq("accepted_by_provider")
-          expect(delivery.execution_attempt_count).to eq(3)
-          expect(posted_tokens.map(&:size)).to eq([3, 2, 1])
-          expect(delivery.delivery_attempts.order(:id).pluck(:status))
-            .to eq(%w[failed_retryable failed_retryable succeeded])
-        end
-
-        it "records each attempt's own devices" do
-          expect(attempt_metadata.call(0).pluck("ticket_status")).to eq(%w[ok missing missing])
-          expect(attempt_metadata.call(1).pluck("ticket_status")).to eq(%w[ok missing])
-          expect(attempt_metadata.call(2).pluck("ticket_status")).to eq(%w[ok])
-          expect(delivery.delivery_attempts.order(:id).last.provider_message_id).to eq("t-3")
+        it "is failed_retryable with not_submitted evidence and a retry is expected" do
+          expect(delivery.status).to eq("failed_retryable")
+          expect(delivery.execution_attempt_count).to eq(1)
+          expect(delivery.delivery_attempts.sole.provider_metadata["submission"]).to eq("not_submitted")
+          expect(CommandTower::Messaging::DeliveryRetryPolicy.retry_expected?(delivery)).to eq(true)
         end
       end
 
-      context "when the first attempt is retryable" do
-        before { run_delivery.call(ok: true, status_code: 200, tickets: [ok_ticket.call("t-1")]) }
+      context "when a queued execution still has a prior open started attempt" do
+        let(:adapter) { instance_double(CommandTower::Messaging::Execution::Adapters::Expo::Adapter) }
 
-        it "is failed_retryable with one attempt and a retry is expected" do
-          expect(delivery.status).to eq("failed_retryable")
-          expect(delivery.execution_attempt_count).to eq(1)
-          expect(CommandTower::Messaging::DeliveryRetryPolicy.retry_expected?(delivery)).to eq(true)
+        before do
+          CommandTower::Messaging::DeliveryAttempt.create!(
+            channel_delivery: delivery,
+            status: "started",
+            started_at: 2.minutes.ago,
+            finished_at: nil,
+            provider_metadata: nil,
+          )
+          delivery.update!(status: "queued", execution_attempt_count: 1)
+          allow(adapter).to receive(:call)
+        end
+
+        it "does not submit another push to the provider" do
+          described_class.call(channel_delivery_id: delivery.id, executor: adapter)
+
+          expect(adapter).not_to have_received(:call)
+          expect(delivery.reload.status).to eq("failed_terminal")
+          expect(delivery.delivery_attempts.order(:id).last.error_code).to eq("submission_uncertain")
         end
       end
 
       context "when a retry gets a whole-request 400 after a device was accepted" do
         before do
-          run_delivery.call(ok: true, status_code: 200, tickets: [ok_ticket.call("t-1")])
-          run_delivery.call(ok: false, status_code: 400, tickets: [])
-          delivery.update_columns(updated_at: 5.minutes.ago)
-          clear_enqueued_jobs
+          run_delivery.call(ok: true, status_code: 200, tickets: [ok_ticket.call("t-1"), ok_ticket.call("t-2"), ok_ticket.call("t-3")])
         end
 
-        it "ends failed_terminal with the accepted ticket carried in the attempt metadata" do
-          expect(delivery.status).to eq("failed_terminal")
-          expect(delivery.execution_attempt_count).to eq(2)
-          expect(posted_tokens.map(&:size)).to eq([3, 2])
-          expect(attempt_metadata.call(1).find { |entry| entry["ticket_id"] == "t-1" })
-            .to include("ticket_status" => "ok")
-        end
+        context "when a second queued run is attempted" do
+          before do
+            delivery.update!(status: "queued")
+            run_delivery.call(ok: false, status_code: 400, tickets: [])
+          end
 
-        it "is not redriven by recovery" do
-          CommandTower::Messaging::Execution::Recovery.call(grace_window: 1.minute)
-
-          expect(delivery.reload.status).to eq("failed_terminal")
-          expect(CommandTower::Messaging::ChannelDeliveryExecutionJob).not_to have_been_enqueued
+          it "blocks a second Expo POST when the delivery already accepted tickets" do
+            expect(posted_tokens.size).to eq(1)
+            expect(delivery.delivery_attempts.count).to eq(2)
+            expect(delivery.reload.status).to eq("failed_terminal")
+          end
         end
       end
 

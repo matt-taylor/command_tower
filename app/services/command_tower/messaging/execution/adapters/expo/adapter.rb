@@ -75,13 +75,10 @@ module CommandTower
               else
                 AdapterResult.build(outcome: :terminal_failure, error_code: "adapter_unconfigured")
               end
+            rescue HttpClient::RequestNotSubmitted
+              not_submitted_result(attempts, history:)
             rescue StandardError
-              # Keep the endpoint facts already recorded; the outcome stays today's rescue-all result.
-              AdapterResult.build(
-                outcome: :retryable_failure,
-                error_code: "expo_transient",
-                provider_metadata: provider_metadata_for(attempts),
-              )
+              uncertain_terminal_result(attempts, history:)
             end
 
             private
@@ -110,8 +107,8 @@ module CommandTower
               sendable = attempts.select { |attempt| attempt.token.present? && attempt.outcome.nil? }
               messages = sendable.map { |attempt| expo_message(token: attempt.token, rendered:, communication:) }
 
-              sendable.each { |attempt| attempt.submitted = true }
               send_result = @http_client.send_messages(messages)
+              sendable.each { |attempt| attempt.submitted = true }
               unless send_result[:ok]
                 return map_http_failure(send_result[:status_code], attempts:, history:)
               end
@@ -125,7 +122,7 @@ module CommandTower
 
               ok_ticket_ids = sendable.filter_map { |attempt| attempt.ticket&.dig(:id) if attempt.ticket&.dig(:status) == "ok" }
               if ok_ticket_ids.any?
-                receipts_result = @http_client.get_receipts(ok_ticket_ids)
+                receipts_result = fetch_receipts(ok_ticket_ids)
                 if receipts_result[:ok]
                   receipts = receipts_result[:receipts] || {}
                   sendable.each do |attempt|
@@ -146,6 +143,12 @@ module CommandTower
               end
 
               aggregate_result(attempts, history:)
+            end
+
+            def fetch_receipts(ticket_ids)
+              @http_client.get_receipts(ticket_ids)
+            rescue StandardError
+              { ok: false, status_code: nil, receipts: {} }
             end
 
             # Every eligible endpoint already holds an accepted ticket or a recorded terminal
@@ -194,8 +197,8 @@ module CommandTower
             def apply_ticket_outcome!(attempt)
               ticket = attempt.ticket
               if ticket.nil?
-                attempt.outcome = :retryable_failure
-                attempt.error_code = "expo_transient"
+                attempt.outcome = :terminal_failure
+                attempt.error_code = submission_uncertain_code
                 return
               end
 
@@ -211,8 +214,8 @@ module CommandTower
                   attempt.error_code = "expo_rejected"
                 end
               else
-                attempt.outcome = :retryable_failure
-                attempt.error_code = "expo_transient"
+                attempt.outcome = :terminal_failure
+                attempt.error_code = submission_uncertain_code
               end
             end
 
@@ -246,29 +249,49 @@ module CommandTower
               nil
             end
 
-            # 5xx and 429 stay retryable. Any other non-success response is terminal for this
-            # attempt even when an earlier attempt had accepted tickets; those tickets are carried
-            # into the metadata so the accepted facts stay visible on this row.
+            # After the HTTP client returns, a non-success response is uncertain for duplicate policy
+            # (request may have been accepted). Terminal rejection (4xx except 429) maps to expo_rejected.
             def map_http_failure(status_code, attempts:, history:)
-              retryable = status_code.to_i >= 500 || status_code.to_i == 429
-              outcome = retryable ? :retryable_failure : :terminal_failure
-              error_code = retryable ? "expo_transient" : "expo_rejected"
+              code = status_code.to_i
+              error_code =
+                if code >= 500 || code == 429
+                  submission_uncertain_code
+                else
+                  "expo_rejected"
+                end
               attempts.each { |attempt| attempt.error_code ||= error_code if attempt.submitted }
-              carried = retryable ? [] : carried_accepted_entries(history)
+              carried = error_code == submission_uncertain_code ? [] : carried_accepted_entries(history)
 
-              AdapterResult.build(outcome:, error_code:, provider_metadata: provider_metadata_for(attempts, carried:))
+              AdapterResult.build(
+                outcome: :terminal_failure,
+                error_code:,
+                provider_metadata: provider_metadata_for(attempts, carried:),
+              )
             end
 
             # Delivery-wide aggregation: this attempt's endpoints plus tickets recorded earlier.
             def aggregate_result(attempts, history:)
+              submitted = attempts.select(&:submitted)
               successes = attempts.select { |attempt| attempt.outcome == :success }
               first_ticket_id = successes.filter_map { |attempt| attempt.ticket&.dig(:id) }.first
               metadata = provider_metadata_for(attempts)
 
+              if submitted.any? { |attempt| attempt.outcome == :success } &&
+                 submitted.any? do |attempt|
+                   attempt.outcome == :terminal_failure && attempt.error_code == submission_uncertain_code
+                 end
+                return AdapterResult.build(
+                  outcome: :terminal_failure,
+                  error_code: submission_uncertain_code,
+                  provider_message_id: first_ticket_id,
+                  provider_metadata: metadata,
+                )
+              end
+
               if attempts.any? { |attempt| attempt.outcome == :retryable_failure }
                 return AdapterResult.build(
-                  outcome: :retryable_failure,
-                  error_code: "expo_transient",
+                  outcome: :terminal_failure,
+                  error_code: submission_uncertain_code,
                   provider_message_id: first_ticket_id,
                   provider_metadata: metadata,
                 )
@@ -291,10 +314,35 @@ module CommandTower
               end
 
               AdapterResult.build(
-                outcome: :retryable_failure,
-                error_code: "expo_transient",
+                outcome: :terminal_failure,
+                error_code: submission_uncertain_code,
                 provider_metadata: metadata,
               )
+            end
+
+            def not_submitted_result(_attempts, history: nil)
+              AdapterResult.build(
+                outcome: :retryable_failure,
+                error_code: "expo_not_submitted",
+                provider_metadata: {
+                  "submission" => Messaging::DeliveryRetryPolicy::SUBMISSION_NOT_SUBMITTED,
+                },
+              )
+            end
+
+            def uncertain_terminal_result(attempts, history:)
+              metadata = provider_metadata_for(attempts)
+              metadata = metadata.merge("submission" => submission_uncertain_code) if metadata.is_a?(Hash)
+
+              AdapterResult.build(
+                outcome: :terminal_failure,
+                error_code: submission_uncertain_code,
+                provider_metadata: metadata,
+              )
+            end
+
+            def submission_uncertain_code
+              Messaging::DeliveryRetryPolicy::SUBMISSION_UNCERTAIN
             end
 
             def carried_accepted_entries(history)

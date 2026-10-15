@@ -93,12 +93,47 @@ RSpec.describe CommandTower::Messaging::Execution::AttemptLedger, :messaging_acc
     end
   end
 
-  context "when finalizing an unexpected error" do
+  context "when finalizing an unexpected error on push" do
     subject(:finalize) { described_class.finalize_unexpected(delivery:, attempt:, error_class: "RuntimeError") }
 
-    it "leaves provider_metadata null" do
+    it "terminals with submission_uncertain and leaves provider_metadata null" do
       finalize
-      expect(attempt.reload.provider_metadata).to be_nil
+      expect(attempt.reload.status).to eq("failed_terminal")
+      expect(attempt.error_code).to eq("submission_uncertain")
+      expect(delivery.reload.status).to eq("failed_terminal")
+      expect(attempt.provider_metadata).to be_nil
+    end
+  end
+
+  context "when attempt finalization cannot be persisted" do
+    let(:payloads) { [] }
+    let(:subscriber) do
+      bucket = payloads
+      ActiveSupport::Notifications.subscribe(/\Acommand_tower\.messaging/) do |name, _s, _f, _id, payload|
+        bucket << payload.to_h.merge(event: name)
+      end
+    end
+
+    after { ActiveSupport::Notifications.unsubscribe(subscriber) if subscriber }
+
+    before do
+      subscriber
+      allow(attempt).to receive(:update!).and_raise(ActiveRecord::StatementInvalid.new("json_valid"))
+    end
+
+    it "emits finalize_unpersisted and marks the delivery failed_terminal without raising" do
+      expect do
+        described_class.finalize_unexpected(delivery:, attempt:, error_class: "RuntimeError")
+      end.not_to raise_error
+
+      expect(delivery.reload.status).to eq("failed_terminal")
+      event = payloads.find do |payload|
+        (payload[:event] || payload["event"]) == "command_tower.messaging.execution.attempt.finalize_unpersisted"
+      end
+      expect(event).to be_present
+      expect(event[:error_class] || event["error_class"]).to eq("ActiveRecord::StatementInvalid")
+      expect(event[:delivery_attempt_id] || event["delivery_attempt_id"]).to eq(attempt.id)
+      expect(event[:channel_delivery_id] || event["channel_delivery_id"]).to eq(delivery.id)
     end
   end
 end

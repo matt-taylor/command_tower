@@ -12,6 +12,8 @@ module CommandTower
           # Narrow Expo Push HTTP client for Messaging notification push.
           # Never logs tokens, Authorization headers, or raw bodies that may contain tokens.
           class HttpClient
+            RequestNotSubmitted = Class.new(StandardError)
+
             def initialize(configuration: nil)
               @configuration = configuration || Configuration.new
             end
@@ -65,6 +67,8 @@ module CommandTower
               ) do |http|
                 http.request(request)
               end
+            rescue Net::OpenTimeout, Errno::ECONNREFUSED, Errno::EHOSTUNREACH, SocketError => error
+              raise RequestNotSubmitted, error.message
             end
 
             def parse_send_response(response)

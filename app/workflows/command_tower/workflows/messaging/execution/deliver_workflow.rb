@@ -108,6 +108,25 @@ module CommandTower
                 )
               end
 
+              unless CommandTower::Messaging::DeliveryRetryPolicy.push_may_submit_to_provider?(
+                delivery,
+                current_attempt_id: attempt.id,
+              )
+                ledger.finalize_terminal(
+                  delivery:,
+                  attempt:,
+                  error_code: CommandTower::Messaging::DeliveryRetryPolicy::SUBMISSION_UNCERTAIN,
+                )
+                return success(
+                  payload: {
+                    outcome: :terminal,
+                    channel_delivery_id: delivery.id,
+                    error_code: CommandTower::Messaging::DeliveryRetryPolicy::SUBMISSION_UNCERTAIN,
+                  },
+                  http_status: :ok,
+                )
+              end
+
               request = CommandTower::Messaging::Execution::AdapterRequest.build(
                 channel_delivery_id: delivery.id,
                 communication_id: delivery.communication_id,
