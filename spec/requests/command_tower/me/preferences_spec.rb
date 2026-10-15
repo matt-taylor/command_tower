@@ -5,7 +5,7 @@ RSpec.describe "Me preferences", :with_rbac_setup, :messaging_preferences, type:
   let(:headers) { authenticate_request_with_bearer!(user) }
 
   before do
-    CommandTower.config.messaging.platform_enabled_channels = -> { %w[email] }
+    CommandTower.config.messaging.platform_enabled_channels = -> { %w[email push] }
 
     register_and_seal_notification_types(
       build_notification_type_declaration(
@@ -41,6 +41,40 @@ RSpec.describe "Me preferences", :with_rbac_setup, :messaging_preferences, type:
         settings_visible: true,
         user_configurable: false,
         mandatory: true,
+      ),
+      build_notification_type_declaration(
+        key: "security_alert",
+        label: "Security Alert",
+        category_key: "account",
+        category_label: "Account",
+        category_order: 30,
+        type_order: 20,
+        allowed_channels: %w[email],
+        default_channels: %w[email],
+        default_preference_state: {
+          "channels" => { "email" => true },
+          "inbox" => true,
+        },
+        settings_visible: true,
+        user_configurable: true,
+        mandatory: true,
+      ),
+      build_notification_type_declaration(
+        key: "push_locked",
+        label: "Push Locked",
+        category_key: "account",
+        category_label: "Account",
+        category_order: 30,
+        type_order: 25,
+        allowed_channels: %w[email push],
+        default_channels: %w[email],
+        default_preference_state: {
+          "channels" => { "email" => false, "push" => false },
+          "inbox" => true,
+        },
+        settings_visible: true,
+        user_configurable: true,
+        destination_locks: { "email" => "forced_on" },
       ),
       build_notification_type_declaration(
         key: "hello_world",
@@ -105,6 +139,11 @@ RSpec.describe "Me preferences", :with_rbac_setup, :messaging_preferences, type:
       )
       expect(booking["sound"]["allowed"]).to eq([{ "id" => "default", "label" => "System Default" }])
       expect(booking["sound"]).not_to have_key("asset")
+
+      email_entry = booking["channelCatalog"].find { |entry| entry["key"] == "email" }
+      expect(email_entry).to include("label" => "Email", "glyphKey" => "mail", "order" => 1)
+      expect(booking["destinations"]["email"]).to include("state" => "editable")
+      expect(booking).not_to have_key("corrections")
     end
 
     it "reflects stored overrides" do
@@ -203,6 +242,98 @@ RSpec.describe "Me preferences", :with_rbac_setup, :messaging_preferences, type:
             as: :json
 
       expect(response).to have_http_status(:unprocessable_entity)
+    end
+
+    it "returns mandatory corrections when a required channel is turned off" do
+      patch "/me/preferences/security_alert",
+            headers: headers,
+            params: { preferences: { channels: { email: false }, inboxEnabled: true } },
+            as: :json
+
+      expect(response).to have_http_status(:ok)
+      notification = response.parsed_body.dig("data", "notification")
+      expect(notification["destinations"]["email"]).to include(
+        "state" => "forced_on",
+        "effective" => true,
+        "reasonCode" => "required",
+      )
+      expect(notification["corrections"]).to eq(
+        [
+          {
+            "channelKey" => "email",
+            "submitted" => false,
+            "effective" => true,
+            "reasonCode" => "required",
+            "reason" => "This notification is required on this destination.",
+          },
+        ],
+      )
+      stored = CommandTower::Messaging::Preferences.find_stored(
+        recipient_id: user.id,
+        notification_type_key: "security_alert",
+      )
+      expect(stored.channels["email"]).to be(false)
+    end
+
+    it "does not emit corrections when a mandatory channel is omitted" do
+      CommandTower::Messaging::Preferences.upsert_stored!(
+        recipient_id: user.id,
+        notification_type_key: "security_alert",
+        preference_state: { "channels" => { "email" => false } },
+      )
+
+      patch "/me/preferences/security_alert",
+            headers: headers,
+            params: { preferences: { inboxEnabled: true } },
+            as: :json
+
+      notification = response.parsed_body.dig("data", "notification")
+      expect(notification["corrections"]).to be_nil
+      stored = CommandTower::Messaging::Preferences.find_stored(
+        recipient_id: user.id,
+        notification_type_key: "security_alert",
+      )
+      expect(stored.channels["email"]).to be(false)
+    end
+
+    it "applies a forced_on lock when the locked channel is omitted from the PATCH" do
+      patch "/me/preferences/push_locked",
+            headers: headers,
+            params: { preferences: { channels: { push: false }, inboxEnabled: true } },
+            as: :json
+
+      expect(response).to have_http_status(:ok), -> { response.parsed_body.inspect }
+      stored = CommandTower::Messaging::Preferences.find_stored(
+        recipient_id: user.id,
+        notification_type_key: "push_locked",
+      )
+      expect(stored.channels["email"]).to be(true)
+      expect(response.parsed_body.dig("data", "notification", "destinations", "email")).to include(
+        "state" => "forced_on",
+        "effective" => true,
+        "reasonCode" => "locked_on",
+      )
+    end
+
+    it "returns a correction when an unavailable channel is explicitly submitted on" do
+      patch "/me/preferences/booking_confirmation",
+            headers: headers,
+            params: { preferences: { channels: { email: true, sms: true }, inboxEnabled: true } },
+            as: :json
+
+      notification = response.parsed_body.dig("data", "notification")
+      expect(notification["destinations"]["sms"]).to include(
+        "state" => "unavailable",
+        "effective" => false,
+      )
+      expect(notification["corrections"]).to include(
+        hash_including(
+          "channelKey" => "sms",
+          "submitted" => true,
+          "effective" => false,
+          "reasonCode" => "unavailable",
+        ),
+      )
     end
 
     it "returns unprocessable entity for malformed bodies" do

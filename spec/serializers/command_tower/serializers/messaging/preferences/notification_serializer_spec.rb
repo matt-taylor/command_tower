@@ -23,6 +23,34 @@ RSpec.describe CommandTower::Serializers::Messaging::Preferences::NotificationSe
         selectable: false,
         effective: "default",
       },
+      channel_catalog: [
+        {
+          key: "inbox",
+          label: "Inbox",
+          description: "In-app messages",
+          order: 0,
+          glyph_key: "inbox",
+        },
+        {
+          key: "email",
+          label: "Email",
+          description: "Email to your account address",
+          order: 1,
+          glyph_key: "mail",
+        },
+        {
+          key: "push",
+          label: "Push",
+          description: "Alerts on this device",
+          order: 3,
+          glyph_key: "bell",
+        },
+      ],
+      destinations: {
+        "email" => { state: "editable", effective: true, reason_code: nil, reason: nil },
+        "sms" => { state: "unavailable", effective: false, reason_code: "unavailable", reason: "This destination is unavailable." },
+      },
+      corrections: nil,
     )
   end
 
@@ -37,6 +65,43 @@ RSpec.describe CommandTower::Serializers::Messaging::Preferences::NotificationSe
       inboxAvailable: true,
       allowedChannels: %w[email sms],
       availableChannels: %w[email],
+      channelCatalog: [
+        {
+          key: "inbox",
+          label: "Inbox",
+          description: "In-app messages",
+          order: 0,
+          glyphKey: "inbox",
+        },
+        {
+          key: "email",
+          label: "Email",
+          description: "Email to your account address",
+          order: 1,
+          glyphKey: "mail",
+        },
+        {
+          key: "push",
+          label: "Push",
+          description: "Alerts on this device",
+          order: 3,
+          glyphKey: "bell",
+        },
+      ],
+      destinations: {
+        "email" => {
+          state: "editable",
+          effective: true,
+          reasonCode: nil,
+          reason: nil,
+        },
+        "sms" => {
+          state: "unavailable",
+          effective: false,
+          reasonCode: "unavailable",
+          reason: "This destination is unavailable.",
+        },
+      },
       urgency: { default: "normal", allowed: %w[normal], selectable: false, effective: "normal" },
       sound: {
         default: "default",

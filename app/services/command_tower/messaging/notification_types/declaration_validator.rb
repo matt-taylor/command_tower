@@ -87,6 +87,8 @@ module CommandTower
             errors << "push-capable types must be inbox-backed or declare deep_link_required"
           end
 
+          validate_destination_locks(errors, declaration)
+
           errors
         end
 
@@ -192,6 +194,57 @@ module CommandTower
           declaration.allowed_channels.is_a?(Array) && declaration.allowed_channels.include?("push")
         end
         private_class_method :push_capable?
+
+        def self.validate_destination_locks(errors, declaration)
+          locks = declaration.destination_locks
+          return if locks.nil? || locks.empty?
+
+          unless locks.is_a?(Hash)
+            errors << "destination_locks must be a hash"
+            return
+          end
+
+          defaults =
+            ::CommandTower::Messaging::Preferences::PreferenceState.from_declaration_default(
+              declaration.default_preference_state,
+            )
+          required_channels =
+            if declaration.mandatory
+              declaration.default_channels & declaration.allowed_channels
+            else
+              []
+            end
+          required_inbox =
+            declaration.mandatory && declaration.inbox_available && defaults.inbox != false
+
+          locks.each do |raw_key, raw_value|
+            key = raw_key.to_s
+            value = raw_value.to_s
+
+            unless %w[forced_on forced_off].include?(value)
+              errors << "destination_locks[#{key.inspect}] must be forced_on or forced_off"
+            end
+
+            permitted =
+              if key == "inbox"
+                declaration.inbox_available
+              else
+                declaration.allowed_channels.include?(key)
+              end
+            unless permitted
+              errors << "destination_locks contains unknown destination: #{key.inspect}"
+            end
+
+            next unless value == "forced_off" && declaration.mandatory
+
+            if key == "inbox" && required_inbox
+              errors << "destination_locks cannot force_off mandatory inbox"
+            elsif required_channels.include?(key)
+              errors << "destination_locks cannot force_off mandatory channel: #{key}"
+            end
+          end
+        end
+        private_class_method :validate_destination_locks
 
         def self.validate_channel_list(errors, channels, field:)
           channels.each do |channel|

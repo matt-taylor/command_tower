@@ -372,6 +372,33 @@ RSpec.describe CommandTower::Messaging::Preferences::Update, :messaging_preferen
     }.to raise_error(CommandTower::Messaging::Preferences::InvalidPreferenceStateError)
   end
 
+  context "with a forced_on destination lock" do
+    before do
+      register_and_seal_notification_types(
+        build_notification_type_declaration(
+          key: notification_type_key,
+          allowed_channels: %w[email push],
+          default_channels: %w[email],
+          default_preference_state: {
+            "channels" => { "email" => true, "push" => false },
+            "inbox" => true,
+          },
+          destination_locks: { "push" => "forced_on" },
+        ),
+      )
+    end
+
+    it "persists the locked channel when the patch omits it" do
+      update!.call(preference_state: { "channels" => { "email" => false } })
+
+      stored = CommandTower::Messaging::Preferences.find_stored(
+        recipient_id: user.id,
+        notification_type_key:,
+      )
+      expect(stored.channels["push"]).to be(true)
+    end
+  end
+
   context "with mandatory destination disables" do
     subject(:result) do
       described_class.call(

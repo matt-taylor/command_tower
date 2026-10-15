@@ -18,6 +18,9 @@ module CommandTower
         :stored_override_present,
         :urgency,
         :sound,
+        :channel_catalog,
+        :destinations,
+        :corrections,
       ) do
         def self.build(
           key:,
@@ -33,7 +36,10 @@ module CommandTower
           channels:,
           stored_override_present:,
           urgency:,
-          sound:
+          sound:,
+          channel_catalog: [],
+          destinations: {},
+          corrections: nil
         )
           frozen_channels =
             channels.to_h.transform_keys(&:to_s).transform_values { |value| !!value }.freeze
@@ -53,8 +59,28 @@ module CommandTower
             stored_override_present: !!stored_override_present,
             urgency: freeze_block(urgency),
             sound: freeze_block(sound),
+            channel_catalog: freeze_channel_catalog(channel_catalog),
+            destinations: freeze_destinations(destinations),
+            corrections: freeze_corrections(corrections),
           ).freeze
         end
+
+        def self.freeze_channel_catalog(entries)
+          Array(entries).map(&:freeze).freeze
+        end
+        private_class_method :freeze_channel_catalog
+
+        def self.freeze_destinations(destinations)
+          destinations.to_h.transform_keys(&:to_s).transform_values(&:freeze).freeze
+        end
+        private_class_method :freeze_destinations
+
+        def self.freeze_corrections(corrections)
+          return nil if corrections.nil?
+
+          Array(corrections).map(&:freeze).freeze
+        end
+        private_class_method :freeze_corrections
 
         def self.freeze_block(block)
           hash = block.to_h
