@@ -646,16 +646,16 @@ RSpec.describe CommandTower::Messaging::Execution::Adapters::Expo::Adapter, :mes
           { ok: true, status_code: 200, receipts: { "t-a" => { status: "ok", message: nil, error: nil } } }
         end
 
-        it "marks only the endpoint without a ticket as missing and keeps the delivery retryable" do
-          expect(result.retryable_failure?).to eq(true)
-          expect(result.error_code).to eq("expo_transient")
+        it "terminals with submission_uncertain when a ticket is missing after HTTP success" do
+          expect(result.terminal_failure?).to eq(true)
+          expect(result.error_code).to eq("submission_uncertain")
           expect(result.provider_message_id).to eq("t-a")
           expect(endpoints.pluck("ticket_status")).to eq(%w[ok missing])
           expect(endpoints.last).to eq(
             "endpoint_id" => second.id,
             "ticket_status" => "missing",
             "receipt_status" => "unchecked",
-            "error_code" => "expo_transient",
+            "error_code" => "submission_uncertain",
           )
         end
       end
@@ -717,9 +717,9 @@ RSpec.describe CommandTower::Messaging::Execution::Adapters::Expo::Adapter, :mes
       context "when the whole send request fails with a server error" do
         let(:send_response) { { ok: false, status_code: 503, tickets: [] } }
 
-        it "records every submitted endpoint without a ticket" do
-          expect(result.retryable_failure?).to eq(true)
-          expect(result.error_code).to eq("expo_transient")
+        it "terminals with submission_uncertain for server errors after HTTP dispatch" do
+          expect(result.terminal_failure?).to eq(true)
+          expect(result.error_code).to eq("submission_uncertain")
           expect(result.provider_message_id).to be_nil
           expect(endpoints).to eq(
             [first.id, second.id].map do |id|
@@ -727,7 +727,7 @@ RSpec.describe CommandTower::Messaging::Execution::Adapters::Expo::Adapter, :mes
                 "endpoint_id" => id,
                 "ticket_status" => "missing",
                 "receipt_status" => "unchecked",
-                "error_code" => "expo_transient",
+                "error_code" => "submission_uncertain",
               }
             end,
           )
@@ -786,10 +786,9 @@ RSpec.describe CommandTower::Messaging::Execution::Adapters::Expo::Adapter, :mes
       context "when receipt fetch raises after tickets were received" do
         before { allow(http_client).to receive(:get_receipts).and_raise(Timeout::Error) }
 
-        it "keeps the ok tickets and the existing retryable result" do
-          expect(result.retryable_failure?).to eq(true)
-          expect(result.error_code).to eq("expo_transient")
-          expect(result.provider_message_id).to be_nil
+        it "keeps the ok tickets and a successful delivery outcome" do
+          expect(result.success?).to eq(true)
+          expect(result.provider_message_id).to eq("t-a")
           expect(endpoints).to eq(
             [
               {
@@ -808,14 +807,10 @@ RSpec.describe CommandTower::Messaging::Execution::Adapters::Expo::Adapter, :mes
       context "when the send raises" do
         before { allow(http_client).to receive(:send_messages).and_raise(Timeout::Error) }
 
-        it "records submitted endpoints as missing without inventing other facts" do
-          expect(result.retryable_failure?).to eq(true)
-          expect(result.error_code).to eq("expo_transient")
-          expect(endpoints).to eq(
-            [first.id, second.id].map do |id|
-              { "endpoint_id" => id, "ticket_status" => "missing", "receipt_status" => "unchecked" }
-            end,
-          )
+        it "terminals with submission_uncertain when the send raises after dispatch may have started" do
+          expect(result.terminal_failure?).to eq(true)
+          expect(result.error_code).to eq("submission_uncertain")
+          expect(result.provider_metadata).to be_nil
         end
       end
 
@@ -824,9 +819,9 @@ RSpec.describe CommandTower::Messaging::Execution::Adapters::Expo::Adapter, :mes
 
         before { allow(secret_reader).to receive(:read!).and_raise(StandardError) }
 
-        it "returns the existing retryable result with no metadata" do
-          expect(result.retryable_failure?).to eq(true)
-          expect(result.error_code).to eq("expo_transient")
+        it "terminals with submission_uncertain when nothing was submitted" do
+          expect(result.terminal_failure?).to eq(true)
+          expect(result.error_code).to eq("submission_uncertain")
           expect(result.provider_metadata).to be_nil
         end
       end
@@ -868,7 +863,18 @@ RSpec.describe CommandTower::Messaging::Execution::Adapters::Expo::Adapter, :mes
           outcome = described_class.new(configuration: configured, http_client:).call(
             request: build_request.call(endpoint_ids: ids, attempt_id: attempt.id),
           )
-          attempt.update!(status: "failed_retryable", provider_metadata: outcome.provider_metadata)
+          attempt_status =
+            case outcome.outcome
+            when :success then "succeeded"
+            when :terminal_failure then "failed_terminal"
+            else "failed_retryable"
+            end
+          attempt.update!(
+            status: attempt_status,
+            finished_at: Time.current,
+            provider_metadata: outcome.provider_metadata,
+            error_code: outcome.error_code,
+          )
           outcome
         end
       end
@@ -890,9 +896,9 @@ RSpec.describe CommandTower::Messaging::Execution::Adapters::Expo::Adapter, :mes
         context "when one ticket is ok and the other has no ticket" do
           let!(:first_result) { run_attempt.call(ids, send_ok.call([ok_ticket.call("t-a")])) }
 
-          it "stays retryable and records the accepted ticket" do
-            expect(first_result.retryable_failure?).to eq(true)
-            expect(first_result.error_code).to eq("expo_transient")
+          it "terminals with submission_uncertain and records the accepted ticket" do
+            expect(first_result.terminal_failure?).to eq(true)
+            expect(first_result.error_code).to eq("submission_uncertain")
             expect(first_result.provider_message_id).to eq("t-a")
             expect(meta_entries.call(first_result).pluck("ticket_status")).to eq(%w[ok missing])
           end
@@ -919,8 +925,9 @@ RSpec.describe CommandTower::Messaging::Execution::Adapters::Expo::Adapter, :mes
         context "when no ticket comes back for any device" do
           let!(:first_result) { run_attempt.call(ids, send_ok.call([])) }
 
-          it "is retryable" do
-            expect(first_result.retryable_failure?).to eq(true)
+          it "is terminal with submission_uncertain" do
+            expect(first_result.terminal_failure?).to eq(true)
+            expect(first_result.error_code).to eq("submission_uncertain")
             expect(first_result.provider_message_id).to be_nil
           end
         end
@@ -935,29 +942,26 @@ RSpec.describe CommandTower::Messaging::Execution::Adapters::Expo::Adapter, :mes
         end
       end
 
-      context "across three successive attempts with mixed outcomes" do
+      context "when a partial ticket response is never retried across attempts" do
         let(:ids) { [endpoint_a.id, endpoint_b.id, endpoint_c.id] }
         let!(:first_result) { run_attempt.call(ids, send_ok.call([ok_ticket.call("t-a")])) }
-        let!(:second_result) { run_attempt.call(ids, send_ok.call([ok_ticket.call("t-b")])) }
-        let!(:third_result) { run_attempt.call(ids, send_ok.call([ok_ticket.call("t-c")])) }
 
-        it "sends only to devices without an accepted ticket from any earlier attempt" do
-          expect(sent_tokens).to eq([[token_a, token_b, token_c], [token_b, token_c], [token_c]])
+        it "terminals the first attempt without adapter-level follow-up sends" do
+          expect(first_result.terminal_failure?).to eq(true)
+          expect(sent_tokens).to eq([[token_a, token_b, token_c]])
+        end
+      end
+
+      context "when history already records an accepted ticket from a partial attempt" do
+        let(:ids) { [endpoint_a.id, endpoint_b.id, endpoint_c.id] }
+        let!(:first_result) { run_attempt.call(ids, send_ok.call([ok_ticket.call("t-a")])) }
+        let!(:second_result) do
+          run_attempt.call(ids, send_ok.call([ok_ticket.call("t-b"), ok_ticket.call("t-c")]))
         end
 
-        it "stays retryable until the last device is accepted" do
-          expect(first_result.retryable_failure?).to eq(true)
-          expect(second_result.retryable_failure?).to eq(true)
-          expect(second_result.provider_message_id).to eq("t-b")
-          expect(third_result.success?).to eq(true)
-          expect(third_result.provider_message_id).to eq("t-c")
-        end
-
-        it "records on each attempt only the devices that attempt submitted" do
-          expect(meta_entries.call(second_result).pluck("endpoint_id", "ticket_status"))
-            .to eq([[endpoint_b.id, "ok"], [endpoint_c.id, "missing"]])
-          expect(meta_entries.call(third_result).pluck("endpoint_id", "ticket_status"))
-            .to eq([[endpoint_c.id, "ok"]])
+        it "skips devices that already have an accepted ticket in history" do
+          expect(second_result.success?).to eq(true)
+          expect(sent_tokens.last).to eq([token_b, token_c])
         end
       end
 
@@ -968,9 +972,9 @@ RSpec.describe CommandTower::Messaging::Execution::Adapters::Expo::Adapter, :mes
           let!(:second_result) { run_attempt.call(ids, whole_request_failure.call(status_code)) }
           let!(:third_result) { run_attempt.call(ids, send_ok.call([ok_ticket.call("t-b")])) }
 
-          it "keeps the delivery retryable and carries no earlier entries" do
-            expect(second_result.retryable_failure?).to eq(true)
-            expect(second_result.error_code).to eq("expo_transient")
+          it "terminals the whole-request failure with submission_uncertain" do
+            expect(second_result.terminal_failure?).to eq(true)
+            expect(second_result.error_code).to eq("submission_uncertain")
             expect(second_result.provider_message_id).to be_nil
             expect(meta_entries.call(second_result)).to eq(
               [
@@ -978,13 +982,13 @@ RSpec.describe CommandTower::Messaging::Execution::Adapters::Expo::Adapter, :mes
                   "endpoint_id" => endpoint_b.id,
                   "ticket_status" => "missing",
                   "receipt_status" => "unchecked",
-                  "error_code" => "expo_transient",
+                  "error_code" => "submission_uncertain",
                 },
               ],
             )
           end
 
-          it "does not resend the accepted device and finishes once the other is accepted" do
+          it "does not resend the accepted device on the uncertain attempt" do
             expect(sent_tokens).to eq([[token_a, token_b], [token_b], [token_b]])
             expect(third_result.success?).to eq(true)
             expect(third_result.provider_message_id).to eq("t-b")
@@ -1002,9 +1006,9 @@ RSpec.describe CommandTower::Messaging::Execution::Adapters::Expo::Adapter, :mes
           expect(sent_tokens).to eq([[token_a, token_b], [token_b], [token_b]])
         end
 
-        it "keeps retrying the transient device and then succeeds" do
-          expect(first_result.retryable_failure?).to eq(true)
-          expect(second_result.retryable_failure?).to eq(true)
+        it "terminals missing-ticket outcomes and only succeeds once the unsettled device accepts" do
+          expect(first_result.terminal_failure?).to eq(true)
+          expect(second_result.terminal_failure?).to eq(true)
           expect(third_result.success?).to eq(true)
           expect(third_result.provider_message_id).to eq("t-b")
           expect(meta_entries.call(third_result).pluck("endpoint_id")).to eq([endpoint_b.id])
@@ -1137,12 +1141,10 @@ RSpec.describe CommandTower::Messaging::Execution::Adapters::Expo::Adapter, :mes
         let!(:first_result) { run_attempt.call(ids, send_ok.call([ok_ticket.call("t-a")])) }
         let!(:second_result) { run_attempt.call(ids, Timeout::Error) }
 
-        it "keeps the known facts of the attempt and stays retryable" do
-          expect(second_result.retryable_failure?).to eq(true)
-          expect(second_result.error_code).to eq("expo_transient")
-          expect(meta_entries.call(second_result)).to eq(
-            [{ "endpoint_id" => endpoint_b.id, "ticket_status" => "missing", "receipt_status" => "unchecked" }],
-          )
+        it "terminals with submission_uncertain without resending the accepted device" do
+          expect(second_result.terminal_failure?).to eq(true)
+          expect(second_result.error_code).to eq("submission_uncertain")
+          expect(sent_tokens).to eq([[token_a, token_b], [token_b]])
         end
       end
     end

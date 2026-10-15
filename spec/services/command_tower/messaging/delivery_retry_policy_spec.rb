@@ -166,4 +166,46 @@ RSpec.describe CommandTower::Messaging::DeliveryRetryPolicy do
       end
     end
   end
+
+  describe "push duplicate-averse helpers" do
+    let(:push_delivery) do
+      communication = create(:messaging_communication)
+      create(
+        :messaging_channel_delivery,
+        communication:,
+        channel_key: "push",
+        status: "queued",
+        execution_attempt_count: 1,
+      )
+    end
+
+    it "allows submit when there are no finished attempts" do
+      expect(described_class.push_may_submit_to_provider?(push_delivery, current_attempt_id: 99)).to eq(true)
+    end
+
+    context "when not_submitted evidence exists after requeue" do
+      let!(:prior_attempt) do
+        create(
+          :messaging_delivery_attempt,
+          channel_delivery: push_delivery,
+          status: "failed_retryable",
+          started_at: 1.minute.ago,
+          finished_at: Time.current,
+          provider_metadata: { "submission" => "not_submitted" },
+        )
+      end
+
+      before { push_delivery.update!(status: "queued", execution_attempt_count: 1) }
+
+      it "allows submit when budget remains" do
+        expect(described_class.push_may_submit_to_provider?(push_delivery, current_attempt_id: prior_attempt.id + 1))
+          .to eq(true)
+      end
+
+      it "does not require failed_retryable status for queued redrive eligibility" do
+        expect(described_class.push_redrive_eligible_while_queued?(push_delivery)).to eq(true)
+        expect(described_class.push_redrive_eligible_from_failed_retryable?(push_delivery)).to eq(false)
+      end
+    end
+  end
 end

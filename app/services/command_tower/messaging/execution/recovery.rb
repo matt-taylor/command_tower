@@ -43,30 +43,86 @@ module CommandTower
           Messaging::ChannelDelivery
             .queued_for_execution
             .where(Messaging::ChannelDelivery.arel_table[:updated_at].lt(grace_before))
-            .find_each { |delivery| redrive!(delivery) }
+            .find_each { |delivery| redrive_queued_delivery!(delivery) }
         end
 
         def recover_failed!
           Messaging::ChannelDelivery
             .failed_retryable
             .where(Messaging::ChannelDelivery.arel_table[:updated_at].lt(grace_before))
-            .where(Messaging::ChannelDelivery.arel_table[:execution_attempt_count].lt(@max_attempts))
-            .find_each do |delivery|
-              reset_to_queued!(delivery)
-              redrive!(delivery.reload)
-            end
+            .find_each { |delivery| redrive_failed_delivery!(delivery) }
         end
 
         def recover_stale_executing!
           Messaging::ChannelDelivery
             .executing
             .where(Messaging::ChannelDelivery.arel_table[:execution_claimed_at].lt(grace_before))
-            .find_each do |delivery|
-              next if delivery.execution_attempt_count >= @max_attempts
+            .find_each { |delivery| redrive_stale_executing_delivery!(delivery) }
+        end
 
+        def redrive_queued_delivery!(delivery)
+          if Messaging::DeliveryRetryPolicy.push_channel?(delivery)
+            if Messaging::DeliveryRetryPolicy.push_redrive_eligible_while_queued?(delivery)
+              redrive!(delivery)
+            else
+              terminalize_push_uncertain!(delivery)
+            end
+            return
+          end
+
+          redrive!(delivery)
+        end
+
+        def redrive_failed_delivery!(delivery)
+          if Messaging::DeliveryRetryPolicy.push_channel?(delivery)
+            if Messaging::DeliveryRetryPolicy.push_redrive_eligible_from_failed_retryable?(delivery)
               reset_to_queued!(delivery)
               redrive!(delivery.reload)
+            else
+              terminalize_push_uncertain!(delivery)
             end
+            return
+          end
+
+          return if delivery.execution_attempt_count >= @max_attempts
+
+          reset_to_queued!(delivery)
+          redrive!(delivery.reload)
+        end
+
+        def redrive_stale_executing_delivery!(delivery)
+          max_attempts = Messaging::DeliveryRetryPolicy.max_execution_attempts_for(delivery)
+          return if delivery.execution_attempt_count >= max_attempts
+
+          if Messaging::DeliveryRetryPolicy.push_channel?(delivery)
+            if Messaging::DeliveryRetryPolicy.push_redrive_eligible_while_queued?(delivery)
+              reset_to_queued!(delivery)
+              redrive!(delivery.reload)
+            else
+              terminalize_push_uncertain!(delivery)
+            end
+            return
+          end
+
+          reset_to_queued!(delivery)
+          redrive!(delivery.reload)
+        end
+
+        def terminalize_push_uncertain!(delivery)
+          now = Time.current
+          uncertain = Messaging::DeliveryRetryPolicy::SUBMISSION_UNCERTAIN
+
+          Messaging::DeliveryAttempt
+            .where(channel_delivery_id: delivery.id, status: Messaging::DeliveryAttempt::STATUS_STARTED, finished_at: nil)
+            .find_each do |attempt|
+              attempt.update!(
+                status: Messaging::DeliveryAttempt::STATUS_FAILED_TERMINAL,
+                finished_at: now,
+                error_code: uncertain,
+              )
+            end
+
+          delivery.update!(status: Messaging::ChannelDelivery::STATUS_FAILED_TERMINAL)
         end
 
         def reset_to_queued!(delivery)

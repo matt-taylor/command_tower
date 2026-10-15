@@ -103,6 +103,16 @@ module CommandTower
             )
           end
 
+          def attempt_finalize_unpersisted(channel_delivery:, delivery_attempt:, error_class:)
+            emit(
+              :error,
+              "messaging.execution.attempt.finalize_unpersisted",
+              channel_delivery:,
+              delivery_attempt_id: delivery_attempt.id,
+              error_class:,
+            )
+          end
+
           def render_started(channel_delivery:, delivery_attempt:)
             emit_render(
               :info,

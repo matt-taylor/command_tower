@@ -21,6 +21,11 @@ module CommandTower
                  class_name: "CommandTower::Messaging::ChannelDelivery",
                  inverse_of: :delivery_attempts
 
+      # MariaDB reports JSON columns as LONGTEXT. The text caster would write
+      # a Ruby hash string and fail `json_valid`. Forcing the JSON caster
+      # writes one JSON document on MySQL and on MariaDB.
+      attribute :provider_metadata, :json
+
       validates :status, presence: true, inclusion: { in: STATUSES }
       validates :started_at, presence: true
     end

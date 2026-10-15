@@ -108,6 +108,31 @@ module CommandTower
           now = Time.current
           resolved_class = error_class || error&.class&.name || "UnknownError"
 
+          if Messaging::DeliveryRetryPolicy.push_channel?(delivery)
+            uncertain = Messaging::DeliveryRetryPolicy::SUBMISSION_UNCERTAIN
+            ActiveRecord::Base.transaction do
+              attempt.update!(
+                status: Messaging::DeliveryAttempt::STATUS_FAILED_TERMINAL,
+                finished_at: now,
+                error_code: uncertain,
+                error_class: resolved_class,
+                normalized_provider_status: nil,
+                provider_message_id: nil,
+              )
+              delivery.update!(status: Messaging::ChannelDelivery::STATUS_FAILED_TERMINAL)
+            end
+
+            delivery.reload
+            attempt.reload
+            OperationLogger.attempt_failed(channel_delivery: delivery, delivery_attempt: attempt)
+            OperationLogger.failed(
+              channel_delivery: delivery,
+              error_code: uncertain,
+              error_class: resolved_class,
+            )
+            return delivery
+          end
+
           ActiveRecord::Base.transaction do
             attempt.update!(
               status: Messaging::DeliveryAttempt::STATUS_FAILED_RETRYABLE,
@@ -128,8 +153,17 @@ module CommandTower
             error_code: "internal_adapter_error",
             error_class: resolved_class,
           )
-        rescue StandardError
-          mark_failed_retryable_best_effort!(delivery)
+        rescue StandardError => error
+          OperationLogger.attempt_finalize_unpersisted(
+            channel_delivery: delivery,
+            delivery_attempt: attempt,
+            error_class: error.class.name,
+          )
+          if Messaging::DeliveryRetryPolicy.push_channel?(delivery)
+            mark_failed_terminal_best_effort!(delivery)
+          else
+            mark_failed_retryable_best_effort!(delivery)
+          end
         end
 
         private
@@ -140,6 +174,12 @@ module CommandTower
 
         def mark_failed_retryable_best_effort!(delivery)
           delivery.update(status: Messaging::ChannelDelivery::STATUS_FAILED_RETRYABLE)
+        rescue StandardError
+          nil
+        end
+
+        def mark_failed_terminal_best_effort!(delivery)
+          delivery.update(status: Messaging::ChannelDelivery::STATUS_FAILED_TERMINAL)
         rescue StandardError
           nil
         end
