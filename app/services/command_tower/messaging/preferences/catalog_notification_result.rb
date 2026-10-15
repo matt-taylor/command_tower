@@ -21,6 +21,7 @@ module CommandTower
         :channel_catalog,
         :destinations,
         :corrections,
+        :settings,
       ) do
         def self.build(
           key:,
@@ -39,7 +40,8 @@ module CommandTower
           sound:,
           channel_catalog: [],
           destinations: {},
-          corrections: nil
+          corrections: nil,
+          settings: []
         )
           frozen_channels =
             channels.to_h.transform_keys(&:to_s).transform_values { |value| !!value }.freeze
@@ -62,8 +64,14 @@ module CommandTower
             channel_catalog: freeze_channel_catalog(channel_catalog),
             destinations: freeze_destinations(destinations),
             corrections: freeze_corrections(corrections),
+            settings: freeze_settings(settings),
           ).freeze
         end
+
+        def self.freeze_settings(settings)
+          Array(settings).map(&:freeze).freeze
+        end
+        private_class_method :freeze_settings
 
         def self.freeze_channel_catalog(entries)
           Array(entries).map(&:freeze).freeze

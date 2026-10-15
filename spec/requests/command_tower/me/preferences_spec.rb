@@ -144,6 +144,7 @@ RSpec.describe "Me preferences", :with_rbac_setup, :messaging_preferences, type:
       expect(email_entry).to include("label" => "Email", "glyphKey" => "mail", "order" => 1)
       expect(booking["destinations"]["email"]).to include("state" => "editable")
       expect(booking).not_to have_key("corrections")
+      expect(booking["settings"]).to eq([])
     end
 
     it "reflects stored overrides" do

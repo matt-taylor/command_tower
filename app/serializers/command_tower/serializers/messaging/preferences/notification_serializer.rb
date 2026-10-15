@@ -18,6 +18,7 @@ module CommandTower
               availableChannels: notification.available_channels,
               channelCatalog: serialize_channel_catalog(notification.channel_catalog),
               destinations: serialize_destinations(notification.destinations),
+              settings: serialize_settings(notification.settings),
               urgency: notification.urgency,
               sound: notification.sound,
               preferences: {
@@ -45,6 +46,37 @@ module CommandTower
             end
           end
           private_class_method :serialize_channel_catalog
+
+          def self.serialize_settings(settings)
+            Array(settings).map do |entry|
+              hash = entry.respond_to?(:to_h) ? entry.to_h : entry
+              {
+                key: entry_value(hash, :key),
+                channelKey: entry_value(hash, :channel_key) || entry_value(hash, :channelKey),
+                control: entry_value(hash, :control),
+                label: entry_value(hash, :label),
+                description: entry_value(hash, :description),
+                editable: entry_value(hash, :editable),
+                effective: entry_value(hash, :effective),
+                options: serialize_setting_options(entry_value(hash, :options)),
+              }
+            end
+          end
+          private_class_method :serialize_settings
+
+          def self.serialize_setting_options(options)
+            return nil if options.nil?
+
+            Array(options).map do |option|
+              option_hash = option.respond_to?(:to_h) ? option.to_h : option
+              {
+                value: entry_value(option_hash, :value),
+                label: entry_value(option_hash, :label),
+                description: entry_value(option_hash, :description),
+              }
+            end
+          end
+          private_class_method :serialize_setting_options
 
           def self.serialize_destinations(destinations)
             destinations.to_h.transform_values do |entry|

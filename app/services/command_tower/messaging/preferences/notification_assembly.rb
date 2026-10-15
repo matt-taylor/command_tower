@@ -44,6 +44,12 @@ module CommandTower
             stored: Store.find(recipient_id:, notification_type_key: declaration.key),
           )
 
+          settings = SettingsProjection.for_notification(
+            declaration:,
+            blocks:,
+            destinations:,
+          )
+
           CatalogNotificationResult.build(
             key: declaration.key,
             label: declaration.label,
@@ -62,6 +68,7 @@ module CommandTower
             channel_catalog:,
             destinations:,
             corrections:,
+            settings:,
           )
         end
       end

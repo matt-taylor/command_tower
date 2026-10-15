@@ -51,6 +51,7 @@ RSpec.describe CommandTower::Serializers::Messaging::Preferences::NotificationSe
         "sms" => { state: "unavailable", effective: false, reason_code: "unavailable", reason: "This destination is unavailable." },
       },
       corrections: nil,
+      settings: [],
     )
   end
 
@@ -102,6 +103,7 @@ RSpec.describe CommandTower::Serializers::Messaging::Preferences::NotificationSe
           reason: "This destination is unavailable.",
         },
       },
+      settings: [],
       urgency: { default: "normal", allowed: %w[normal], selectable: false, effective: "normal" },
       sound: {
         default: "default",
