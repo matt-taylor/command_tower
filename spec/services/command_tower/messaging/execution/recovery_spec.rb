@@ -393,9 +393,20 @@ RSpec.describe CommandTower::Messaging::Execution::Recovery, :messaging_accept d
   end
 
   context "with push confirmed not_submitted evidence" do
-    let(:previous_fake) { CommandTower.config.messaging.allow_fake_adapter }
-    let(:previous_expo_adapter) { CommandTower.config.messaging.expo.adapter }
-    let(:previous_home) { CommandTower.config.messaging.expo.home_deep_link }
+    around do |example|
+      previous_fake = CommandTower.config.messaging.allow_fake_adapter
+      previous_expo_adapter = CommandTower.config.messaging.expo.adapter
+      previous_home = CommandTower.config.messaging.expo.home_deep_link
+      CommandTower.config.messaging.allow_fake_adapter = true
+      CommandTower.config.messaging.expo.adapter = "fake"
+      CommandTower.config.messaging.expo.home_deep_link = "pickem://home"
+      example.run
+    ensure
+      CommandTower.config.messaging.allow_fake_adapter = previous_fake
+      CommandTower.config.messaging.expo.adapter = previous_expo_adapter
+      CommandTower.config.messaging.expo.home_deep_link = previous_home
+    end
+
     let!(:delivery) do
       communication = create(
         :messaging_communication,
@@ -443,17 +454,7 @@ RSpec.describe CommandTower::Messaging::Execution::Recovery, :messaging_accept d
       )
       record = CommandTower::Messaging::Endpoint.find(view.id)
       record.update!(verification_state: "verified", verified_at: Time.current)
-
-      CommandTower.config.messaging.allow_fake_adapter = true
-      CommandTower.config.messaging.expo.adapter = "fake"
-      CommandTower.config.messaging.expo.home_deep_link = "pickem://home"
       clear_enqueued_jobs
-    end
-
-    after do
-      CommandTower.config.messaging.allow_fake_adapter = previous_fake
-      CommandTower.config.messaging.expo.adapter = previous_expo_adapter
-      CommandTower.config.messaging.expo.home_deep_link = previous_home
     end
 
     it "requeues and the permitted retry executes through queued and claim" do
@@ -473,7 +474,14 @@ RSpec.describe CommandTower::Messaging::Execution::Recovery, :messaging_accept d
   end
 
   context "when running the full recovery path with fake adapter" do
-    let(:previous_fake) { CommandTower.config.messaging.allow_fake_adapter }
+    around do |example|
+      previous_fake = CommandTower.config.messaging.allow_fake_adapter
+      CommandTower.config.messaging.allow_fake_adapter = true
+      example.run
+    ensure
+      CommandTower.config.messaging.allow_fake_adapter = previous_fake
+    end
+
     let!(:delivery) { build_delivery.call(status: "queued", attempt_count: 0) }
     let(:failure) do
       CommandTower::Messaging::Execution::Adapters::FakeAdapter.new(outcome: :retryable_failure)
@@ -481,8 +489,6 @@ RSpec.describe CommandTower::Messaging::Execution::Recovery, :messaging_accept d
     let!(:communication_count) { CommandTower::Messaging::Communication.count }
 
     before do
-      CommandTower.config.messaging.allow_fake_adapter = true
-
       CommandTower::Workflows::Messaging::Execution::DeliverWorkflow.call(
         channel_delivery_id: delivery.id,
         executor: failure,
@@ -490,8 +496,6 @@ RSpec.describe CommandTower::Messaging::Execution::Recovery, :messaging_accept d
       delivery.update_columns(updated_at: 5.minutes.ago)
       clear_enqueued_jobs
     end
-
-    after { CommandTower.config.messaging.allow_fake_adapter = previous_fake }
 
     it "runs the full recovery path with a new attempt under the same delivery" do
       expect(delivery.reload.status).to eq("failed_retryable")

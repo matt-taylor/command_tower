@@ -57,14 +57,17 @@ RSpec.describe "Messaging execution observability", :messaging_accept do
   end
 
   context "when render and adapter succeed" do
-    let(:previous_fake) { CommandTower.config.messaging.allow_fake_adapter }
-
-    before do
+    around do |example|
+      previous_fake = CommandTower.config.messaging.allow_fake_adapter
       CommandTower.config.messaging.allow_fake_adapter = false
-      CommandTower::Workflows::Messaging::Execution::DeliverWorkflow.call(channel_delivery_id: delivery.id)
+      example.run
+    ensure
+      CommandTower.config.messaging.allow_fake_adapter = previous_fake
     end
 
-    after { CommandTower.config.messaging.allow_fake_adapter = previous_fake }
+    before do
+      CommandTower::Workflows::Messaging::Execution::DeliverWorkflow.call(channel_delivery_id: delivery.id)
+    end
 
     let(:events) { payloads.map { |payload| payload[:event] || payload["event"] } }
 
