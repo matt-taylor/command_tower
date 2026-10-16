@@ -238,13 +238,14 @@ RSpec.describe CommandTower::Messaging::Preferences::Update, :messaging_preferen
       )
     end
 
-    it "rejects the write and leaves the row unchanged" do
-      before_hash =
-        CommandTower::Messaging::Preferences.find_stored(
-          recipient_id: user.id,
-          notification_type_key:,
-        ).to_raw_hash
+    let!(:before_hash) do
+      CommandTower::Messaging::Preferences.find_stored(
+        recipient_id: user.id,
+        notification_type_key:,
+      ).to_raw_hash
+    end
 
+    it "rejects the write and leaves the row unchanged" do
       expect {
         update!.call(preference_state: { "mandatory" => true, "channels" => { "email" => false } })
       }.to raise_error(
@@ -386,15 +387,17 @@ RSpec.describe CommandTower::Messaging::Preferences::Update, :messaging_preferen
           destination_locks: { "push" => "forced_on" },
         ),
       )
+      update!.call(preference_state: { "channels" => { "email" => false } })
     end
 
-    it "persists the locked channel when the patch omits it" do
-      update!.call(preference_state: { "channels" => { "email" => false } })
-
-      stored = CommandTower::Messaging::Preferences.find_stored(
+    let(:stored) do
+      CommandTower::Messaging::Preferences.find_stored(
         recipient_id: user.id,
         notification_type_key:,
       )
+    end
+
+    it "persists the locked channel when the patch omits it" do
       expect(stored.channels["push"]).to be(true)
     end
   end

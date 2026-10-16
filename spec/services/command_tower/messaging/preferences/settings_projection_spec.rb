@@ -3,15 +3,13 @@
 RSpec.describe CommandTower::Messaging::Preferences::SettingsProjection, :messaging_preferences do
   let(:user) { create(:user) }
   let(:destinations) { { "push" => { state: "editable", effective: true } } }
-
-  def blocks_for(declaration, stored: nil)
-    CommandTower::Messaging::Preferences::EffectiveChoice.call(declaration:, stored:)
+  let(:blocks) do
+    CommandTower::Messaging::Preferences::EffectiveChoice.call(declaration:, stored: nil)
   end
-
-  def project(declaration, stored: nil)
+  let(:settings) do
     described_class.for_notification(
       declaration:,
-      blocks: blocks_for(declaration, stored:),
+      blocks:,
       destinations:,
     )
   end
@@ -31,8 +29,6 @@ RSpec.describe CommandTower::Messaging::Preferences::SettingsProjection, :messag
       before { register_and_seal_notification_types(declaration) }
 
       it "projects selectable urgency only without critical in options" do
-        settings = project(declaration)
-
         expect(settings.length).to eq(1)
         expect(settings.first[:key]).to eq("urgency")
         expect(settings.first[:channel_key]).to eq("push")
@@ -42,9 +38,6 @@ RSpec.describe CommandTower::Messaging::Preferences::SettingsProjection, :messag
       end
 
       it "matches legacy urgency effective id" do
-        blocks = blocks_for(declaration)
-        settings = project(declaration)
-
         expect(settings.first[:effective]).to eq(blocks[:urgency][:effective])
       end
     end
@@ -68,6 +61,8 @@ RSpec.describe CommandTower::Messaging::Preferences::SettingsProjection, :messag
         )
       end
 
+      let(:sound) { settings.find { |entry| entry[:key] == "sound" } }
+
       around do |example|
         previous = CommandTower.config.messaging.sounds
         CommandTower.config.messaging.sounds = host_sounds
@@ -79,9 +74,6 @@ RSpec.describe CommandTower::Messaging::Preferences::SettingsProjection, :messag
       before { register_and_seal_notification_types(declaration) }
 
       it "includes a sound single_select with catalog labels and null descriptions" do
-        settings = project(declaration)
-        sound = settings.find { |entry| entry[:key] == "sound" }
-
         expect(sound).to include(
           channel_key: "push",
           control: "single_select",
@@ -96,9 +88,6 @@ RSpec.describe CommandTower::Messaging::Preferences::SettingsProjection, :messag
       end
 
       it "matches legacy sound effective id" do
-        blocks = blocks_for(declaration)
-        sound = project(declaration).find { |entry| entry[:key] == "sound" }
-
         expect(sound[:effective]).to eq(blocks[:sound][:effective])
       end
     end
@@ -115,8 +104,6 @@ RSpec.describe CommandTower::Messaging::Preferences::SettingsProjection, :messag
       before { register_and_seal_notification_types(declaration) }
 
       it "omits sound from settings" do
-        settings = project(declaration)
-
         expect(settings.map { |entry| entry[:key] }).not_to include("sound")
       end
     end
@@ -146,9 +133,7 @@ RSpec.describe CommandTower::Messaging::Preferences::SettingsProjection, :messag
       before { register_and_seal_notification_types(declaration) }
 
       it "preserves server-defined order with urgency before sound" do
-        keys = project(declaration).map { |entry| entry[:key] }
-
-        expect(keys).to eq(%w[urgency sound])
+        expect(settings.map { |entry| entry[:key] }).to eq(%w[urgency sound])
       end
     end
 
@@ -160,24 +145,19 @@ RSpec.describe CommandTower::Messaging::Preferences::SettingsProjection, :messag
           urgency: { default: "normal", allowed: %w[normal time_sensitive] },
         )
       end
+      let(:destinations) { { "email" => { state: "editable", effective: true } } }
 
       before { register_and_seal_notification_types(declaration) }
 
       it "returns an empty settings array" do
-        settings =
-          described_class.for_notification(
-            declaration:,
-            blocks: blocks_for(declaration),
-            destinations: { "email" => { state: "editable", effective: true } },
-          )
         expect(settings).to eq([])
       end
     end
   end
 
   describe ".build" do
-    it "projects a generic non-push channel single_select without delivery behavior" do
-      definition = described_class::SingleSelectDefinition.new(
+    let(:definition) do
+      described_class::SingleSelectDefinition.new(
         key: "example_choice",
         channel_key: "email",
         label: "Example",
@@ -188,9 +168,11 @@ RSpec.describe CommandTower::Messaging::Preferences::SettingsProjection, :messag
           { value: "b", label: "Option B", description: nil },
         ].freeze,
       )
+    end
 
-      settings = described_class.build([definition])
+    subject(:settings) { described_class.build([definition]) }
 
+    it "projects a generic non-push channel single_select without delivery behavior" do
       expect(settings.length).to eq(1)
       expect(settings.first).to include(
         key: "example_choice",
@@ -212,22 +194,23 @@ RSpec.describe CommandTower::Messaging::Preferences::SettingsProjection, :messag
 
   describe "critical urgency copy" do
     let(:declaration) do
-        build_notification_type_declaration(
-          allowed_channels: %w[push],
-          default_channels: %w[push],
-          inbox_available: false,
-          deep_link_required: true,
-          urgency: { default: "normal", allowed: "all" },
-          sound: { default: "default", allowed: %w[default] },
-        )
+      build_notification_type_declaration(
+        allowed_channels: %w[push],
+        default_channels: %w[push],
+        inbox_available: false,
+        deep_link_required: true,
+        urgency: { default: "normal", allowed: "all" },
+        sound: { default: "default", allowed: %w[default] },
+      )
+    end
+
+    let(:critical_option) do
+      settings.first[:options].find { |option| option[:value] == "critical" }
     end
 
     before { register_and_seal_notification_types(declaration) }
 
     it "does not claim Critical Alerts or OS bypass behavior" do
-      critical_option =
-        project(declaration).first[:options].find { |option| option[:value] == "critical" }
-
       expect(critical_option[:description]).to eq(
         "Highest declared urgency. Actual delivery behavior depends on the application and device capabilities.",
       )

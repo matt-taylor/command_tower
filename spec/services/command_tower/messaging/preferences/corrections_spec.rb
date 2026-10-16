@@ -18,34 +18,36 @@ RSpec.describe CommandTower::Messaging::Preferences::Corrections do
     }
   end
 
-  it "builds a correction when a submitted boolean disagrees with effective" do
-    corrections = described_class.build(
-      submitted: { "email" => false },
-      destinations:,
-    )
+  subject(:corrections) { described_class.build(submitted:, destinations:) }
 
-    expect(corrections.length).to eq(1)
-    expect(corrections.first.channel_key).to eq("email")
-    expect(corrections.first.submitted).to be(false)
-    expect(corrections.first.effective).to be(true)
-    expect(corrections.first.reason_code).to eq("required")
+  context "when a submitted boolean disagrees with effective" do
+    let(:submitted) { { "email" => false } }
+
+    it "builds a correction" do
+      expect(corrections.length).to eq(1)
+      expect(corrections.first.channel_key).to eq("email")
+      expect(corrections.first.submitted).to be(false)
+      expect(corrections.first.effective).to be(true)
+      expect(corrections.first.reason_code).to eq("required")
+    end
   end
 
-  it "does not build corrections for omitted destinations" do
-    corrections = described_class.build(submitted: {}, destinations:)
+  context "when destinations are omitted" do
+    let(:submitted) { {} }
 
-    expect(corrections).to eq([])
+    it "does not build corrections" do
+      expect(corrections).to eq([])
+    end
   end
 
-  it "builds a correction for an explicitly submitted unavailable destination" do
-    corrections = described_class.build(
-      submitted: { "sms" => true },
-      destinations:,
-    )
+  context "when an unavailable destination is explicitly submitted" do
+    let(:submitted) { { "sms" => true } }
 
-    expect(corrections.length).to eq(1)
-    expect(corrections.first.channel_key).to eq("sms")
-    expect(corrections.first.submitted).to be(true)
-    expect(corrections.first.effective).to be(false)
+    it "builds a correction" do
+      expect(corrections.length).to eq(1)
+      expect(corrections.first.channel_key).to eq("sms")
+      expect(corrections.first.submitted).to be(true)
+      expect(corrections.first.effective).to be(false)
+    end
   end
 end
