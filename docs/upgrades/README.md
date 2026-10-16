@@ -4,6 +4,7 @@ Host-facing upgrade / change summaries for CommandTower releases.
 
 | Version | Summary |
 |---------|---------|
+| [0.21.0](0.21.0.md) | Notification preference reads: channel catalog, destinations, settings rows; PATCH merges onto stored member state |
 | [0.20.0](0.20.0.md) | Push delivery certainty: JSON `provider_metadata` caster; duplicate-averse push recovery and Expo submission guards |
 | [0.19.0](0.19.0.md) | Push presentation: badge, urgency, sound, deep links; Expo ticket and receipt metadata; preference urgency and sound |
 | [0.18.0](0.18.0.md) | Inbox conversations: optional Produce identity, grouped list entries, `GET /me/inbox/conversation` window of at most 5, accept-time presentation snapshot |

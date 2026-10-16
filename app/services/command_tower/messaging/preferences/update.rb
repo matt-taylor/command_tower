@@ -25,10 +25,14 @@ module CommandTower
           validate_settings_visible!(declaration)
           validate_writable!(declaration)
 
+          submitted_destinations = nil
+
           if reset_request?
             persist_reset!
           else
-            candidate = build_candidate_state!(declaration)
+            patch_hash = normalized_preference_hash
+            submitted_destinations = extract_submitted_destinations(patch_hash)
+            candidate = build_candidate_state!(declaration, patch_hash:)
             sparse = sparsify(declaration, candidate)
             persist_sparse!(sparse)
           end
@@ -39,7 +43,12 @@ module CommandTower
             platform_enabled_channels: @platform_enabled_channels,
           )
 
-          build_notification_result(declaration, evaluation, recipient_ready_channel_keys)
+          build_notification_result(
+            declaration,
+            evaluation,
+            recipient_ready_channel_keys,
+            submitted_destinations:,
+          )
         end
 
         private
@@ -79,24 +88,60 @@ module CommandTower
           @preference_state.respond_to?(:to_h) && @preference_state.to_h.empty?
         end
 
-        def build_candidate_state!(declaration)
+        def normalized_preference_hash
           unless @preference_state.respond_to?(:to_h)
             raise InvalidPreferenceStateError, "preference_state must be a hash-like object"
           end
 
-          hash = @preference_state.to_h.transform_keys(&:to_s)
+          @preference_state.to_h.transform_keys(&:to_s)
+        end
+
+        def extract_submitted_destinations(hash)
+          submitted = {}
+          submitted["inbox"] = hash["inbox"] if hash.key?("inbox")
+          if hash.key?("channels") && hash["channels"].respond_to?(:to_h)
+            hash["channels"].to_h.each do |raw_key, raw_value|
+              submitted[raw_key.to_s] = raw_value
+            end
+          end
+          submitted.freeze
+        end
+
+        def build_candidate_state!(declaration, patch_hash: nil)
+          hash = patch_hash || normalized_preference_hash
           unknown_keys = hash.keys - %w[channels inbox urgency sound]
           if unknown_keys.any?
             raise InvalidPreferenceWriteError,
                   "unsupported preference keys: #{unknown_keys.join(', ')}"
           end
 
-          channels = parse_channels!(declaration, hash["channels"])
-          inbox = parse_inbox!(declaration, hash)
+          patch = build_patch_partial!(declaration, hash)
+          merged = patch.merge_over(stored_member_state)
+          DestinationLocks.apply(declaration:, state: merged)
+        end
+
+        def stored_member_state
+          Store.find(
+            recipient_id: @recipient_id,
+            notification_type_key: @notification_type_key,
+          ) || empty_stored_member_state
+        end
+
+        def empty_stored_member_state
+          PreferenceState.new(channels: {}.freeze, inbox: nil, urgency: nil, sound: nil).freeze
+        end
+
+        def build_patch_partial!(declaration, hash)
+          channels =
+            if hash.key?("channels")
+              parse_channels!(declaration, hash["channels"])
+            else
+              {}.freeze
+            end
 
           PreferenceState.new(
             channels: channels.freeze,
-            inbox:,
+            inbox: parse_inbox!(declaration, hash),
             urgency: parse_choice!(declaration, hash, "urgency"),
             sound: parse_choice!(declaration, hash, "sound"),
           ).freeze
@@ -234,44 +279,16 @@ module CommandTower
           current.to_raw_hash == sparse.to_raw_hash
         end
 
-        def build_notification_result(declaration, evaluation, recipient_ready_keys)
-          effective_state = evaluation.effective_preference_state || {}
-          effective_channels = effective_state["channels"] || {}
-          channels =
-            declaration.allowed_channels.to_h do |channel|
-              [channel, !!effective_channels[channel]]
-            end
-
-          inbox_enabled =
-            if effective_state.key?("inbox")
-              !!effective_state["inbox"]
-            else
-              evaluation.inbox_permitted
-            end
-
+        def build_notification_result(declaration, evaluation, recipient_ready_keys, submitted_destinations: nil)
           available =
             declaration.allowed_channels & @platform_enabled_channels & recipient_ready_keys
 
-          blocks = EffectiveChoice.call(
+          NotificationAssembly.build(
             declaration:,
-            stored: Store.find(recipient_id: @recipient_id, notification_type_key: @notification_type_key),
-          )
-
-          ::CommandTower::Messaging::Preferences::CatalogNotificationResult.build(
-            key: declaration.key,
-            label: declaration.label,
-            description: declaration.description,
-            order: declaration.type_order,
-            configurable: declaration.user_configurable,
-            mandatory: declaration.mandatory,
-            inbox_available: declaration.inbox_available,
-            allowed_channels: declaration.allowed_channels,
+            evaluation:,
             available_channels: available,
-            inbox_enabled:,
-            channels:,
-            stored_override_present: evaluation.stored_override_present,
-            urgency: blocks[:urgency],
-            sound: blocks[:sound],
+            recipient_id: @recipient_id,
+            submitted_destinations:,
           )
         end
       end

@@ -27,6 +27,7 @@ module CommandTower
         :urgency,
         :sound,
         :deep_link_required,
+        :destination_locks,
       ) do
         def self.build(
           key:,
@@ -51,7 +52,8 @@ module CommandTower
           badge_eligible: false,
           urgency: nil,
           sound: nil,
-          deep_link_required: false
+          deep_link_required: false,
+          destination_locks: {}
         )
           new(
             key: key.nil? ? nil : key.to_s,
@@ -93,8 +95,20 @@ module CommandTower
             # NPB-5. Push-capable types that are not inbox-backed must set this
             # so Produce can reject a missing metadata deep_link.
             deep_link_required: !!deep_link_required,
+            destination_locks: freeze_destination_locks(destination_locks),
           ).freeze
         end
+
+        def self.freeze_destination_locks(locks)
+          return {}.freeze if locks.nil? || locks.empty?
+
+          unless locks.respond_to?(:to_h)
+            return {}.freeze
+          end
+
+          locks.to_h.transform_keys(&:to_s).transform_values(&:to_s).freeze
+        end
+        private_class_method :freeze_destination_locks
 
         def self.freeze_channel_list(channels)
           return nil if channels.nil?

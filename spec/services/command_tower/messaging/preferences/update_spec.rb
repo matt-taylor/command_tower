@@ -124,7 +124,7 @@ RSpec.describe CommandTower::Messaging::Preferences::Update, :messaging_preferen
     end
   end
 
-  context "when replacing a prior stored override" do
+  context "when a partial write omits channel entries" do
     before do
       CommandTower::Messaging::Preferences.upsert_stored!(
         recipient_id: user.id,
@@ -141,9 +141,124 @@ RSpec.describe CommandTower::Messaging::Preferences::Update, :messaging_preferen
       )
     end
 
-    it "replaces the prior stored override rather than merging" do
-      expect(stored.to_raw_hash).to eq("channels" => { "email" => false })
-      expect(stored.channels).not_to have_key("sms")
+    it "merges onto the stored member document and keeps unmentioned channel entries" do
+      expect(stored.to_raw_hash).to eq(
+        "channels" => { "email" => false, "sms" => false },
+        "inbox" => false,
+      )
+    end
+  end
+
+  context "when an old client sends only channels and inbox" do
+    before do
+      register_and_seal_notification_types(
+        build_notification_type_declaration(
+          key: notification_type_key,
+          allowed_channels: %w[email sms],
+          default_channels: %w[email],
+          inbox_available: true,
+          user_configurable: true,
+          mandatory: false,
+          settings_visible: true,
+          default_preference_state: {
+            "channels" => { "email" => true, "sms" => true },
+            "inbox" => true,
+          },
+          urgency: { default: "normal", allowed: %w[normal time_sensitive] },
+        ),
+      )
+      CommandTower::Messaging::Preferences.upsert_stored!(
+        recipient_id: user.id,
+        notification_type_key:,
+        preference_state: {
+          "channels" => { "email" => false },
+          "urgency" => "time_sensitive",
+        },
+      )
+    end
+
+    subject(:result) do
+      update!.call(
+        preference_state: {
+          "channels" => { "email" => false },
+          "inbox" => false,
+        },
+      )
+    end
+
+    let(:stored) do
+      result
+      CommandTower::Messaging::Preferences.find_stored(recipient_id: user.id, notification_type_key:)
+    end
+
+    it "keeps stored urgency when the body omits it" do
+      expect(stored.urgency).to eq("time_sensitive")
+      expect(stored.channels).to eq("email" => false)
+      expect(stored.inbox).to be(false)
+      expect(result.urgency[:effective]).to eq("time_sensitive")
+    end
+  end
+
+  context "when an invalid write is rejected" do
+    before do
+      CommandTower::Messaging::Preferences.upsert_stored!(
+        recipient_id: user.id,
+        notification_type_key:,
+        preference_state: { "channels" => { "email" => false }, "inbox" => false },
+      )
+    end
+
+    let(:before_hash) do
+      CommandTower::Messaging::Preferences.find_stored(
+        recipient_id: user.id,
+        notification_type_key:,
+      ).to_raw_hash
+    end
+
+    it "does not change the stored row" do
+      expect {
+        update!.call(preference_state: { "channels" => { "email" => "nope" } })
+      }.to raise_error(CommandTower::Messaging::Preferences::InvalidPreferenceStateError)
+
+      expect(
+        CommandTower::Messaging::Preferences.find_stored(
+          recipient_id: user.id,
+          notification_type_key:,
+        ).to_raw_hash,
+      ).to eq(before_hash)
+    end
+  end
+
+  context "when an unknown top-level key is submitted" do
+    before do
+      CommandTower::Messaging::Preferences.upsert_stored!(
+        recipient_id: user.id,
+        notification_type_key:,
+        preference_state: { "channels" => { "email" => false } },
+      )
+    end
+
+    let!(:before_hash) do
+      CommandTower::Messaging::Preferences.find_stored(
+        recipient_id: user.id,
+        notification_type_key:,
+      ).to_raw_hash
+    end
+
+    it "rejects the write and leaves the row unchanged" do
+      expect {
+        update!.call(preference_state: { "mandatory" => true, "channels" => { "email" => false } })
+      }.to raise_error(
+        CommandTower::Messaging::Preferences::InvalidPreferenceWriteError,
+        /unsupported preference keys/,
+      )
+
+      expect(
+        CommandTower::Messaging::Preferences.find_stored(
+          recipient_id: user.id,
+          notification_type_key:,
+        ).to_raw_hash,
+      ).to eq(before_hash)
     end
   end
 
@@ -256,6 +371,35 @@ RSpec.describe CommandTower::Messaging::Preferences::Update, :messaging_preferen
     expect {
       update!.call(preference_state: { "channels" => { "email" => "nope" } })
     }.to raise_error(CommandTower::Messaging::Preferences::InvalidPreferenceStateError)
+  end
+
+  context "with a forced_on destination lock" do
+    before do
+      register_and_seal_notification_types(
+        build_notification_type_declaration(
+          key: notification_type_key,
+          allowed_channels: %w[email push],
+          default_channels: %w[email],
+          default_preference_state: {
+            "channels" => { "email" => true, "push" => false },
+            "inbox" => true,
+          },
+          destination_locks: { "push" => "forced_on" },
+        ),
+      )
+      update!.call(preference_state: { "channels" => { "email" => false } })
+    end
+
+    let(:stored) do
+      CommandTower::Messaging::Preferences.find_stored(
+        recipient_id: user.id,
+        notification_type_key:,
+      )
+    end
+
+    it "persists the locked channel when the patch omits it" do
+      expect(stored.channels["push"]).to be(true)
+    end
   end
 
   context "with mandatory destination disables" do
@@ -416,10 +560,67 @@ RSpec.describe CommandTower::Messaging::Preferences::Update, :messaging_preferen
         CommandTower::Messaging::Preferences.find_stored(recipient_id: user.id, notification_type_key:)
       end
 
-      it "clears the urgency override and keeps the channel" do
-        expect(stored.urgency).to be_nil
+      it "keeps the stored urgency override and the channel entry" do
+        expect(stored.urgency).to eq("time_sensitive")
         expect(stored.channels).to eq("email" => false)
-        expect(result.urgency[:effective]).to eq("normal")
+        expect(result.urgency[:effective]).to eq("time_sensitive")
+      end
+    end
+
+    context "when a channel is reset to the declaration default" do
+      let(:host_sounds) { [{ id: "chime", label: "Chime", asset: "chime.wav" }] }
+
+      around do |example|
+        previous = CommandTower.config.messaging.sounds
+        CommandTower.config.messaging.sounds = host_sounds
+        example.run
+      ensure
+        CommandTower.config.messaging.sounds = previous
+      end
+
+      before do
+        register_and_seal_notification_types(
+          build_notification_type_declaration(
+            key: notification_type_key,
+            allowed_channels: %w[email sms],
+            default_channels: %w[email],
+            inbox_available: true,
+            user_configurable: true,
+            settings_visible: true,
+            default_preference_state: {
+              "channels" => { "email" => true, "sms" => true },
+              "inbox" => true,
+            },
+            urgency: { default: "normal", allowed: %w[normal time_sensitive] },
+            sound: { default: "default", allowed: "all" },
+          ),
+        )
+        CommandTower::Messaging::Preferences.upsert_stored!(
+          recipient_id: user.id,
+          notification_type_key:,
+          preference_state: {
+            "channels" => { "email" => false, "sms" => false },
+            "inbox" => false,
+            "urgency" => "time_sensitive",
+            "sound" => "chime",
+          },
+        )
+      end
+
+      subject(:result) { update!.call(preference_state: { "channels" => { "email" => true } }) }
+
+      let(:stored) do
+        result
+        CommandTower::Messaging::Preferences.find_stored(recipient_id: user.id, notification_type_key:)
+      end
+
+      it "drops only that channel override and keeps the other stored fields" do
+        expect(stored.channels).to eq("sms" => false)
+        expect(stored.channels).not_to have_key("email")
+        expect(stored.inbox).to be(false)
+        expect(stored.urgency).to eq("time_sensitive")
+        expect(stored.sound).to eq("chime")
+        expect(result.channels).to eq("email" => true, "sms" => false)
       end
     end
 

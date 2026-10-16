@@ -16,6 +16,20 @@ RSpec.describe CommandTower::Messaging::NotificationTypes::DeclarationValidator,
       end
     end
 
+    context "when destination_locks force_off a mandatory default channel" do
+      let(:declaration) do
+        build_notification_type_declaration(
+          mandatory: true,
+          default_channels: %w[email],
+          destination_locks: { "email" => "forced_off" },
+        )
+      end
+
+      it "returns a validation error" do
+        expect(errors).to include(/cannot force_off mandatory channel/)
+      end
+    end
+
     context "when a push type is inbox-backed" do
       let(:declaration) do
         build_notification_type_declaration(
@@ -378,6 +392,7 @@ RSpec.describe CommandTower::Messaging::NotificationTypes::DeclarationValidator,
           urgency: normal_urgency,
           sound: default_sound,
           deep_link_required: false,
+          destination_locks: {}.freeze,
         )
       end
 
@@ -415,6 +430,7 @@ RSpec.describe CommandTower::Messaging::NotificationTypes::DeclarationValidator,
           urgency: normal_urgency,
           sound: default_sound,
           deep_link_required: false,
+          destination_locks: {}.freeze,
         )
       end
 

@@ -12,6 +12,9 @@ module CommandTower
         Definition.new(
           key: "inbox",
           label: "Inbox",
+          description: "In-app messages",
+          order: 0,
+          glyph_key: "inbox",
           kind: :inbox,
           supports_endpoint_records: false,
           identity_backed: false,
@@ -20,6 +23,9 @@ module CommandTower
         Definition.new(
           key: "email",
           label: "Email",
+          description: "Email to your account address",
+          order: 1,
+          glyph_key: "mail",
           kind: :external,
           supports_endpoint_records: false,
           identity_backed: true,
@@ -28,6 +34,9 @@ module CommandTower
         Definition.new(
           key: "sms",
           label: "SMS",
+          description: "Text messages",
+          order: 2,
+          glyph_key: "message",
           kind: :external,
           supports_endpoint_records: false,
           identity_backed: true,
@@ -36,6 +45,9 @@ module CommandTower
         Definition.new(
           key: "push",
           label: "Push",
+          description: "Alerts on this device",
+          order: 3,
+          glyph_key: "bell",
           kind: :external,
           supports_endpoint_records: true,
           identity_backed: false,
@@ -44,6 +56,9 @@ module CommandTower
         Definition.new(
           key: "pushover",
           label: "Pushover",
+          description: "Pushover alerts",
+          order: 4,
+          glyph_key: "radio",
           kind: :external,
           supports_endpoint_records: true,
           identity_backed: false,

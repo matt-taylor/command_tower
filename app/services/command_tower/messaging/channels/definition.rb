@@ -6,6 +6,9 @@ module CommandTower
       Definition = Data.define(
         :key,
         :label,
+        :description,
+        :order,
+        :glyph_key,
         :kind,
         :supports_endpoint_records,
         :identity_backed,
