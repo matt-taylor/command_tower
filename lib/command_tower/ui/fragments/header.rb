@@ -38,7 +38,7 @@ module CommandTower
         def compose_titles(builder)
           builder.stack(gap: :xs) do |s|
             s.text(title, variant: :heading_m)
-            s.text(subtitle, variant: :subtitle) if subtitle.present?
+            s.text(subtitle, variant: :subtitle, text_tone: :secondary) if subtitle.present?
           end
         end
 

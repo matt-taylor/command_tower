@@ -18,6 +18,10 @@ RSpec.describe CommandTower::UI::Fragments::Header, :aggregate_failures do
     expect(root["children"].last["children"].pluck("variant")).to eq(%w[heading_m subtitle])
   end
 
+  it "tones the subtitle secondary and leaves the title at the default tone" do
+    expect(root["children"].last["children"].pluck("textTone")).to eq(%w[primary secondary])
+  end
+
   it "emits only primitives" do
     expect(FragmentTree.non_primitive_types(root)).to be_empty
   end

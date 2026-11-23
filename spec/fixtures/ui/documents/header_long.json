@@ -32,7 +32,7 @@
                         "type": "text"
                       }
                     ],
-                    "textTone": "primary",
+                    "textTone": "secondary",
                     "type": "text",
                     "variant": "subtitle"
                   }
