@@ -51,7 +51,7 @@ module CommandTower
             <<~HTML
               <body style="margin:0;padding:0;background-color:#{background};font-family:#{font};">
               <span aria-hidden="true" style="#{PREHEADER_STYLE}">#{ERB::Util.html_escape(preheader)}</span>
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#{background};">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#{background};table-layout:fixed;">
               <tr>
               <td align="center" style="padding:#{CANVAS_PADDING_Y}px #{CANVAS_PADDING_X}px;">
               <table role="presentation" width="#{CONTAINER_WIDTH}" cellpadding="0" cellspacing="0" border="0" style="width:#{CONTAINER_WIDTH}px;max-width:100%;table-layout:fixed;">

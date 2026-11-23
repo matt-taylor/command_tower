@@ -30,6 +30,10 @@ RSpec.describe CommandTower::UI::Email::Layout, :aggregate_failures do
     expect(html).to include("width:600px;max-width:100%;table-layout:fixed;")
   end
 
+  it "fixes the canvas table layout so the container's max-width resolves against the frame" do
+    expect(html).to include("background-color:#F9FAFB;table-layout:fixed;")
+  end
+
   it "marks layout tables presentational" do
     expect(html.scan("<table").size).to eq(html.scan('<table role="presentation"').size)
   end
