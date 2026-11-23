@@ -275,6 +275,9 @@ CommandTower.configure do |config|
   # Server-bound host/product identity for CT-generic user-scoped state. Not client-supplied.: [String]
   config.application.host_key = "command_tower"
 
+  # Image host used by the email preview fixtures (UiDocumentPreview).
+  config.ui.image_hosts = ["img.example.com"]
+
   # The name of the application to use in communications like SMS or Email: [String]
   # config.application.communication_name = config.application.app_name
 
