@@ -1,0 +1,24 @@
+{
+  "catalog": 2,
+  "root": {
+    "children": [
+      {
+        "children": [
+          {
+            "format": "qr",
+            "label": "Check-in code",
+            "type": "code",
+            "value": "TEST-QR-0000"
+          }
+        ],
+        "gap": "lg",
+        "type": "stack"
+      }
+    ],
+    "padding": "xl",
+    "surface": "raised",
+    "type": "card"
+  },
+  "schema": "ui_document",
+  "textFallback": "Check-in code. Open the app to check in."
+}

@@ -1,0 +1,96 @@
+{
+  "catalog": 2,
+  "root": {
+    "children": [
+      {
+        "children": [
+          {
+            "align": "start",
+            "children": [
+              {
+                "label": "Action needed",
+                "tone": "warning",
+                "type": "badge"
+              },
+              {
+                "children": [
+                  {
+                    "spans": [
+                      {
+                        "text": "Week 14 picks lock Sunday",
+                        "type": "text"
+                      }
+                    ],
+                    "textTone": "primary",
+                    "type": "text",
+                    "variant": "heading_m"
+                  },
+                  {
+                    "spans": [
+                      {
+                        "text": "Sun, Dec 7, 10:00 AM ET",
+                        "type": "text"
+                      }
+                    ],
+                    "textTone": "primary",
+                    "type": "text",
+                    "variant": "subtitle"
+                  }
+                ],
+                "gap": "xs",
+                "type": "stack"
+              }
+            ],
+            "gap": "sm",
+            "type": "stack"
+          },
+          {
+            "children": [
+              {
+                "icon": "clock",
+                "label": "Picks remaining",
+                "tone": "warning",
+                "type": "stat_tile",
+                "value": "7"
+              },
+              {
+                "icon": "trophy",
+                "label": "Season rank",
+                "tone": "accent",
+                "type": "stat_tile",
+                "value": "#4 of 38"
+              }
+            ],
+            "gap": "sm",
+            "type": "stack"
+          },
+          {
+            "children": [
+              {
+                "action": {
+                  "destination": {
+                    "kind": "internal",
+                    "path": "/picks"
+                  },
+                  "type": "navigate"
+                },
+                "label": "Make my picks",
+                "type": "button",
+                "variant": "primary"
+              }
+            ],
+            "gap": "sm",
+            "type": "stack"
+          }
+        ],
+        "gap": "lg",
+        "type": "stack"
+      }
+    ],
+    "padding": "xl",
+    "surface": "raised",
+    "type": "card"
+  },
+  "schema": "ui_document",
+  "textFallback": "Action needed\nWeek 14 picks lock Sunday\nSun, Dec 7, 10:00 AM ET\nPicks remaining: 7\nSeason rank: #4 of 38\nMake my picks"
+}

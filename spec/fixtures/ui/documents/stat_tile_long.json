@@ -1,0 +1,24 @@
+{
+  "catalog": 2,
+  "root": {
+    "children": [
+      {
+        "children": [
+          {
+            "label": "Next class",
+            "tone": "neutral",
+            "type": "stat_tile",
+            "value": "Sunrise Ride 45 with Coach Dana R. at Mission Street Studio"
+          }
+        ],
+        "gap": "lg",
+        "type": "stack"
+      }
+    ],
+    "padding": "xl",
+    "surface": "raised",
+    "type": "card"
+  },
+  "schema": "ui_document",
+  "textFallback": "Next class: Sunrise Ride 45 with Coach Dana R. at Mission Street Studio"
+}

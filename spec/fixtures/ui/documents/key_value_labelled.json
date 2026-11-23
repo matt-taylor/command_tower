@@ -1,0 +1,46 @@
+{
+  "catalog": 2,
+  "root": {
+    "children": [
+      {
+        "children": [
+          {
+            "items": [
+              {
+                "icon": "calendar",
+                "label": "Starts",
+                "value": {
+                  "at": "2025-12-04T14:00:00Z",
+                  "format": "short",
+                  "label": "never",
+                  "textTone": "primary",
+                  "type": "time",
+                  "variant": "body",
+                  "zone": "America/Los_Angeles"
+                }
+              },
+              {
+                "icon": "map-pin",
+                "label": "Studio",
+                "value": "Mission Street Studio"
+              },
+              {
+                "icon": "user",
+                "label": "Instructor",
+                "value": "Coach Dana R."
+              }
+            ],
+            "type": "key_value"
+          }
+        ],
+        "gap": "lg",
+        "type": "stack"
+      }
+    ],
+    "padding": "xl",
+    "surface": "raised",
+    "type": "card"
+  },
+  "schema": "ui_document",
+  "textFallback": "Starts: Thu, Dec 4, 6:00 AM PT\nStudio: Mission Street Studio\nInstructor: Coach Dana R."
+}

@@ -1,0 +1,71 @@
+{
+  "catalog": 2,
+  "root": {
+    "children": [
+      {
+        "children": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "spans": [
+                      {
+                        "text": "Week 14 picks lock Sunday, so make them before the long weekend",
+                        "type": "text"
+                      }
+                    ],
+                    "textTone": "primary",
+                    "type": "text",
+                    "variant": "heading_m"
+                  },
+                  {
+                    "spans": [
+                      {
+                        "text": "You have 7 picks left.",
+                        "type": "text"
+                      }
+                    ],
+                    "textTone": "primary",
+                    "type": "text",
+                    "variant": "body"
+                  },
+                  {
+                    "items": [
+                      {
+                        "icon": "clock",
+                        "value": {
+                          "at": "2025-12-07T15:00:00Z",
+                          "format": "short",
+                          "label": "always",
+                          "textTone": "primary",
+                          "type": "time",
+                          "variant": "body",
+                          "zone": "America/New_York"
+                        }
+                      }
+                    ],
+                    "type": "key_value"
+                  }
+                ],
+                "gap": "sm",
+                "type": "stack"
+              }
+            ],
+            "padding": "lg",
+            "surface": "tinted",
+            "tone": "warning",
+            "type": "card"
+          }
+        ],
+        "gap": "lg",
+        "type": "stack"
+      }
+    ],
+    "padding": "xl",
+    "surface": "raised",
+    "type": "card"
+  },
+  "schema": "ui_document",
+  "textFallback": "Week 14 picks lock Sunday, so make them before the long weekend\nYou have 7 picks left.\n: Sun, Dec 7, 10:00 AM ET"
+}

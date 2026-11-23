@@ -1,0 +1,43 @@
+{
+  "catalog": 2,
+  "root": {
+    "children": [
+      {
+        "children": [
+          {
+            "items": [
+              {
+                "label": "Week",
+                "value": "14"
+              },
+              {
+                "label": "Picks made",
+                "value": "9 of 16"
+              },
+              {
+                "label": "Locks",
+                "value": {
+                  "at": "2025-12-07T15:00:00Z",
+                  "format": "short",
+                  "label": "always",
+                  "textTone": "primary",
+                  "type": "time",
+                  "variant": "body",
+                  "zone": "America/New_York"
+                }
+              }
+            ],
+            "type": "key_value"
+          }
+        ],
+        "gap": "lg",
+        "type": "stack"
+      }
+    ],
+    "padding": "xl",
+    "surface": "raised",
+    "type": "card"
+  },
+  "schema": "ui_document",
+  "textFallback": "Week: 14\nPicks made: 9 of 16\nLocks: Sun, Dec 7, 10:00 AM ET"
+}

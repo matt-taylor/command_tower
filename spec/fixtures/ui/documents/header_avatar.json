@@ -1,0 +1,58 @@
+{
+  "catalog": 2,
+  "root": {
+    "children": [
+      {
+        "children": [
+          {
+            "align": "start",
+            "children": [
+              {
+                "initials": "DR",
+                "size": "md",
+                "type": "avatar"
+              },
+              {
+                "children": [
+                  {
+                    "spans": [
+                      {
+                        "text": "A note from Coach Dana R.",
+                        "type": "text"
+                      }
+                    ],
+                    "textTone": "primary",
+                    "type": "text",
+                    "variant": "heading_m"
+                  },
+                  {
+                    "spans": [
+                      {
+                        "text": "Sunrise Ride 45",
+                        "type": "text"
+                      }
+                    ],
+                    "textTone": "primary",
+                    "type": "text",
+                    "variant": "subtitle"
+                  }
+                ],
+                "gap": "xs",
+                "type": "stack"
+              }
+            ],
+            "gap": "sm",
+            "type": "stack"
+          }
+        ],
+        "gap": "lg",
+        "type": "stack"
+      }
+    ],
+    "padding": "xl",
+    "surface": "raised",
+    "type": "card"
+  },
+  "schema": "ui_document",
+  "textFallback": "A note from Coach Dana R.\nSunrise Ride 45"
+}

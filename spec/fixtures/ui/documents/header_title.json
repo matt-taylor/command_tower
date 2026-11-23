@@ -1,0 +1,42 @@
+{
+  "catalog": 2,
+  "root": {
+    "children": [
+      {
+        "children": [
+          {
+            "align": "start",
+            "children": [
+              {
+                "children": [
+                  {
+                    "spans": [
+                      {
+                        "text": "Your weekly summary",
+                        "type": "text"
+                      }
+                    ],
+                    "textTone": "primary",
+                    "type": "text",
+                    "variant": "heading_m"
+                  }
+                ],
+                "gap": "xs",
+                "type": "stack"
+              }
+            ],
+            "gap": "sm",
+            "type": "stack"
+          }
+        ],
+        "gap": "lg",
+        "type": "stack"
+      }
+    ],
+    "padding": "xl",
+    "surface": "raised",
+    "type": "card"
+  },
+  "schema": "ui_document",
+  "textFallback": "Your weekly summary"
+}

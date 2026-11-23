@@ -1,0 +1,60 @@
+{
+  "catalog": 2,
+  "root": {
+    "children": [
+      {
+        "children": [
+          {
+            "children": [
+              {
+                "spans": [
+                  {
+                    "text": "Sunrise Ride 45",
+                    "type": "text"
+                  }
+                ],
+                "textTone": "primary",
+                "type": "text",
+                "variant": "title"
+              },
+              {
+                "items": [
+                  {
+                    "icon": "calendar",
+                    "value": {
+                      "at": "2025-12-04T14:00:00Z",
+                      "format": "short",
+                      "label": "always",
+                      "textTone": "primary",
+                      "type": "time",
+                      "variant": "body",
+                      "zone": "America/Los_Angeles"
+                    }
+                  },
+                  {
+                    "icon": "map-pin",
+                    "value": "Mission Street Studio"
+                  }
+                ],
+                "type": "key_value"
+              },
+              {
+                "label": "Canceled",
+                "tone": "danger",
+                "type": "badge"
+              }
+            ],
+            "type": "facts"
+          }
+        ],
+        "gap": "lg",
+        "type": "stack"
+      }
+    ],
+    "padding": "xl",
+    "surface": "raised",
+    "type": "card"
+  },
+  "schema": "ui_document",
+  "textFallback": "Sunrise Ride 45\n: Thu, Dec 4, 6:00 AM PT\n: Mission Street Studio\nCanceled"
+}

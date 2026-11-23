@@ -1,0 +1,198 @@
+{
+  "catalog": 2,
+  "root": {
+    "children": [
+      {
+        "children": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "spans": [
+                      {
+                        "text": "Holiday hours",
+                        "type": "text"
+                      }
+                    ],
+                    "textTone": "primary",
+                    "type": "text",
+                    "variant": "heading_m"
+                  },
+                  {
+                    "spans": [
+                      {
+                        "text": "Studios close at 2:00 PM on Dec 24 and reopen Dec 26.",
+                        "type": "text"
+                      }
+                    ],
+                    "textTone": "primary",
+                    "type": "text",
+                    "variant": "body"
+                  }
+                ],
+                "gap": "sm",
+                "type": "stack"
+              }
+            ],
+            "padding": "lg",
+            "surface": "tinted",
+            "tone": "neutral",
+            "type": "card"
+          },
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "spans": [
+                      {
+                        "text": "New: book classes two weeks out",
+                        "type": "text"
+                      }
+                    ],
+                    "textTone": "primary",
+                    "type": "text",
+                    "variant": "heading_m"
+                  },
+                  {
+                    "spans": [
+                      {
+                        "text": "You can now reserve up to 14 days ahead.",
+                        "type": "text"
+                      }
+                    ],
+                    "textTone": "primary",
+                    "type": "text",
+                    "variant": "body"
+                  }
+                ],
+                "gap": "sm",
+                "type": "stack"
+              }
+            ],
+            "padding": "lg",
+            "surface": "tinted",
+            "tone": "accent",
+            "type": "card"
+          },
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "spans": [
+                      {
+                        "text": "Your payment method is updated",
+                        "type": "text"
+                      }
+                    ],
+                    "textTone": "primary",
+                    "type": "text",
+                    "variant": "heading_m"
+                  },
+                  {
+                    "spans": [
+                      {
+                        "text": "Future bookings will use the card ending 4421.",
+                        "type": "text"
+                      }
+                    ],
+                    "textTone": "primary",
+                    "type": "text",
+                    "variant": "body"
+                  }
+                ],
+                "gap": "sm",
+                "type": "stack"
+              }
+            ],
+            "padding": "lg",
+            "surface": "tinted",
+            "tone": "success",
+            "type": "card"
+          },
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "spans": [
+                      {
+                        "text": "Week 14 picks lock Sunday",
+                        "type": "text"
+                      }
+                    ],
+                    "textTone": "primary",
+                    "type": "text",
+                    "variant": "heading_m"
+                  },
+                  {
+                    "spans": [
+                      {
+                        "text": "You have 7 picks left.",
+                        "type": "text"
+                      }
+                    ],
+                    "textTone": "primary",
+                    "type": "text",
+                    "variant": "body"
+                  }
+                ],
+                "gap": "sm",
+                "type": "stack"
+              }
+            ],
+            "padding": "lg",
+            "surface": "tinted",
+            "tone": "warning",
+            "type": "card"
+          },
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "spans": [
+                      {
+                        "text": "Your membership has lapsed",
+                        "type": "text"
+                      }
+                    ],
+                    "textTone": "primary",
+                    "type": "text",
+                    "variant": "heading_m"
+                  },
+                  {
+                    "spans": [
+                      {
+                        "text": "Update your payment details to keep booking classes.",
+                        "type": "text"
+                      }
+                    ],
+                    "textTone": "primary",
+                    "type": "text",
+                    "variant": "body"
+                  }
+                ],
+                "gap": "sm",
+                "type": "stack"
+              }
+            ],
+            "padding": "lg",
+            "surface": "tinted",
+            "tone": "danger",
+            "type": "card"
+          }
+        ],
+        "gap": "lg",
+        "type": "stack"
+      }
+    ],
+    "padding": "xl",
+    "surface": "raised",
+    "type": "card"
+  },
+  "schema": "ui_document",
+  "textFallback": "Holiday hours\nStudios close at 2:00 PM on Dec 24 and reopen Dec 26.\nNew: book classes two weeks out\nYou can now reserve up to 14 days ahead.\nYour payment method is updated\nFuture bookings will use the card ending 4421.\nWeek 14 picks lock Sunday\nYou have 7 picks left.\nYour membership has lapsed\nUpdate your payment details to keep booking classes."
+}

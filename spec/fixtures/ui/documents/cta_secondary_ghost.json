@@ -1,0 +1,48 @@
+{
+  "catalog": 2,
+  "root": {
+    "children": [
+      {
+        "children": [
+          {
+            "children": [
+              {
+                "action": {
+                  "destination": {
+                    "kind": "internal",
+                    "path": "/bookings"
+                  },
+                  "type": "navigate"
+                },
+                "label": "View my bookings",
+                "type": "button",
+                "variant": "secondary"
+              },
+              {
+                "action": {
+                  "destination": {
+                    "kind": "internal",
+                    "path": "/inbox"
+                  },
+                  "type": "navigate"
+                },
+                "label": "Not now",
+                "type": "button",
+                "variant": "ghost"
+              }
+            ],
+            "gap": "sm",
+            "type": "stack"
+          }
+        ],
+        "gap": "lg",
+        "type": "stack"
+      }
+    ],
+    "padding": "xl",
+    "surface": "raised",
+    "type": "card"
+  },
+  "schema": "ui_document",
+  "textFallback": "View my bookings\nNot now"
+}

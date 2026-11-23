@@ -1,0 +1,36 @@
+{
+  "catalog": 2,
+  "root": {
+    "children": [
+      {
+        "children": [
+          {
+            "children": [
+              {
+                "action": {
+                  "destination": {
+                    "kind": "internal",
+                    "path": "/classes"
+                  },
+                  "type": "navigate"
+                },
+                "label": "Browse every class at Mission Street Studio this week",
+                "type": "button",
+                "variant": "primary"
+              }
+            ],
+            "gap": "sm",
+            "type": "stack"
+          }
+        ],
+        "gap": "lg",
+        "type": "stack"
+      }
+    ],
+    "padding": "xl",
+    "surface": "raised",
+    "type": "card"
+  },
+  "schema": "ui_document",
+  "textFallback": "Browse every class at Mission Street Studio this week"
+}
