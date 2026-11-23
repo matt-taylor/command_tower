@@ -4,6 +4,7 @@ Host-facing upgrade / change summaries for CommandTower releases.
 
 | Version | Summary |
 |---------|---------|
+| [0.22.0](0.22.0.md) | Server-driven UI document library (`CommandTower::UI`), legacy mapping, email renderer; `X-UI-Catalog` header read into `Current.ui_catalog` (no behavior change) |
 | [0.21.0](0.21.0.md) | Notification preference reads: channel catalog, destinations, settings rows; PATCH merges onto stored member state |
 | [0.20.0](0.20.0.md) | Push delivery certainty: JSON `provider_metadata` caster; duplicate-averse push recovery and Expo submission guards |
 | [0.19.0](0.19.0.md) | Push presentation: badge, urgency, sound, deep links; Expo ticket and receipt metadata; preference urgency and sound |

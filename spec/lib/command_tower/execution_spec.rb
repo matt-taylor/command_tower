@@ -28,6 +28,24 @@ RSpec.describe CommandTower do
       end
     end
 
+    context "when ui_catalog is passed" do
+      let(:assigned) do
+        described_class.with_execution(source: :rake, ui_catalog: 2) { CommandTower::Current.ui_catalog }
+      end
+      let(:defaulted) do
+        described_class.with_execution(source: :rake) { CommandTower::Current.ui_catalog }
+      end
+      let(:nested) do
+        described_class.with_execution(source: :rake, ui_catalog: 2) do
+          described_class.with_execution(source: :console, ui_catalog: 1) { CommandTower::Current.ui_catalog }
+        end
+      end
+
+      it { expect(assigned).to eq(2) }
+      it { expect(defaulted).to eq(1) }
+      it { expect(nested).to eq(2) }
+    end
+
     context "when two executions run sequentially" do
       subject(:uuids) do
         [

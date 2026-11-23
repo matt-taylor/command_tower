@@ -91,7 +91,8 @@ module CommandTower
       impersonation_session_id: attrs[:impersonation_session_id],
       impersonation_activity_recorded: attrs.key?(:impersonation_activity_recorded) ? attrs[:impersonation_activity_recorded] : false,
       remote_ip: attrs[:remote_ip],
-      user_agent: attrs[:user_agent]
+      user_agent: attrs[:user_agent],
+      ui_catalog: attrs.fetch(:ui_catalog, 1)
     }
 
     run = -> { Current.set(assigned, &block) }

@@ -7,6 +7,23 @@ RSpec.describe CommandTower::Current do
     it { expect(described_class.impersonation_active).to eq(false) }
   end
 
+  context "when ui_catalog is unset" do
+    it { expect(described_class.ui_catalog).to eq(1) }
+  end
+
+  context "when scanning for readers of ui_catalog" do
+    let(:root) { Pathname.new(File.expand_path("../../..", __dir__)) }
+    let(:readers) do
+      Dir[root.join("{app,lib}/**/*.rb")].select do |path|
+        File.read(path).match?(/Current\.ui_catalog\b(?!\s*=)/)
+      end
+    end
+
+    it "has none beyond the plumbing (not used for authorization or branching)" do
+      expect(readers).to eq([])
+    end
+  end
+
   context "when request_id is assigned" do
     before { described_class.request_id = "req-compat" }
 

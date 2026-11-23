@@ -106,6 +106,8 @@ This override has **no generic ERB fallback file** — the generic Inbox documen
 | Bulk | `POST /me/inbox/bulk/{read,unread,archive,restore,delete}` with body `ids` |
 | Unread | `GET /me/inbox/unread-count` |
 
+Detail `content` is `inbox_document_v1` with blocks `paragraph`, `cta` (typed `destination`: internal `path` or external `href`), `instant`, and `presentation`. The `X-UI-Catalog` request header is accepted and defaults to `1`; it has no effect on Inbox responses yet ([ui.md](ui.md#catalog-header)).
+
 Pagination detail: [pagination.md](pagination.md). Full catalog: [api_reference.md](api_reference.md#me-inbox).
 
 ## Host responsibilities

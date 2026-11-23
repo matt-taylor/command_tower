@@ -16,5 +16,6 @@ module CommandTower
     attribute :remote_ip
     attribute :user_agent
     attribute :client_compatibility_recommendation
+    attribute :ui_catalog, default: 1
   end
 end

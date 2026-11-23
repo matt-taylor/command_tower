@@ -48,6 +48,8 @@ Rails.application.config.middleware.insert_before 0, Rack::Cors do
 end
 ```
 
+`headers: :any` already covers the `X-UI-Catalog` request header. A host that lists allowed headers explicitly must add `X-UI-Catalog`.
+
 `credentials: true` requires an **explicit origin list**, not `*`. Compose already passes `CORS_ALLOWED_ORIGINS` from step 01. The sample origins `8081`, `8082`, and `19006` belong to one web product. Add the origin this Expo web app actually uses, and keep it aligned with `config.application.url` and the API’s published port.
 
 Attaching a Command Tower frontend: [Local FE↔BE join](../../../artifacts/COMMANDTOWER_LOCAL_JOIN.md).

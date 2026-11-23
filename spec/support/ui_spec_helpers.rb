@@ -70,6 +70,12 @@ module UiSpecHelpers
     CommandTower::UI::TextDerivation.call(CommandTower::UI.document(text_fallback: "x", &).root)
   end
 
+  # Blocks LegacyMapping emits for the document a UI.document block builds.
+  def legacy_blocks(keys: [], &)
+    document = CommandTower::UI.document(text_fallback: "x", &)
+    CommandTower::UI::LegacyMapping.call(document, legacy_presentation_keys: keys).blocks
+  end
+
   def limit_facts_children(build)
     CommandTower::UI::Nodes::Facts.new(children: Array.new(build["count"]) { divider })
   end

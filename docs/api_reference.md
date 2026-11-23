@@ -353,10 +353,14 @@ Pagination for list: query `limit` (default **50**, max **100**), `offset` (defa
 
 | Block | Fields | Notes |
 |-------|--------|-------|
-| `paragraph` | `text` (string) | |
-| `cta` | `label` (string), `href` (string) | `href` must be `http(s)` or a custom scheme (e.g. `pickem://...`); `javascript:`/`data:`/`vbscript:`, schemeless, blank, and unparsable hrefs are rejected — the `cta` block is simply omitted, never an error |
+| `paragraph` | `text` (string) | Blank text adds no block |
+| `cta` | `label` (string), `destination` (object) | `destination` is `{ kind: "internal", path }` (starts with `/`, not `//`) or `{ kind: "external", href }` (any scheme except `javascript:`/`data:`/`vbscript:`; schemeless, blank, and unparsable hrefs are rejected). A `cta` with no valid destination is omitted, never an error. Blank `label` becomes `"Open"`. |
+| `instant` | `at` (string) | ISO-8601 UTC. Input without an explicit offset adds no block. |
+| `presentation` | `key` (string), `variant` (string or null) | Names a registered presentation capability; its data is composed after authoring. |
 
-Generic (default) rendering: one `paragraph` block from `communication.body` (omitted if blank — `blocks` can legitimately be `[]`), plus one `cta` block if `metadata.deep_link` is a safe href (label from `metadata.cta_label`, default `"Open"`).
+Generic (default) rendering: one `paragraph` block from `communication.body` (omitted if blank — `blocks` can legitimately be `[]`), plus one `cta` block if `metadata.deep_link` is a safe destination (label from `metadata.cta_label`, default `"Open"`).
+
+**`X-UI-Catalog` request header:** accepted on every request (CommandTower reads it in the HTTP boundary). Missing or invalid values mean `1`; it has no effect on any response yet, including Inbox bodies. See [ui.md](ui.md#catalog-header).
 
 Hosts may override the document per `notificationTypeKey` with an `inbox_document.json.erb` view at `app/views/command_tower/messaging/rendering/<notification_type_key>/inbox_document.json.erb` (same lookup convention as [`messaging_integration_guide.md`](messaging_integration_guide.md#rendering-template-overrides)). Any failure resolving or rendering that template (missing file, malformed JSON, wrong `schema`/`blocks` shape, or a raising template) fails open to the generic document — the Inbox read path never 500s on a bad type template. A valid envelope with one invalid/unknown block strips only that block; if stripping empties `blocks`, the generic document is used instead.
 

@@ -4,7 +4,7 @@ require "command_tower/error"
 
 module CommandTower
   # Server-driven UI documents: schema, tokens and validation. Pure Ruby; no DB,
-  # no Messaging. Authoring reference lives in docs/ui.md (added with the docs task).
+  # no Messaging. Authoring reference lives in docs/ui.md.
   module UI
     CATALOG = 2
     SCHEMA = "ui_document"
@@ -67,6 +67,7 @@ require "command_tower/ui/nodes/facts"
 require "command_tower/ui/document"
 require "command_tower/ui/builder"
 require "command_tower/ui/text_derivation"
+require "command_tower/ui/legacy_mapping"
 require "command_tower/ui/fragment"
 require "command_tower/ui/composer"
 require "command_tower/ui/fragments/header"

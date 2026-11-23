@@ -4,7 +4,7 @@ How hosts customize and integrate with CommandTower **without forking platform i
 
 **New host?** Start with [Bootstrap a new host](bootstrap/README.md).
 
-Layer map: [architecture.md](architecture.md). Install/configure/migrate/doctor: [initializing.md](initializing.md). Testing API: [testing.md](testing.md). HTTP catalog: [api_reference.md](api_reference.md).
+Layer map: [architecture.md](architecture.md). Install/configure/migrate/doctor: [initializing.md](initializing.md). Testing API: [testing.md](testing.md). HTTP catalog: [api_reference.md](api_reference.md). Server-driven UI documents: [ui.md](ui.md).
 
 ## What hosts should extend
 
