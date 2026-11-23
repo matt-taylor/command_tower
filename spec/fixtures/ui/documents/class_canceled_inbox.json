@@ -1,0 +1,100 @@
+{
+  "catalog": 2,
+  "root": {
+    "children": [
+      {
+        "children": [
+          {
+            "children": [
+              {
+                "spans": [
+                  {
+                    "text": "Sunrise Ride 45",
+                    "type": "text"
+                  }
+                ],
+                "textTone": "primary",
+                "type": "text",
+                "variant": "title"
+              },
+              {
+                "items": [
+                  {
+                    "icon": "calendar",
+                    "value": {
+                      "at": "2025-12-04T14:00:00Z",
+                      "format": "short",
+                      "label": "always",
+                      "textTone": "primary",
+                      "type": "time",
+                      "variant": "body",
+                      "zone": "America/Los_Angeles"
+                    }
+                  },
+                  {
+                    "icon": "map-pin",
+                    "value": "Mission Street Studio"
+                  }
+                ],
+                "type": "key_value"
+              },
+              {
+                "label": "Canceled",
+                "tone": "danger",
+                "type": "badge"
+              }
+            ],
+            "type": "facts"
+          },
+          {
+            "spans": [
+              {
+                "text": "No late-cancel fee was charged.",
+                "type": "text"
+              }
+            ],
+            "tone": "warning",
+            "type": "banner"
+          },
+          {
+            "children": [
+              {
+                "action": {
+                  "destination": {
+                    "kind": "internal",
+                    "path": "/classes"
+                  },
+                  "type": "navigate"
+                },
+                "label": "Find another class",
+                "type": "button",
+                "variant": "primary"
+              },
+              {
+                "action": {
+                  "destination": {
+                    "kind": "internal",
+                    "path": "/bookings"
+                  },
+                  "type": "navigate"
+                },
+                "label": "View my bookings",
+                "type": "button",
+                "variant": "secondary"
+              }
+            ],
+            "gap": "sm",
+            "type": "stack"
+          }
+        ],
+        "gap": "lg",
+        "type": "stack"
+      }
+    ],
+    "padding": "xl",
+    "surface": "raised",
+    "type": "card"
+  },
+  "schema": "ui_document",
+  "textFallback": "Sunrise Ride 45\nThu, Dec 4, 6:00 AM PT\nMission Street Studio\nCanceled\nNo late-cancel fee was charged.\nFind another class\nView my bookings"
+}

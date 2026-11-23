@@ -1,0 +1,24 @@
+{
+  "catalog": 2,
+  "root": {
+    "children": [
+      {
+        "children": [
+          {
+            "format": "text",
+            "label": "Confirmation code",
+            "type": "code",
+            "value": "TEST-0000"
+          }
+        ],
+        "gap": "lg",
+        "type": "stack"
+      }
+    ],
+    "padding": "xl",
+    "surface": "raised",
+    "type": "card"
+  },
+  "schema": "ui_document",
+  "textFallback": "Confirmation code. Open the app to see it."
+}

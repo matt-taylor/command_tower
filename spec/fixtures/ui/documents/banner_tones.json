@@ -1,0 +1,160 @@
+{
+  "catalog": 2,
+  "root": {
+    "children": [
+      {
+        "children": [
+          {
+            "children": [
+              {
+                "spans": [
+                  {
+                    "text": "Holiday hours apply Dec 24-26.",
+                    "type": "text"
+                  }
+                ],
+                "title": "Schedule update",
+                "tone": "neutral",
+                "type": "banner"
+              },
+              {
+                "spans": [
+                  {
+                    "text": "Holiday hours apply Dec 24-26.",
+                    "type": "text"
+                  }
+                ],
+                "tone": "neutral",
+                "type": "banner"
+              },
+              {
+                "spans": [
+                  {
+                    "text": "Evening rides are now open for booking.",
+                    "type": "text"
+                  }
+                ],
+                "title": "New classes",
+                "tone": "accent",
+                "type": "banner"
+              },
+              {
+                "spans": [
+                  {
+                    "text": "Evening rides are now open for booking.",
+                    "type": "text"
+                  }
+                ],
+                "tone": "accent",
+                "type": "banner"
+              },
+              {
+                "spans": [
+                  {
+                    "text": "Your preferences were saved.",
+                    "type": "text"
+                  }
+                ],
+                "title": "Payment received",
+                "tone": "success",
+                "type": "banner"
+              },
+              {
+                "spans": [
+                  {
+                    "text": "Your preferences were saved.",
+                    "type": "text"
+                  }
+                ],
+                "tone": "success",
+                "type": "banner"
+              },
+              {
+                "spans": [
+                  {
+                    "text": "You still have 7 picks to make.",
+                    "type": "text"
+                  }
+                ],
+                "title": "Picks lock soon",
+                "tone": "warning",
+                "type": "banner"
+              },
+              {
+                "spans": [
+                  {
+                    "text": "You still have 7 picks to make.",
+                    "type": "text"
+                  }
+                ],
+                "tone": "warning",
+                "type": "banner"
+              },
+              {
+                "spans": [
+                  {
+                    "text": "The studio canceled this class. Your credit was returned.",
+                    "type": "text"
+                  }
+                ],
+                "title": "Class canceled",
+                "tone": "danger",
+                "type": "banner"
+              },
+              {
+                "spans": [
+                  {
+                    "text": "The studio canceled this class. Your credit was returned.",
+                    "type": "text"
+                  }
+                ],
+                "tone": "danger",
+                "type": "banner"
+              },
+              {
+                "spans": [
+                  {
+                    "text": "You still have ",
+                    "type": "text"
+                  },
+                  {
+                    "strong": true,
+                    "text": "7 picks",
+                    "type": "text"
+                  },
+                  {
+                    "text": " to make. ",
+                    "type": "text"
+                  },
+                  {
+                    "action": {
+                      "destination": {
+                        "kind": "internal",
+                        "path": "/picks"
+                      },
+                      "type": "navigate"
+                    },
+                    "text": "See this week's games",
+                    "type": "link"
+                  }
+                ],
+                "title": "Picks lock soon",
+                "tone": "warning",
+                "type": "banner"
+              }
+            ],
+            "gap": "sm",
+            "type": "stack"
+          }
+        ],
+        "gap": "lg",
+        "type": "stack"
+      }
+    ],
+    "padding": "xl",
+    "surface": "raised",
+    "type": "card"
+  },
+  "schema": "ui_document",
+  "textFallback": "Schedule update\nHoliday hours apply Dec 24-26.\nHoliday hours apply Dec 24-26.\nNew classes\nEvening rides are now open for booking.\nEvening rides are now open for booking.\nPayment received\nYour preferences were saved.\nYour preferences were saved.\nPicks lock soon\nYou still have 7 picks to make.\nYou still have 7 picks to make.\nClass canceled\nThe studio canceled this class. Your credit was returned.\nThe studio canceled this class. Your credit was returned.\nPicks lock soon\nYou still have 7 picks to make. See this week's games"
+}

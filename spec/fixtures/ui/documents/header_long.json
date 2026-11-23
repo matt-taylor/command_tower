@@ -1,0 +1,58 @@
+{
+  "catalog": 2,
+  "root": {
+    "children": [
+      {
+        "children": [
+          {
+            "align": "start",
+            "children": [
+              {
+                "label": "Action needed",
+                "tone": "warning",
+                "type": "badge"
+              },
+              {
+                "children": [
+                  {
+                    "spans": [
+                      {
+                        "text": "Confirm your spot for the holiday marathon ride before it is released to the waitlist",
+                        "type": "text"
+                      }
+                    ],
+                    "textTone": "primary",
+                    "type": "text",
+                    "variant": "heading_m"
+                  },
+                  {
+                    "spans": [
+                      {
+                        "text": "Reply by Friday",
+                        "type": "text"
+                      }
+                    ],
+                    "textTone": "secondary",
+                    "type": "text",
+                    "variant": "subtitle"
+                  }
+                ],
+                "gap": "xs",
+                "type": "stack"
+              }
+            ],
+            "gap": "sm",
+            "type": "stack"
+          }
+        ],
+        "gap": "lg",
+        "type": "stack"
+      }
+    ],
+    "padding": "xl",
+    "surface": "raised",
+    "type": "card"
+  },
+  "schema": "ui_document",
+  "textFallback": "Action needed\nConfirm your spot for the holiday marathon ride before it is released to the waitlist\nReply by Friday"
+}

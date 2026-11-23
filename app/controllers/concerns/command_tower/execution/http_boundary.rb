@@ -18,7 +18,8 @@ module CommandTower
           request_id:,
           correlation_id: request_id,
           remote_ip: request.remote_ip,
-          user_agent: request.user_agent
+          user_agent: request.user_agent,
+          ui_catalog: CommandTower::UI::Catalog.from_header(request.headers["X-UI-Catalog"])
         ) do
           yield
           record_impersonation_activity_if_needed

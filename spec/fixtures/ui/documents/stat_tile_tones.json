@@ -1,0 +1,59 @@
+{
+  "catalog": 2,
+  "root": {
+    "children": [
+      {
+        "children": [
+          {
+            "children": [
+              {
+                "icon": "calendar",
+                "label": "Classes this month",
+                "tone": "neutral",
+                "type": "stat_tile",
+                "value": "12"
+              },
+              {
+                "icon": "trophy",
+                "label": "Season rank",
+                "tone": "accent",
+                "type": "stat_tile",
+                "value": "#4 of 38"
+              },
+              {
+                "icon": "check",
+                "label": "Correct picks",
+                "tone": "success",
+                "type": "stat_tile",
+                "value": "11 of 16"
+              },
+              {
+                "icon": "clock",
+                "label": "Picks remaining",
+                "tone": "warning",
+                "type": "stat_tile",
+                "value": "7"
+              },
+              {
+                "icon": "flame",
+                "label": "Late cancels",
+                "tone": "danger",
+                "type": "stat_tile",
+                "value": "2"
+              }
+            ],
+            "gap": "sm",
+            "type": "stack"
+          }
+        ],
+        "gap": "lg",
+        "type": "stack"
+      }
+    ],
+    "padding": "xl",
+    "surface": "raised",
+    "type": "card"
+  },
+  "schema": "ui_document",
+  "textFallback": "Classes this month: 12\nSeason rank: #4 of 38\nCorrect picks: 11 of 16\nPicks remaining: 7\nLate cancels: 2"
+}

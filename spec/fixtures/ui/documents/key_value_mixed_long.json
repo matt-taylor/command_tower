@@ -1,0 +1,40 @@
+{
+  "catalog": 2,
+  "root": {
+    "children": [
+      {
+        "children": [
+          {
+            "items": [
+              {
+                "icon": "map-pin",
+                "label": "Address",
+                "value": "2150 Mission Street, Suite 400 (enter through the side door on 17th Street), San Francisco, CA 94110"
+              },
+              {
+                "value": "Parking validated for 90 minutes at the Bartlett Street garage"
+              },
+              {
+                "icon": "clock",
+                "label": "Cancellation policy",
+                "value": "Free until 12 hours before class"
+              },
+              {
+                "label": "Reference",
+                "value": "booking-7f3a9c21-4d0e-4b8a-9e55-2c6d1f0b7a43"
+              }
+            ],
+            "type": "key_value"
+          }
+        ],
+        "gap": "lg",
+        "type": "stack"
+      }
+    ],
+    "padding": "xl",
+    "surface": "raised",
+    "type": "card"
+  },
+  "schema": "ui_document",
+  "textFallback": "Address: 2150 Mission Street, Suite 400 (enter through the side door on 17th Street), San Francisco, CA 94110\nParking validated for 90 minutes at the Bartlett Street garage\nCancellation policy: Free until 12 hours before class\nReference: booking-7f3a9c21-4d0e-4b8a-9e55-2c6d1f0b7a43"
+}

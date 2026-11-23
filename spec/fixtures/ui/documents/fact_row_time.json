@@ -1,0 +1,35 @@
+{
+  "catalog": 2,
+  "root": {
+    "children": [
+      {
+        "children": [
+          {
+            "items": [
+              {
+                "icon": "calendar",
+                "value": {
+                  "at": "2025-12-04T14:00:00Z",
+                  "format": "short",
+                  "label": "auto",
+                  "textTone": "primary",
+                  "type": "time",
+                  "variant": "body",
+                  "zone": "America/Los_Angeles"
+                }
+              }
+            ],
+            "type": "key_value"
+          }
+        ],
+        "gap": "lg",
+        "type": "stack"
+      }
+    ],
+    "padding": "xl",
+    "surface": "raised",
+    "type": "card"
+  },
+  "schema": "ui_document",
+  "textFallback": "Thu, Dec 4, 6:00 AM PT"
+}

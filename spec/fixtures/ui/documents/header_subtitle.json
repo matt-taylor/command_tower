@@ -1,0 +1,53 @@
+{
+  "catalog": 2,
+  "root": {
+    "children": [
+      {
+        "children": [
+          {
+            "align": "start",
+            "children": [
+              {
+                "children": [
+                  {
+                    "spans": [
+                      {
+                        "text": "Your weekly summary",
+                        "type": "text"
+                      }
+                    ],
+                    "textTone": "primary",
+                    "type": "text",
+                    "variant": "heading_m"
+                  },
+                  {
+                    "spans": [
+                      {
+                        "text": "Nov 24 - Nov 30",
+                        "type": "text"
+                      }
+                    ],
+                    "textTone": "secondary",
+                    "type": "text",
+                    "variant": "subtitle"
+                  }
+                ],
+                "gap": "xs",
+                "type": "stack"
+              }
+            ],
+            "gap": "sm",
+            "type": "stack"
+          }
+        ],
+        "gap": "lg",
+        "type": "stack"
+      }
+    ],
+    "padding": "xl",
+    "surface": "raised",
+    "type": "card"
+  },
+  "schema": "ui_document",
+  "textFallback": "Your weekly summary\nNov 24 - Nov 30"
+}

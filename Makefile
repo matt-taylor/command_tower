@@ -36,6 +36,9 @@ spec: # run RSpec non-interactively in the test environment: make spec SPEC=spec
 rubocop: # run RuboCop non-interactively: make rubocop (all) or make rubocop FILES='path ...'
 	docker-compose run --rm -T $(APP_NAME) bundle exec rubocop $(FILES)
 
+rake: ## run a rake task non-interactively (TASK=...)
+	docker-compose run --rm -T $(APP_NAME) bundle exec rake $(TASK)
+
 annotate: # annotate models
 	docker-compose run --rm -e RACK_ENV=development $(APP_NAME) bundle exec annotate --models
 

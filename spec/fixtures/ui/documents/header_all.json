@@ -1,0 +1,63 @@
+{
+  "catalog": 2,
+  "root": {
+    "children": [
+      {
+        "children": [
+          {
+            "align": "start",
+            "children": [
+              {
+                "initials": "DR",
+                "size": "md",
+                "type": "avatar"
+              },
+              {
+                "label": "Booked",
+                "tone": "success",
+                "type": "badge"
+              },
+              {
+                "children": [
+                  {
+                    "spans": [
+                      {
+                        "text": "You're in",
+                        "type": "text"
+                      }
+                    ],
+                    "textTone": "primary",
+                    "type": "text",
+                    "variant": "heading_m"
+                  },
+                  {
+                    "spans": [
+                      {
+                        "text": "Sunrise Ride 45, Thu, Dec 4",
+                        "type": "text"
+                      }
+                    ],
+                    "textTone": "secondary",
+                    "type": "text",
+                    "variant": "subtitle"
+                  }
+                ],
+                "gap": "xs",
+                "type": "stack"
+              }
+            ],
+            "gap": "sm",
+            "type": "stack"
+          }
+        ],
+        "gap": "lg",
+        "type": "stack"
+      }
+    ],
+    "padding": "xl",
+    "surface": "raised",
+    "type": "card"
+  },
+  "schema": "ui_document",
+  "textFallback": "Booked\nYou're in\nSunrise Ride 45, Thu, Dec 4"
+}

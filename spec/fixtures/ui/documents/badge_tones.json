@@ -1,0 +1,50 @@
+{
+  "catalog": 2,
+  "root": {
+    "children": [
+      {
+        "children": [
+          {
+            "align": "start",
+            "children": [
+              {
+                "label": "Week 14",
+                "tone": "neutral",
+                "type": "badge"
+              },
+              {
+                "label": "Featured",
+                "tone": "accent",
+                "type": "badge"
+              },
+              {
+                "label": "Booked",
+                "tone": "success",
+                "type": "badge"
+              },
+              {
+                "label": "Waitlist",
+                "tone": "warning",
+                "type": "badge"
+              },
+              {
+                "label": "Canceled",
+                "tone": "danger",
+                "type": "badge"
+              }
+            ],
+            "gap": "sm",
+            "type": "stack"
+          }
+        ],
+        "gap": "lg",
+        "type": "stack"
+      }
+    ],
+    "padding": "xl",
+    "surface": "raised",
+    "type": "card"
+  },
+  "schema": "ui_document",
+  "textFallback": "Week 14\nFeatured\nBooked\nWaitlist\nCanceled"
+}

@@ -1,0 +1,60 @@
+{
+  "catalog": 2,
+  "root": {
+    "children": [
+      {
+        "children": [
+          {
+            "children": [
+              {
+                "action": {
+                  "destination": {
+                    "kind": "internal",
+                    "path": "/classes"
+                  },
+                  "type": "navigate"
+                },
+                "label": "Find another class",
+                "type": "button",
+                "variant": "primary"
+              },
+              {
+                "action": {
+                  "destination": {
+                    "kind": "internal",
+                    "path": "/bookings"
+                  },
+                  "type": "navigate"
+                },
+                "label": "View my bookings",
+                "type": "button",
+                "variant": "secondary"
+              },
+              {
+                "action": {
+                  "destination": {
+                    "kind": "internal",
+                    "path": "/contact"
+                  },
+                  "type": "navigate"
+                },
+                "label": "Contact the studio",
+                "type": "button",
+                "variant": "secondary"
+              }
+            ],
+            "gap": "sm",
+            "type": "stack"
+          }
+        ],
+        "gap": "lg",
+        "type": "stack"
+      }
+    ],
+    "padding": "xl",
+    "surface": "raised",
+    "type": "card"
+  },
+  "schema": "ui_document",
+  "textFallback": "Find another class\nView my bookings\nContact the studio"
+}

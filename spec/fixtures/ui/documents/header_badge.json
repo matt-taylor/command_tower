@@ -1,0 +1,58 @@
+{
+  "catalog": 2,
+  "root": {
+    "children": [
+      {
+        "children": [
+          {
+            "align": "start",
+            "children": [
+              {
+                "label": "Canceled",
+                "tone": "danger",
+                "type": "badge"
+              },
+              {
+                "children": [
+                  {
+                    "spans": [
+                      {
+                        "text": "Your class was canceled",
+                        "type": "text"
+                      }
+                    ],
+                    "textTone": "primary",
+                    "type": "text",
+                    "variant": "heading_m"
+                  },
+                  {
+                    "spans": [
+                      {
+                        "text": "The studio canceled this class.",
+                        "type": "text"
+                      }
+                    ],
+                    "textTone": "secondary",
+                    "type": "text",
+                    "variant": "subtitle"
+                  }
+                ],
+                "gap": "xs",
+                "type": "stack"
+              }
+            ],
+            "gap": "sm",
+            "type": "stack"
+          }
+        ],
+        "gap": "lg",
+        "type": "stack"
+      }
+    ],
+    "padding": "xl",
+    "surface": "raised",
+    "type": "card"
+  },
+  "schema": "ui_document",
+  "textFallback": "Canceled\nYour class was canceled\nThe studio canceled this class."
+}
