@@ -27,6 +27,8 @@ end
 
 require "command_tower/ui/hostname"
 require "command_tower/ui/tokens"
+require "command_tower/ui/zone_abbreviation"
+require "command_tower/ui/time_formatter"
 require "command_tower/ui/catalog"
 require "command_tower/ui/limits"
 require "command_tower/ui/hardening"
