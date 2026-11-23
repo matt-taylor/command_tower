@@ -26,6 +26,10 @@ RSpec.describe CommandTower::UI::Email::Layout, :aggregate_failures do
     expect(html).to include("<p>Body</p>")
   end
 
+  it "lets the container shrink under 632px with a fixed table layout" do
+    expect(html).to include("width:600px;max-width:100%;table-layout:fixed;")
+  end
+
   it "marks layout tables presentational" do
     expect(html.scan("<table").size).to eq(html.scan('<table role="presentation"').size)
   end

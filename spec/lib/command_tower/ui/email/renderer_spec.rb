@@ -306,8 +306,16 @@ RSpec.describe CommandTower::UI::Email::Renderer, :aggregate_failures do
       expect(html.scan("border:1px solid #D5DAE2").size).to eq(1)
     end
 
-    it "gives the key_value label column 96px plus a 12px gap (108)" do
-      expect(html).to include('width="108"').and include("padding-right:12px")
+    it "gives the key_value label cell a 96px width" do
+      expect(html).to include('width="96"')
+    end
+
+    it "adds the 12px gap as label padding, 108 in total" do
+      expect(html).to include("padding-right:12px")
+    end
+
+    it "does not leave a 108px width on the label cell" do
+      expect(html).not_to include('width="108"')
     end
 
     it "keeps every layout table presentational" do
