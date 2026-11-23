@@ -22,6 +22,7 @@ require "command_tower/configuration/pagination/config"
 require "command_tower/configuration/password_recovery_session/config"
 require "command_tower/configuration/registry/config"
 require "command_tower/configuration/signup_session/config"
+require "command_tower/configuration/ui/config"
 require "command_tower/configuration/user/config"
 require "command_tower/configuration/username/config"
 
@@ -134,6 +135,11 @@ module CommandTower
         desc: "Password recovery session token claims, TTL, and recovery rate limit ceilings",
         allowed: Configuration::PasswordRecoverySession::Config,
         default: Configuration::PasswordRecoverySession::Config.new
+
+      add_composer :ui,
+        desc: "Server-driven UI document settings (default time zone, image host allowlist)",
+        allowed: Configuration::UI::Config,
+        default: Configuration::UI::Config.new
 
       # To be Deleted
       add_composer :otp,

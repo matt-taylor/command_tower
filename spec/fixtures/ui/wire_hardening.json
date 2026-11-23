@@ -1,0 +1,170 @@
+{
+  "fixtureVersion": 1,
+  "description": "Shared wire hardening cases (design section 8.1). Asserted by RSpec in command_tower and by Jest in @commandtower/frontend. Test values only.",
+  "internalPaths": {
+    "valid": [
+      "/",
+      "/inbox",
+      "/inbox/123?tab=1#top",
+      "/a/b-c_d.e",
+      "/classes/42/edit",
+      "/search?q=a%20b",
+      "/search?q=a%2Fb"
+    ],
+    "invalid": [
+      "",
+      "inbox",
+      "//evil.com",
+      "///evil.com",
+      "/\\evil.com",
+      "/\\\\evil.com",
+      "/a b",
+      "/a\\b",
+      "/a\tb",
+      "/a\nb",
+      "/a\u0000b",
+      "/a\u007fb",
+      "/%2f%2fevil.com",
+      "/%2F%2Fevil.com",
+      "/%2fevil.com",
+      "/foo%5cbar",
+      "/foo%5Cbar",
+      "/%0d%0aSet-Cookie:x",
+      "/a%00b",
+      "https://evil.com",
+      "javascript:alert(1)"
+    ]
+  },
+  "externalHrefs": {
+    "valid": [
+      "https://example.com",
+      "https://example.com/a/b?x=1#y",
+      "https://sub.example.com:8443/path",
+      "mailto:help@example.com",
+      "mailto:help@example.com?subject=Hello%20there",
+      "tel:+15551234567",
+      "tel:555-123-4567"
+    ],
+    "invalid": [
+      "",
+      "http://example.com",
+      "HTTPS://example.com",
+      "javascript:alert(1)",
+      "JaVaScRiPt:alert(1)",
+      "data:text/html;base64,AAAA",
+      "vbscript:msgbox(1)",
+      "file:///etc/passwd",
+      "ftp://example.com",
+      "//example.com",
+      "https:example.com",
+      "https:///nohost",
+      "https://good.com@evil.com",
+      "https://user:pass@example.com",
+      "https://exa mple.com",
+      "https://example.com\\@evil.com",
+      "https://example.com/\u0000",
+      "https://example.com/\nfoo",
+      "mailto:",
+      "mailto:not-an-email",
+      "mailto:a@b.com,c@d.com",
+      "tel:",
+      "tel:abc",
+      "tel:+1 555"
+    ]
+  },
+  "images": {
+    "hosts": ["img.example.com", "xn--bcher-kva.example"],
+    "valid": [
+      "https://img.example.com/a.png",
+      "https://IMG.example.com/a.png",
+      "https://xn--bcher-kva.example/cover.jpg"
+    ],
+    "invalid": [
+      "",
+      "http://img.example.com/a.png",
+      "https://other.example.com/a.png",
+      "https://img.example.com.evil.com/a.png",
+      "https://sub.img.example.com/a.png",
+      "https://evil.com@img.example.com/a.png",
+      "https://img.example.com\\@evil.com/a.png",
+      "data:image/png;base64,AAAA",
+      "//img.example.com/a.png",
+      "javascript:alert(1)"
+    ]
+  },
+  "limits": {
+    "maxNodes": 200,
+    "maxDepth": 8,
+    "maxBytes": 65536,
+    "maxStringLength": 2000,
+    "maxTextFallbackLength": 8000,
+    "maxSpans": 50,
+    "maxKeyValueItems": 50,
+    "maxFactsNodes": 100,
+    "cases": [
+      { "name": "nodes_at_limit", "build": { "kind": "flat_stack", "nodes": 200 }, "valid": true },
+      {
+        "name": "nodes_over_limit",
+        "build": { "kind": "flat_stack", "nodes": 201 },
+        "valid": false,
+        "error": { "path": "root.children[199]", "code": "too_many_nodes" }
+      },
+      { "name": "depth_at_limit", "build": { "kind": "nested_stacks", "depth": 8 }, "valid": true },
+      {
+        "name": "depth_over_limit",
+        "build": { "kind": "nested_stacks", "depth": 9 },
+        "valid": false,
+        "error": {
+          "path": "root.children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0]",
+          "code": "too_deep"
+        }
+      },
+      { "name": "string_at_limit", "build": { "kind": "long_text", "length": 2000 }, "valid": true },
+      {
+        "name": "string_over_limit",
+        "build": { "kind": "long_text", "length": 2001 },
+        "valid": false,
+        "error": { "path": "root.spans[0].text", "code": "too_long" }
+      },
+      { "name": "spans_at_limit", "build": { "kind": "spans", "count": 50 }, "valid": true },
+      {
+        "name": "spans_over_limit",
+        "build": { "kind": "spans", "count": 51 },
+        "valid": false,
+        "error": { "path": "root.spans", "code": "too_many_spans" }
+      },
+      { "name": "key_value_items_at_limit", "build": { "kind": "key_value_items", "count": 50 }, "valid": true },
+      {
+        "name": "key_value_items_over_limit",
+        "build": { "kind": "key_value_items", "count": 51 },
+        "valid": false,
+        "error": { "path": "root.items", "code": "too_many_items" }
+      },
+      { "name": "facts_nodes_at_limit", "build": { "kind": "facts_children", "count": 100 }, "valid": true },
+      {
+        "name": "facts_nodes_over_limit",
+        "build": { "kind": "facts_children", "count": 101 },
+        "valid": false,
+        "error": { "path": "root", "code": "too_many_facts_nodes" }
+      },
+      {
+        "name": "bytes_over_limit",
+        "build": { "kind": "fat_texts", "count": 40, "length": 2000 },
+        "valid": false,
+        "error": { "path": "document", "code": "too_large" }
+      },
+      {
+        "name": "two_components",
+        "build": { "kind": "components", "count": 2 },
+        "valid": false,
+        "error": { "path": "root.children[1]", "code": "multiple_components" }
+      },
+      {
+        "name": "two_primary_buttons",
+        "build": { "kind": "primary_buttons", "count": 2 },
+        "valid": false,
+        "error": { "path": "root.children[1]", "code": "multiple_primary_buttons" }
+      }
+    ]
+  }
+}

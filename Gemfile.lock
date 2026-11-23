@@ -13,6 +13,7 @@ PATH
       phonelib
       rails (>= 7.0, < 9.0)
       redis (>= 4)
+      tzinfo (~> 2.0)
 
 GEM
   remote: https://rubygems.org/

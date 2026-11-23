@@ -1,0 +1,49 @@
+{
+  "fixtureVersion": 1,
+  "spacing": {
+    "none": 0,
+    "xs": 4,
+    "sm": 8,
+    "md": 12,
+    "lg": 16,
+    "xl": 24
+  },
+  "typeSteps": {
+    "display": { "typography": "display", "size": 36, "lineHeight": 40, "weight": 700, "tracking": "-0.025em", "uppercase": false, "mono": false, "defaultTextTone": "primary" },
+    "heading_xl": { "typography": "headingXl", "size": 30, "lineHeight": 36, "weight": 600, "tracking": "-0.025em", "uppercase": false, "mono": false, "defaultTextTone": "primary" },
+    "heading_l": { "typography": "headingL", "size": 24, "lineHeight": 32, "weight": 600, "tracking": null, "uppercase": false, "mono": false, "defaultTextTone": "primary" },
+    "heading_m": { "typography": "headingM", "size": 20, "lineHeight": 28, "weight": 600, "tracking": null, "uppercase": false, "mono": false, "defaultTextTone": "primary" },
+    "title": { "typography": "title", "size": 18, "lineHeight": 28, "weight": 500, "tracking": null, "uppercase": false, "mono": false, "defaultTextTone": "primary" },
+    "subtitle": { "typography": "subtitle", "size": 16, "lineHeight": 24, "weight": 500, "tracking": null, "uppercase": false, "mono": false, "defaultTextTone": "secondary" },
+    "body": { "typography": "body", "size": 16, "lineHeight": 24, "weight": 400, "tracking": null, "uppercase": false, "mono": false, "defaultTextTone": "primary" },
+    "caption": { "typography": "caption", "size": 14, "lineHeight": 20, "weight": 400, "tracking": null, "uppercase": false, "mono": false, "defaultTextTone": "secondary" },
+    "overline": { "typography": "overline", "size": 12, "lineHeight": 16, "weight": 500, "tracking": "0.1em", "uppercase": true, "mono": false, "defaultTextTone": "secondary" },
+    "mono": { "typography": "mono", "size": 14, "lineHeight": 20, "weight": 400, "tracking": null, "uppercase": false, "mono": true, "defaultTextTone": "primary" }
+  },
+  "fonts": {
+    "sans": "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+    "mono": "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace"
+  },
+  "tones": {
+    "neutral": { "paletteKey": "muted", "borderPaletteKey": "border" },
+    "accent": { "paletteKey": "primary", "borderPaletteKey": "primary" },
+    "success": { "paletteKey": "success", "borderPaletteKey": "success" },
+    "warning": { "paletteKey": "warning", "borderPaletteKey": "warning" },
+    "danger": { "paletteKey": "danger", "borderPaletteKey": "danger" }
+  },
+  "tintBackgroundAlpha": 0.10,
+  "tintBorderAlpha": 0.30,
+  "neutralTintBackgroundAlpha": 0.40,
+  "neutralTintBorder": "border",
+  "textTones": {
+    "primary": "textPrimary",
+    "secondary": "textSecondary",
+    "muted": "mutedForeground",
+    "accent": "primary"
+  },
+  "avatarSizes": {
+    "sm": 24,
+    "md": 32,
+    "lg": 48
+  }
+}

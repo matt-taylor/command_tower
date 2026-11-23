@@ -15,6 +15,7 @@ require "command_tower/logging/subscriber"
 
 require "command_tower/version"
 require "command_tower/engine"
+require "command_tower/ui"
 require "command_tower/configuration/config"
 require "command_tower/install/baseline"
 require "command_tower/install/doctor"

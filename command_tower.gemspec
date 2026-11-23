@@ -30,4 +30,6 @@ Gem::Specification.new do |spec|
   spec.add_dependency "faraday", "~> 2.12"
   spec.add_dependency "faraday-net_http_persistent", "~> 2.3"
   spec.add_dependency "connection_pool", "~> 3.0"
+  # CommandTower::UI time zone validation and abbreviations
+  spec.add_dependency "tzinfo", "~> 2.0"
 end
