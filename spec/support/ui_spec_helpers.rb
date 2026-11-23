@@ -65,6 +65,11 @@ module UiSpecHelpers
     CommandTower::UI::Nodes::KeyValue.new(items:)
   end
 
+  # Derived text of the single root a UI.document block builds.
+  def derive_text(&)
+    CommandTower::UI::TextDerivation.call(CommandTower::UI.document(text_fallback: "x", &).root)
+  end
+
   def limit_facts_children(build)
     CommandTower::UI::Nodes::Facts.new(children: Array.new(build["count"]) { divider })
   end

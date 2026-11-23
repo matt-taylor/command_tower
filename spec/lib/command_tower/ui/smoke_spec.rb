@@ -65,4 +65,14 @@ RSpec.describe CommandTower::UI::Document, "smoke", :aggregate_failures do # rub
   it "serializes to JSON within the size limit" do
     expect(JSON.generate(document.as_json).bytesize).to be < CommandTower::UI::Limits::MAX_BYTES
   end
+
+  # Console check for composers: a host-style subclass builds a valid document
+  # and its derived text.
+  it "composes a valid document with derived text" do
+    expect(SampleHostUI::ClassCanceled.call(starts_at: Time.utc(2025, 12, 4, 14), room: "Studio B"))
+      .to have_attributes(
+        validation_errors: [],
+        text_fallback: "Class canceled\nWhere: Studio B\nWhen: Thu, Dec 4, 6:00 AM PT\nView classes"
+      )
+  end
 end

@@ -22,6 +22,20 @@ module CommandTower
 
     class InvalidTokenError < CommandTower::Error; end
     class InvalidFragmentError < CommandTower::Error; end
+
+    # Builds a Document with the Builder DSL. The block must add exactly one
+    # root node. The result is not validated: call `validate!` (Composer does).
+    def self.document(text_fallback: nil)
+      builder = Builder.new
+      yield builder
+      roots = builder.roots
+      unless roots.one?
+        code = roots.empty? ? "root_required" : "multiple_roots"
+        raise InvalidDocumentError.new("Invalid UI document: root:#{code}", details: [{ path: "root", code: }])
+      end
+
+      Document.new(root: roots.first, text_fallback:)
+    end
   end
 end
 
@@ -51,3 +65,7 @@ require "command_tower/ui/nodes/code"
 require "command_tower/ui/nodes/component"
 require "command_tower/ui/nodes/facts"
 require "command_tower/ui/document"
+require "command_tower/ui/builder"
+require "command_tower/ui/text_derivation"
+require "command_tower/ui/fragment"
+require "command_tower/ui/composer"
