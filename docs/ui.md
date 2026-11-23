@@ -44,8 +44,8 @@ Rules worth knowing:
 
 - **`stack.align`:** absent stretches children across the cross axis; `start`, `center`, `end` set cross-axis alignment; `between` is main-axis space-between. `badge` and `avatar` children always hug their content.
 - **No warning, success or danger text tones.** `textTone` is limited to the four above because those three fail contrast as text. They remain valid as container, badge and banner `tone`.
-- **Badge contrast caveat.** Badge text on a tinted tone background is not guaranteed to meet contrast for every tone and palette. Check hosts' palettes before relying on a badge to carry meaning alone.
-- Unknown tokens raise `InvalidTokenError`.
+- **Badge contrast caveat.** Badges are solid: white text on a solid tone fill. White on the solid success (green) badge is about 4.1:1 in light and 3.2:1 in dark, below the 4.5:1 text threshold, and the dark danger badge is also low. Do not rely on a badge to carry meaning alone; pair it with text or an icon. See the design contrast notes (states.md 8 A3).
+- **Unknown tokens.** They raise `InvalidTokenError` in development and test. In production they fall back to the default and log the path.
 
 ## Composing
 
