@@ -54,7 +54,7 @@ module CommandTower
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#{background};table-layout:fixed;">
               <tr>
               <td align="center" style="padding:#{CANVAS_PADDING_Y}px #{CANVAS_PADDING_X}px;">
-              <table role="presentation" width="#{CONTAINER_WIDTH}" cellpadding="0" cellspacing="0" border="0" style="width:#{CONTAINER_WIDTH}px;max-width:100%;table-layout:fixed;">
+              <table role="presentation" width="#{CONTAINER_WIDTH}" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:#{CONTAINER_WIDTH}px;table-layout:fixed;">
             HTML
           end
 

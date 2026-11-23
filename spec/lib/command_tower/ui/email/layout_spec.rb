@@ -21,13 +21,17 @@ RSpec.describe CommandTower::UI::Email::Layout, :aggregate_failures do
   end
 
   it "renders the canvas and container values" do
-    expect(html).to include("background-color:#F9FAFB", "padding:24px 16px", 'width="600"', "max-width:100%")
+    expect(html).to include("background-color:#F9FAFB", "padding:24px 16px", 'width="600"', "max-width:600px")
     expect(html).to include("background-color:#FFFFFF;border:1px solid #D5DAE2;border-radius:12px;padding:24px")
     expect(html).to include("<p>Body</p>")
   end
 
-  it "lets the container shrink under 632px with a fixed table layout" do
-    expect(html).to include("width:600px;max-width:100%;table-layout:fixed;")
+  it "sizes the container column from the frame width so content shrinks with it" do
+    expect(html).to include("width:100%;max-width:600px;table-layout:fixed;")
+  end
+
+  it "does not fix the container column at 600px in CSS" do
+    expect(html).not_to include('style="width:600px')
   end
 
   it "fixes the canvas table layout so the container's max-width resolves against the frame" do
