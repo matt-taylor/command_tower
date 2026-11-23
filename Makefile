@@ -1,4 +1,9 @@
-.PHONY: build run
+.PHONY: build run spec rubocop
+
+# Orchestrated runs write .env.run (gitignored) into worktrees: compose project name and host ports.
+# It does not exist in normal checkouts, so nothing changes there.
+-include .env.run
+export $(shell sed -n 's/^\([A-Za-z_][A-Za-z0-9_]*\)=.*/\1/p' .env.run 2>/dev/null)
 
 APP_NAME=engine
 
@@ -24,6 +29,12 @@ bash: # get a bash container
 
 bash_test: # get a bash container
 	docker-compose run --rm -e RACK_ENV=test $(APP_NAME) bash
+
+spec: # run RSpec non-interactively in the test environment: make spec SPEC=spec/path_spec.rb (default: all)
+	docker-compose run --rm -T -e RACK_ENV=test -e RAILS_ENV=test $(APP_NAME) bundle exec rspec $(SPEC)
+
+rubocop: # run RuboCop non-interactively: make rubocop (all) or make rubocop FILES='path ...'
+	docker-compose run --rm -T $(APP_NAME) bundle exec rubocop $(FILES)
 
 annotate: # annotate models
 	docker-compose run --rm -e RACK_ENV=development $(APP_NAME) bundle exec annotate --models

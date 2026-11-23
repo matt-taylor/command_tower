@@ -28,7 +28,7 @@ services:
       - MYSQL_ROOT_PASSWORD=root
       - MYSQL_HOST=mysql
     ports:
-      - "3310:3306"
+      - "${MYSQL_PORT:-3310}:3306"
     expose:
       - "3310"
     volumes:
@@ -57,7 +57,7 @@ services:
     environment:
       <<: *common-environment
     ports:
-      - "7777:7777"
+      - "${APP_PORT:-7777}:7777"
     links:
       - mysql
       - redis
