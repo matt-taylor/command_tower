@@ -31,6 +31,9 @@ module CommandTower
         PREHEADER_LIMIT = 110
         CHROME_KEYS = %i[footer_html app_name preheader].freeze
         TABLE = { role: "presentation", cellpadding: 0, cellspacing: 0, border: 0 }.freeze
+        # Full-width body tables use a fixed layout so they shrink with the container;
+        # in auto layout a wide image's width attribute keeps the table from shrinking.
+        FILL_TABLE = TABLE.merge(width: "100%", style: "table-layout:fixed;").freeze
         HANDLERS = {
           Nodes::Stack => :stack, Nodes::Facts => :facts, Nodes::Card => :card, Nodes::Divider => :divider,
           Nodes::Text => :text, Nodes::Instant => :instant, Nodes::KeyValue => :key_value,

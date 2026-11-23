@@ -29,7 +29,7 @@ module CommandTower
           def key_value(node)
             labelled = node.items.any? { |item| item.label.present? }
             rows = node.items.map { |item| key_value_row(item, labelled) }
-            tag.table(safe_join(rows, spacer_row(labelled ? 2 : 1)), **TABLE, width: "100%")
+            tag.table(safe_join(rows, spacer_row(labelled ? 2 : 1)), **FILL_TABLE)
           end
 
           def key_value_row(item, labelled)

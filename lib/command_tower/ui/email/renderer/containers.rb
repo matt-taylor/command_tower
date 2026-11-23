@@ -33,7 +33,7 @@ module CommandTower
 
           def divider(_node)
             style = css("background-color" => @palette.fetch("border"), "font-size" => "1px", "line-height" => "1px")
-            tag.table(tag.tr(tag.td("", height: 1, style:)), **TABLE, width: "100%")
+            tag.table(tag.tr(tag.td("", height: 1, style:)), **FILL_TABLE)
           end
 
           def component(node)
@@ -47,7 +47,7 @@ module CommandTower
               style = css("padding-bottom" => (index == last ? nil : "#{gap_px}px"), "text-align" => attr)
               tag.tr(tag.td(render(child), align: attr, style:))
             end
-            tag.table(safe_join(trs), **TABLE, width: "100%")
+            tag.table(safe_join(trs), **FILL_TABLE)
           end
 
           def cell_align(child, align)
@@ -58,7 +58,7 @@ module CommandTower
           def framed(inner, background, border, radius, padding)
             style = css("background-color" => background, "border" => border && "1px solid #{border}",
                         "border-radius" => (radius.positive? ? "#{radius}px" : nil), "padding" => "#{padding}px")
-            tag.table(tag.tr(tag.td(inner, style:)), **TABLE, width: "100%")
+            tag.table(tag.tr(tag.td(inner, style:)), **FILL_TABLE)
           end
 
           def tinted(tone, radius, padding, inner)

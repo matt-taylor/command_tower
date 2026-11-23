@@ -306,6 +306,10 @@ RSpec.describe CommandTower::UI::Email::Renderer, :aggregate_failures do
       expect(html.scan("border:1px solid #D5DAE2").size).to eq(1)
     end
 
+    it "lays out every full-width body table with a fixed layout so it shrinks with the container" do
+      expect(html.scan('width="100%" style="table-layout:fixed;"').size).to eq(html.scan('width="100%"').size - 1)
+    end
+
     it "gives the key_value label cell a 96px width" do
       expect(html).to include('width="96"')
     end
