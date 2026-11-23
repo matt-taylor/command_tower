@@ -39,5 +39,5 @@
     "type": "card"
   },
   "schema": "ui_document",
-  "textFallback": ": Thu, Dec 4, 6:00 AM PT\n: Mission Street Studio\n: Coach Dana R."
+  "textFallback": "Thu, Dec 4, 6:00 AM PT\nMission Street Studio\nCoach Dana R."
 }

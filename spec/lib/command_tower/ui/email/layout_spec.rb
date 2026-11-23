@@ -48,6 +48,22 @@ RSpec.describe CommandTower::UI::Email::Layout, :aggregate_failures do
     end
   end
 
+  it "draws exactly one bordered container" do
+    expect(html.scan("border:1px solid #D5DAE2").size).to eq(1)
+  end
+
+  context "with footer links" do
+    let(:options) { { footer_html: '<a href="https://x.test/a">One</a> <a href="/b" style="color:red;">Two</a>' } }
+
+    it "underlines unstyled links in the footer text colour" do
+      expect(html).to include('<a href="https://x.test/a" style="color:#5E6978;text-decoration:underline;">One</a>')
+    end
+
+    it "leaves a link that already has a style alone" do
+      expect(html).to include('<a href="/b" style="color:red;">Two</a>')
+    end
+  end
+
   context "with an app name" do
     let(:options) { { app_name: "A & <B>" } }
 

@@ -64,27 +64,24 @@ class UiDocumentPreview < ActionMailer::Preview
 
     def class_canceled_email_document
       CommandTower::UI.document(text_fallback: "Your class was canceled.") do |d|
-        d.card(surface: :raised, padding: :xl) do |card|
-          card.stack(gap: :lg) do |s|
-            s.text "Sunrise Ride 45", variant: :title
-            s.key_value do |kv|
-              kv.item nil, kv.time(at: STARTS_AT, zone: LA, label: :always), icon: "calendar"
-              kv.item nil, "Mission Street Studio", icon: "map-pin"
-            end
-            s.badge "Canceled", tone: :danger
-            s.banner "No late-cancel fee was charged.", tone: :warning
-            s.button "Find another class", action: s.navigate(path: "/classes"), variant: :primary
-            s.button "View my bookings", action: s.navigate(path: "/bookings")
+        # The email Layout draws the one container; the root is a plain stack.
+        d.stack(gap: :lg) do |s|
+          s.text "Sunrise Ride 45", variant: :title
+          s.key_value do |kv|
+            kv.item nil, kv.time(at: STARTS_AT, zone: LA, label: :always), icon: "calendar"
+            kv.item nil, "Mission Street Studio", icon: "map-pin"
           end
+          s.badge "Canceled", tone: :danger
+          s.banner "No late-cancel fee was charged.", tone: :warning
+          s.button "Find another class", action: s.navigate(path: "/classes"), variant: :primary
+          s.button "View my bookings", action: s.navigate(path: "/bookings")
         end
       end
     end
 
     def all_nodes_document
       CommandTower::UI.document(text_fallback: "Every node.") do |d|
-        d.card(surface: :raised, padding: :xl) do |card|
-          card.stack(gap: :lg) { |s| all_nodes(s) }
-        end
+        d.stack(gap: :lg) { |s| all_nodes(s) }
       end
     end
 

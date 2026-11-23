@@ -69,6 +69,21 @@ RSpec.describe CommandTower::UI::TextDerivation, :aggregate_failures do
     end
   end
 
+  context "with a label-less key_value row" do
+    let(:text) do
+      UiSpecHelpers.derive_text do |d|
+        d.key_value do |kv|
+          kv.item nil, "Mission Street Studio"
+          kv.item "Spot", "12"
+        end
+      end
+    end
+
+    it "emits the bare value without a leading colon" do
+      expect(text).to eq("Mission Street Studio\nSpot: 12")
+    end
+  end
+
   context "with banner, stat tile, divider and image" do
     let(:text) do
       UiSpecHelpers.derive_text do |d|

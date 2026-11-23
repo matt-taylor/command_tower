@@ -76,7 +76,17 @@ module CommandTower
             return "" if footer_html.nil?
 
             style = "padding-top:#{FOOTER_PADDING_TOP}px;#{SMALL_TEXT}color:#{palette.fetch('textSecondary')};"
-            %(<tr><td style="#{style}">#{footer_html}</td></tr>\n)
+            %(<tr><td style="#{style}">#{style_footer_links(footer_html, palette)}</td></tr>\n)
+          end
+
+          # Footer links take the footer text colour and are underlined (email.html).
+          # A link that already carries its own `style` is left alone.
+          def style_footer_links(footer_html, palette)
+            link_style = "color:#{palette.fetch('textSecondary')};text-decoration:underline;"
+            footer_html.to_str.gsub(/<a(?<attrs>\s[^>]*)?>/i) do |tag|
+              attrs = Regexp.last_match[:attrs].to_s
+              attrs.match?(/\sstyle\s*=/i) ? tag : %(<a#{attrs} style="#{link_style}">)
+            end
           end
         end
       end

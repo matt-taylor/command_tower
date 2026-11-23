@@ -31,5 +31,5 @@
     "type": "card"
   },
   "schema": "ui_document",
-  "textFallback": ": Thu, Dec 4, 6:00 AM PT"
+  "textFallback": "Thu, Dec 4, 6:00 AM PT"
 }

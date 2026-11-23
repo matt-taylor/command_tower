@@ -96,5 +96,5 @@
     "type": "card"
   },
   "schema": "ui_document",
-  "textFallback": "Sunrise Ride 45\n: Thu, Dec 4, 6:00 AM PT\n: Mission Street Studio\nCanceled\nNo late-cancel fee was charged.\nFind another class\nView my bookings"
+  "textFallback": "Sunrise Ride 45\nThu, Dec 4, 6:00 AM PT\nMission Street Studio\nCanceled\nNo late-cancel fee was charged.\nFind another class\nView my bookings"
 }

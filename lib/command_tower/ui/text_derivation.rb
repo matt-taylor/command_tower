@@ -73,7 +73,7 @@ module CommandTower
 
         def item_text(item)
           value = item.value.is_a?(Nodes::Instant) ? instant_text(item.value) : item.value.to_s
-          "#{item.label}: #{value}"
+          item.label.to_s.empty? ? value : "#{item.label}: #{value}"
         end
 
         def spans_text(spans)

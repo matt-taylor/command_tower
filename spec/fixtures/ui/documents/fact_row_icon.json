@@ -23,5 +23,5 @@
     "type": "card"
   },
   "schema": "ui_document",
-  "textFallback": ": Mission Street Studio"
+  "textFallback": "Mission Street Studio"
 }

@@ -67,5 +67,5 @@
     "type": "card"
   },
   "schema": "ui_document",
-  "textFallback": "Week 14 picks lock Sunday, so make them before the long weekend\nYou have 7 picks left.\n: Sun, Dec 7, 10:00 AM ET"
+  "textFallback": "Week 14 picks lock Sunday, so make them before the long weekend\nYou have 7 picks left.\nSun, Dec 7, 10:00 AM ET"
 }

@@ -6,7 +6,7 @@ module CommandTower
       class Renderer
         # text, time, banner, key_value and stat_tile. Icons are dropped.
         module TextNodes
-          LABEL_WIDTH = 96
+          LABEL_WIDTH = 108 # 96px label column + 12px gap (states.md 5.H)
           ROW_GAP = 8
 
           private

@@ -42,7 +42,7 @@ module CommandTower
           end
 
           def label_style
-            css(type_pairs("caption", "secondary").merge("line-height" => "24px", "padding-right" => "8px"))
+            css(type_pairs("caption", "secondary").merge("line-height" => "24px", "padding-right" => "12px"))
           end
 
           def value_style
