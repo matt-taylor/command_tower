@@ -85,7 +85,13 @@ module CommandTower
         def render_defined_email(address, definition)
           subject = slot("subject") || @communication.title.to_s
           output = DefinedEmailRenderer.render(communication: @communication, definition:)
-          RenderedPayload.build(recipient_address: address, subject:, text_body: output.text, html_body: output.html)
+          RenderedPayload.build(
+            recipient_address: address, subject:, text_body: output.text, html_body: output.html,
+            headers: UnsubscribeHeaders.call(
+              declaration: NotificationTypes.lookup(@communication.notification_type_key),
+              user_id: @communication.user_id
+            )
+          )
         rescue StandardError => error
           log_erb_fallback(error)
           render_generic_email(address, subject:)

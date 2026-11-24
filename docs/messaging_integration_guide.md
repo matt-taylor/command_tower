@@ -108,6 +108,33 @@ Detail `content` is `inbox_document_v1` with blocks `paragraph`, `cta` (typed `d
 
 Pagination detail: [pagination.md](pagination.md). Full catalog: [api_reference.md](api_reference.md#me-inbox).
 
+## Email compliance (defined types)
+
+Emails for types registered with a `message:` MessageDefinition carry a compliance footer and, when eligible, RFC 8058 one-click unsubscribe headers. Undefined types get neither (their ERB templates are unchanged).
+
+**Config** (`config.messaging.compliance`):
+
+| Key | Purpose |
+|-----|---------|
+| `api_base_url` | Public API origin (no trailing slash, no `/api`) for the unsubscribe URL. Defaults to ENV `COMMAND_TOWER_API_BASE_URL`. Unset: headers are omitted and boot logs one warning listing the affected type keys |
+| `preferences_path` | Appended to `config.application.composed_url` for the footer link. Unset: the link is `composed_url` |
+| `postal_address` | Printed in the footer of promotional email. Required for any `promotional` MessageDefinition (seal check) |
+| `unsubscribe_secret` | Optional. Overrides the key derived from `secret_key_base`. Never log it |
+
+**Footer.** Three copies: transactional, promotional (adds `postal_address` and "Unsubscribe or manage email preferences"), and mandatory ("about your account"). The footer is the same in the composed and the fallback email, never carries a token, and does not change when headers are omitted.
+
+**Headers.** `List-Unsubscribe: <{api_base_url}/messaging/unsubscribe?token=...>` and `List-Unsubscribe-Post: List-Unsubscribe=One-Click`. Set only for types that are not mandatory, are user configurable, allow `email`, and when `api_base_url` is set.
+
+**Token.** A signed (not encrypted) `message_verifier("command_tower/messaging/unsubscribe")` value with purpose `unsubscribe`, payload `{u: user_id, t: notification_type_key}`, valid 90 days. It can only turn email off for that one user and type. `token` is a filtered parameter, so Rails logs hide it.
+
+**Endpoint.** `POST /messaging/unsubscribe?token=` (mounted under `/api`) opts the user out of email for that type through the existing preferences update and audits `messaging_unsubscribed` (`user_history`, permanent) once; a repeat changes nothing and emits no second audit. Every failure (expired, tampered, wrong purpose, mandatory, unknown or ineligible type) returns the identical `422`, so the endpoint is not an oracle. `GET` never mutates: it returns `303` to `composed_url + preferences_path` with no token or user id, for people who click the link or scanners that prefetch it. Responses set `Cache-Control: no-store` and `Referrer-Policy: no-referrer`. Details: [api_reference.md](api_reference.md#unsubscribe).
+
+**Limits.** Per token digest: 10 requests per 60 seconds (main limit). Per client IP: 120 per 60 seconds (high, because recipients share gateways). Over a limit: `429` with `Retry-After`. If Redis fails the limits fail open, so an outage never blocks an opt-out.
+
+**Trusted proxy.** The client IP is `request.remote_ip`, which follows `X-Forwarded-For` only from the host's `trusted_proxies`. Hosts behind a load balancer must configure it, or every request shares one IP bucket.
+
+**Accepted risk (O1, replay).** The token is a bearer value valid for 90 days and is not single use. Anyone holding the email can opt that user out of that type; the effect is limited to turning email off, which the user can undo in preferences.
+
 ## Host responsibilities
 
 - Notification catalog content (registered into CommandTower notification types)

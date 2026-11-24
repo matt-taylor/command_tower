@@ -55,6 +55,12 @@ CommandTower::Engine.routes.draw do
     end
   end
 
+  # Unauthenticated one-click unsubscribe (RFC 8058). POST acts; GET only redirects to preferences.
+  namespace :messaging do
+    get "unsubscribe", to: "unsubscribe#show"
+    post "unsubscribe", to: "unsubscribe#create"
+  end
+
   get "me", to: "me#show"
   get "profile", to: "profile#show"
   namespace :me do

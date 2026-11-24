@@ -72,14 +72,23 @@ module CommandTower
           ""
         end
 
+        # The compliance footer is added here so the composed and the fallback email carry it alike.
         def present(document)
-          CommandTower::UI::Email::Renderer.call(
+          footer = compliance_footer
+          output = CommandTower::UI::Email::Renderer.call(
             document,
             palette: CommandTower::EmailTheme::Palette.resolve,
             origin: CommandTower.config.application.composed_url,
             user_zone: zone,
-            app_name: CommandTower.app_name_for_comms
+            app_name: CommandTower.app_name_for_comms,
+            footer_html: footer.html
           )
+          CommandTower::UI::Email::Renderer::Output.new(html: output.html, text: "#{output.text}\n\n#{footer.text}")
+        end
+
+        def compliance_footer
+          declaration = NotificationTypes.lookup(communication.notification_type_key)
+          ComplianceFooter.call(declaration:, definition:)
         end
 
         def builder

@@ -32,7 +32,7 @@ RSpec.describe CommandTower::Messaging::Rendering::ChannelRenderer,
         expect(payload.subject).to eq("Your class is open")
         expect(payload.html_body).to include("<!DOCTYPE html>", "Check in is open", "Arms &amp; Abs")
         expect(payload.html_body).to include("href=\"#{origin}/schedule\"")
-        expect(log_lines).to be_empty
+        expect(log_lines.grep(/fallback/)).to be_empty
       end
 
       it "writes label: https://... for the button in the text part" do
@@ -76,8 +76,8 @@ RSpec.describe CommandTower::Messaging::Rendering::ChannelRenderer,
       let(:metadata) { { "headline" => "Check in is open", "class_name" => "Arms" } }
 
       it "renders no button" do
-        expect(payload.html_body).not_to include("<a ")
-        expect(payload.text_body).not_to include("https://")
+        expect(payload.html_body).not_to include("/schedule")
+        expect(payload.text_body).not_to include("/schedule")
       end
     end
 

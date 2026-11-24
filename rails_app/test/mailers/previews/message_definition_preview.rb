@@ -16,8 +16,22 @@ class MessageDefinitionPreview < ActionMailer::Preview
     end
   end
 
-  # Composer output, rendered in the studio zone.
+  # A promotional definition: its footer adds `config.messaging.compliance.postal_address` and the
+  # "Unsubscribe or manage email preferences" link copy (states E-03).
+  class PromotionalClassCanceled < ClassCanceled
+    promotional true
+  end
+
+  # Composer output, rendered in the studio zone, with the transactional footer (states E-01).
   def sample_email = message(ClassCanceled, zone: STUDIO_ZONE)
+
+  # Promotional footer variant: postal address plus the unsubscribe-or-manage link.
+  def sample_email_promotional = message(PromotionalClassCanceled, zone: STUDIO_ZONE)
+
+  # The footer when `compliance.api_base_url` is unset. The footer is identical to `sample_email`: it
+  # never carries a token and does not depend on the one-click headers, which are omitted in that case
+  # (headers are set by `ChannelRenderer`, not by the body render this preview shows).
+  def sample_email_without_api_base_url = message(ClassCanceled, zone: STUDIO_ZONE)
 
   # Composer failure: the CT fallback document.
   def sample_email_fallback = message(FailingComposer, zone: STUDIO_ZONE)

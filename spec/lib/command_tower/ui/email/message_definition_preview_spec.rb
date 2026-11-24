@@ -20,8 +20,32 @@ RSpec.describe MessageDefinitionPreview, :aggregate_failures, :messaging_notific
     )
   end
 
-  it "lists the three previews" do
-    expect(described_class.emails).to match_array(%w[sample_email sample_email_fallback sample_email_user_zone])
+  it "lists the previews" do
+    expect(described_class.emails).to match_array(
+      %w[sample_email sample_email_fallback sample_email_user_zone sample_email_promotional
+         sample_email_without_api_base_url]
+    )
+  end
+
+  describe "compliance footer variants" do
+    let(:address) { CommandTower.config.messaging.compliance.postal_address }
+
+    context "with the promotional variant" do
+      let(:text) { described_class.new.sample_email_promotional.text_part.body.decoded }
+
+      it "shows the postal address and unsubscribe link" do
+        expect(text).to include("Unsubscribe or manage email preferences", address)
+      end
+    end
+
+    context "with the transactional variant" do
+      let(:text) { described_class.new.sample_email_without_api_base_url.text_part.body.decoded }
+
+      it "omits the postal address" do
+        expect(text).to include("Manage email preferences")
+        expect(text).not_to include(address)
+      end
+    end
   end
 
   %w[sample_email sample_email_fallback].each do |preview|

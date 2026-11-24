@@ -153,7 +153,7 @@ File format: `{ "version": 1, "palette": { "<token>": "#RRGGBB", ... } }`. `vers
 
 At boot, an invalid host file raises (the message names keys, never values). A missing host file logs one warning and email falls back to sources 2 and 3. When the host file exists, `EmailTheme::Resolver` derives the 9 legacy keys from it.
 
-Mailer previews for defined types: `/rails/mailers/message_definition/sample_email`, `sample_email_fallback` (composer failure, CT fallback document) and `sample_email_user_zone` (rails_app dummy app).
+Mailer previews for defined types: `/rails/mailers/message_definition/sample_email`, `sample_email_fallback` (composer failure, CT fallback document), `sample_email_user_zone`, `sample_email_promotional` (promotional footer with postal address) and `sample_email_without_api_base_url` (footer when one-click headers are omitted) (rails_app dummy app). Footer and header contract: [messaging_integration_guide.md](messaging_integration_guide.md#email-compliance-defined-types).
 
 ## Legacy mapping
 

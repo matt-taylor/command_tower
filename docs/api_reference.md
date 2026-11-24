@@ -17,14 +17,15 @@ Proof for contracts lives primarily under `spec/requests/command_tower/`.
 5. [Me Inbox](#me-inbox)
 6. [Audit events](#audit-events)
 7. [Preferences](#preferences)
-8. [Phone](#phone)
-9. [Pushover](#pushover)
-10. [Admin Workspace](#admin-workspace)
-11. [Impersonation](#impersonation)
-12. [Admin messaging](#admin-messaging)
-13. [Non-HTTP emit APIs](#non-http-emit-apis)
-14. [RBAC overview](#rbac-overview)
-15. [Feature gates](#feature-gates)
+8. [Unsubscribe](#unsubscribe)
+9. [Phone](#phone)
+10. [Pushover](#pushover)
+11. [Admin Workspace](#admin-workspace)
+12. [Impersonation](#impersonation)
+13. [Admin messaging](#admin-messaging)
+14. [Non-HTTP emit APIs](#non-http-emit-apis)
+15. [RBAC overview](#rbac-overview)
+16. [Feature gates](#feature-gates)
 
 ---
 
@@ -410,6 +411,21 @@ Scoped admin audit: host-scoped rows (`scope_class: host`) matching host context
 | **Spec** | `spec/requests/command_tower/me/preferences_spec.rb` | |
 
 Category / notification serializers expose catalog fields (`key`, `label`, `description`, `order`, channel availability, `preferences: { inboxEnabled, channels, storedOverridePresent }`, …).
+
+---
+
+## Unsubscribe
+
+Unauthenticated one-click unsubscribe (RFC 8058). No session, cookie or CSRF; the signed `token` query parameter is the only credential. Configuration, token and limits: [messaging_integration_guide.md](messaging_integration_guide.md#email-compliance-defined-types).
+
+| Method | Path | Notes |
+|--------|------|--------|
+| `POST` | `/messaging/unsubscribe?token=` | Email off for the token's user and type. `200` `data`: `{ unsubscribed: true }` (also on a repeat). Any invalid token or ineligible type: identical `422`. Rate limited: `429` with `Retry-After` |
+| `GET` | `/messaging/unsubscribe?token=` | Never reads the token, never mutates. `303` to `composed_url + preferences_path` (documented transport non-envelope) |
+
+Both set `Cache-Control: no-store` and `Referrer-Policy: no-referrer`.
+
+**Specs:** `spec/requests/command_tower/messaging/unsubscribe_spec.rb`.
 
 ---
 
