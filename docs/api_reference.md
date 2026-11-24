@@ -337,12 +337,13 @@ Pagination for list: query `limit` (default **50**, max **100**), `offset` (defa
 
 | Method | Path | Notes |
 |--------|------|--------|
-| `GET` | `/me/inbox` | List — `data` array of items; pagination meta |
+| `GET` | `/me/inbox` | List — `data` array of conversation/entry rows; pagination meta; query `limit`, `offset`, `scope` only |
+| `GET` | `/me/inbox/conversation` | One conversation's messages. Query: `key` (required), `scope` (`inbox` \| `archived`), and at most one of `around` (item id or `oldest_unread`), `before` (item id), `after` (item id); optional `limit` (only with a window mode) |
 | `GET` | `/me/inbox/:id` | Detail (+ `body`, `metadata`, `notificationTypeKey`, `content`) |
-| `POST` | `/me/inbox/:id/open` | Detail (+ `content`) |
+| `POST` | `/me/inbox/:id/open` | Detail (+ `content`). Renders once; the first non-impersonated open marks the item viewed and emits one `messaging_inbox_item_viewed` audit event (see [audit.md](audit.md)). Impersonated opens return the detail without marking viewed or auditing. |
 | `PATCH` | `/me/inbox/:id/archive` | Item |
 | `DELETE` | `/me/inbox/:id` | `data: null` |
-| `GET` | `/me/inbox/unread-count` | `{ count }` |
+| `GET` | `/me/inbox/unread-count` | `{ count, badgeCount }` (`badgeCount` counts only unread items of badge-eligible notification types) |
 | `POST` | `/me/inbox/bulk/read` | Body `ids` (1–100 ints) → `{ ids, count, changedCount }` |
 | `POST` | `/me/inbox/bulk/unread` | same |
 | `POST` | `/me/inbox/bulk/archive` | same |
@@ -358,13 +359,15 @@ Pagination for list: query `limit` (default **50**, max **100**), `offset` (defa
 | `instant` | `at` (string) | ISO-8601 UTC. Input without an explicit offset adds no block. |
 | `presentation` | `key` (string), `variant` (string or null) | Names a registered presentation capability; its data is composed after authoring. |
 
-Generic (default) rendering: one `paragraph` block from `communication.body` (omitted if blank — `blocks` can legitimately be `[]`), plus one `cta` block if `metadata.deep_link` is a safe destination (label from `metadata.cta_label`, default `"Open"`).
+Generic (default) rendering: one `paragraph` block from `communication.body` (omitted if blank — `blocks` can legitimately be `[]`), plus one `cta` block if there is a safe destination: `metadata.deep_link_path` (internal, wins when present and safe) else `metadata.deep_link` (external). Label from `metadata.cta_label`, default `"Open"`.
 
 **`X-UI-Catalog` request header:** accepted on every request (CommandTower reads it in the HTTP boundary). Missing or invalid values mean `1`; it has no effect on any response yet, including Inbox bodies. See [ui.md](ui.md#catalog-header).
 
-Hosts may override the document per `notificationTypeKey` with an `inbox_document.json.erb` view at `app/views/command_tower/messaging/rendering/<notification_type_key>/inbox_document.json.erb` (same lookup convention as [`messaging_integration_guide.md`](messaging_integration_guide.md#rendering-template-overrides)). Any failure resolving or rendering that template (missing file, malformed JSON, wrong `schema`/`blocks` shape, or a raising template) fails open to the generic document — the Inbox read path never 500s on a bad type template. A valid envelope with one invalid/unknown block strips only that block; if stripping empties `blocks`, the generic document is used instead.
+A notification type may override the document with a pure-Ruby composer (`declaration.inbox_document_composer`, called with `communication:`, returning an `InboxDocument`). Any failure (unregistered type, unresolvable class, a raising composer, a non-`InboxDocument` result) fails open to the generic document — the Inbox read path never 500s on a bad composer. The former `inbox_document.json.erb` host override is no longer read.
 
-**List item fields:** `id`, `title`, `status`, `read`, `viewedAt`, `createdAt`, `updatedAt`.
+**List row fields (`GET /me/inbox`):** `kind`, `id`, `title`, `preview`, `activityAt`, `createdAt`, `messageCount`, `unreadCount`, `read`, `inboxItemIds`. Item payloads (archive, `bulk` targets, conversation `messages`) use `id`, `title`, `status`, `read`, `viewedAt`, `createdAt`, `updatedAt`; conversation messages also carry the detail fields.
+
+Hosts never expose `inboxEnabled` as a user-facing inbox switch; it appears only in the preferences contract below.
 
 **Errors:** `401` / `403` / `422`; show/open may return `404` `not_found`.
 
@@ -597,7 +600,7 @@ Expired product request: overlay present + invalid row → **401** `impersonatio
 
 **Sync response:** `mode`, `requested`, `campaignIdentity`, `accepted`, `failed`, `skipped`, `failures: [{ userId, errorCode }]`.
 
-Engine admin HTTP includes workspace manifest, announcements, audit events, Users list/show, and impersonation start. There is no role-assign or User-mutation admin surface.
+Engine admin HTTP includes workspace manifest, announcements, audit events, Users list/show, and impersonation start. Users admin also includes identity mutations (`PATCH /admin/users/:id/{name,username,email,email-validation}`) and role assignment (`PATCH /admin/users/:id/roles`); see [Admin Users](#admin-users).
 
 ---
 
@@ -607,8 +610,8 @@ Hosts call these from **product workflows** (not as HTTP on the engine):
 
 | Service | Required kwargs |
 |---------|-----------------|
-| `CommandTower::Services::Messaging::Communications::Produce` | `user`, `notification_type_key`, `host_event_identity`, `title`, `body`, `platform_enabled_channels`; optional `metadata` |
-| `CommandTower::Services::Messaging::Communications::ProduceMany` | `user_ids`, `notification_type_key`, `campaign_identity`, `title`, `body`, `platform_enabled_channels`; optional `metadata`, `execution_mode` (`:async` default, `:sync` capped at 25) |
+| `CommandTower::Services::Messaging::Communications::Produce` | `user`, `notification_type_key`, `host_event_identity`, `title`, `body`, `platform_enabled_channels`; optional `metadata`, `conversation_key`, `conversation_title`. Fails validation when the registered type has `deep_link_required` and `metadata` has no non-blank `deep_link` |
+| `CommandTower::Services::Messaging::Communications::ProduceMany` | `user_ids`, `notification_type_key`, `campaign_identity`, `title`, `body`, `platform_enabled_channels`; optional `metadata`, `conversation_key`, `conversation_title`, `execution_mode` (`:async` default, `:sync` capped at 25) |
 
 Details: [messaging_integration_guide.md](messaging_integration_guide.md).
 

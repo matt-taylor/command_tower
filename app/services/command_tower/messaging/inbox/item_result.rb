@@ -14,7 +14,9 @@ module CommandTower
         :deleted_at,
         :created_at,
         :updated_at,
+        :newly_viewed,
       ) do
+        # newly_viewed is true only on the result of a mark_viewed call that set viewed_at.
         def self.build(
           id:,
           communication_id:,
@@ -25,7 +27,8 @@ module CommandTower
           archived_at:,
           deleted_at:,
           created_at:,
-          updated_at:
+          updated_at:,
+          newly_viewed: false
         )
           new(
             id:,
@@ -38,6 +41,7 @@ module CommandTower
             deleted_at:,
             created_at:,
             updated_at:,
+            newly_viewed: newly_viewed == true,
           ).freeze
         end
 

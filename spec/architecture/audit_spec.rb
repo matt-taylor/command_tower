@@ -45,7 +45,7 @@ RSpec.describe "CommandTower audit architecture" do
       impersonation_ended
     ]
   end
-  let(:configurable_event_names) { %i[session_created session_cleared login_failed experience_state_completed] }
+  let(:configurable_event_names) { %i[session_created session_cleared login_failed experience_state_completed messaging_inbox_item_viewed] }
   let(:me_audit_events_controller_source) do
     File.read(engine_root.join("app/controllers/command_tower/me/audit_events_controller.rb"))
   end

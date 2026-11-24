@@ -17,6 +17,21 @@ module CommandTower
             mutate(recipient_id:, inbox_item_id:, operation: :mark_viewed)
           end
 
+          # Keyed by communication. Returns nil when the communication is not the
+          # recipient's, has no inbox item, or the item is deleted. Idempotent:
+          # result.newly_viewed is true only on the call that set viewed_at.
+          def mark_viewed_for_communication(recipient_id:, communication_id:)
+            recipient_id = require_recipient_id!(recipient_id)
+            raise ValidationError, "communication_id is required" if blank?(communication_id)
+
+            record = Scope.find_for_recipient_communication(recipient_id:, communication_id:)
+            return nil if record.nil? || record.deleted?
+
+            mark_viewed(recipient_id:, inbox_item_id: record.id)
+          rescue NotFoundError
+            nil
+          end
+
           def mark_unviewed(recipient_id:, inbox_item_id:)
             mutate(recipient_id:, inbox_item_id:, operation: :mark_unviewed)
           end
@@ -79,6 +94,8 @@ module CommandTower
             if outcome == :changed
               OperationLogger.lifecycle_changed(operation:, item: result)
             end
+
+            result = result.with(newly_viewed: true) if operation == :mark_viewed && outcome == :changed
 
             result
           end

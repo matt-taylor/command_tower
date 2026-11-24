@@ -18,6 +18,14 @@ module CommandTower
           relation = relation.lock if lock
           relation.find_by(id: inbox_item_id)
         end
+
+        # An inbox item is 1:1 with its communication; nil when the communication
+        # is not the recipient's or has no inbox item.
+        def find_for_recipient_communication(recipient_id:, communication_id:, lock: false)
+          relation = for_recipient(recipient_id)
+          relation = relation.lock if lock
+          relation.find_by(communication_id:)
+        end
       end
     end
   end

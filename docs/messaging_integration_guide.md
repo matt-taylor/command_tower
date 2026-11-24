@@ -10,8 +10,8 @@ Complete install and host RBAC first: [Bootstrap a new host](bootstrap/README.md
 |---------|----------------|
 | User inbox (consume) | Engine `/me/inbox*` — see [API reference](api_reference.md#me-inbox) |
 | Preferences | Engine `/me/preferences*` — see [API reference](api_reference.md#preferences) |
+| User inbox conversation | Engine `GET /me/inbox/conversation` — see [API reference](api_reference.md#me-inbox) |
 | Phone / Pushover / Push endpoints | Engine `/me/phone*`, `/me/pushover*`, `/me/push*` (503 when capability unavailable) |
-
 | Single-recipient emit | `CommandTower::Services::Messaging::Communications::Produce` |
 | Multi-recipient emit | `CommandTower::Services::Messaging::Communications::ProduceMany` |
 | Admin cohort announce | Engine `POST /admin/messaging/announcements` |
@@ -44,6 +44,10 @@ CommandTower::Services::Messaging::Communications::Produce.call(
 | `body` | yes |
 | `platform_enabled_channels` | yes (`Array`) |
 | `metadata` | no (`Hash`) |
+| `conversation_key` | no (`String`) — groups inbox items into one conversation |
+| `conversation_title` | no (`String`) |
+
+`Produce` fails with a validation error when the registered type declares `deep_link_required` and `metadata` has no non-blank `deep_link`.
 
 ## ProduceMany (multi recipient)
 
@@ -55,6 +59,7 @@ CommandTower::Services::Messaging::Communications::Produce.call(
 | `title`, `body` | yes |
 | `platform_enabled_channels` | yes |
 | `metadata` | optional |
+| `conversation_key`, `conversation_title` | optional (`String`), applied to every recipient's item |
 | `execution_mode` | optional, default `:async`; `:sync` capped at **25** recipients |
 
 Admin announcements HTTP is a product path over ProduceMany (async/sync, audience selection). Contract: [API reference — Admin messaging](api_reference.md#admin-messaging).
@@ -85,28 +90,21 @@ Notes:
 - Generic templates receive the same four locals as before (`title`, `body`, `deep_link`, `h` — an HTML-escaping helper). Type-specific templates additionally receive `metadata` (the communication's metadata Hash) and `notification_type_key`.
 - A missing or failing template (generic or type-specific) surfaces the same way it always has: `RenderError` with code `"render_failed"`.
 
-### Inbox document override (`inbox_document.json.erb`)
+### Inbox document (no ERB override)
 
-The Me Inbox detail `content` field (`inbox_document_v1`, see [api_reference.md](api_reference.md#me-inbox)) is built by a separate collaborator, `InboxDocumentRenderer`, using the **same** type-directory convention and sanitized-key rule as above, resolved through `TemplateResolver.render_type_template`:
-
-```text
-app/views/command_tower/messaging/rendering/
-  <notification_type_key>/
-    inbox_document.json.erb   # optional type-specific inbox content override
-```
-
-This override has **no generic ERB fallback file** — the generic Inbox document is built in pure Ruby from `communication.body`/`metadata`, not from a template. Because of that, the fail-open contract here is stricter than `ChannelRenderer`'s: a missing type template, malformed JSON, an envelope with the wrong `schema` or a non-Array `blocks`, or a template that raises mid-render all fall back silently to the generic document — the Inbox read path never surfaces a `RenderError` and never 500s. A valid envelope with one invalid/unknown block strips only that block, keeping the rest; if stripping empties `blocks`, the generic document is used instead.
+The Me Inbox detail `content` field (`inbox_document_v1`, see [api_reference.md](api_reference.md#me-inbox)) is built by `InboxDocumentRenderer`. An `inbox_document.json.erb` view is **not** read (the override was replaced). A notification type customizes the document through `declaration.inbox_document_composer`, a pure-Ruby class called with `communication:` that returns an `InboxDocument`. The generic document is built in Ruby from `communication.body` and `metadata`. A missing, raising, or invalid composer falls back silently to the generic document — the Inbox read path never surfaces a `RenderError` and never 500s.
 
 ## Me Inbox HTTP (summary)
 
 | Concern | Contract |
 |---------|----------|
-| List | `GET /me/inbox?limit=&offset=&scope=` — meta `{ limit, offset, totalCount }` |
-| Detail / open / archive / delete | `/me/inbox/:id` (+ `open`, `archive`) |
+| List | `GET /me/inbox?limit=&offset=&scope=` — conversation/entry rows, meta `{ limit, offset, totalCount }` |
+| Conversation | `GET /me/inbox/conversation?key=&scope=` (+ one of `around`/`before`/`after`, `limit`) |
+| Detail / open / archive / delete | `/me/inbox/:id` (+ `open`, `archive`). Open marks viewed on first non-impersonated view and audits once (`messaging_inbox_item_viewed`) |
 | Bulk | `POST /me/inbox/bulk/{read,unread,archive,restore,delete}` with body `ids` |
-| Unread | `GET /me/inbox/unread-count` |
+| Unread | `GET /me/inbox/unread-count` — `{ count, badgeCount }` |
 
-Detail `content` is `inbox_document_v1` with blocks `paragraph`, `cta` (typed `destination`: internal `path` or external `href`), `instant`, and `presentation`. The `X-UI-Catalog` request header is accepted and defaults to `1`; it has no effect on Inbox responses yet ([ui.md](ui.md#catalog-header)).
+Detail `content` is `inbox_document_v1` with blocks `paragraph`, `cta` (typed `destination`: internal `path` or external `href`), `instant`, and `presentation`. The `X-UI-Catalog` request header is accepted and defaults to `1`; it has no effect on Inbox responses yet ([ui.md](ui.md#catalog-header)). Hosts never expose `inboxEnabled` as an inbox switch to users outside the preferences contract.
 
 Pagination detail: [pagination.md](pagination.md). Full catalog: [api_reference.md](api_reference.md#me-inbox).
 

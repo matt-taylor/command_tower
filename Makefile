@@ -1,4 +1,4 @@
-.PHONY: build run spec rubocop
+.PHONY: build run spec rubocop rails runner rake server
 
 # Orchestrated runs write .env.run (gitignored) into worktrees: compose project name and host ports.
 # It does not exist in normal checkouts, so nothing changes there.
@@ -38,6 +38,12 @@ rubocop: # run RuboCop non-interactively: make rubocop (all) or make rubocop FIL
 
 rake: ## run a rake task non-interactively (TASK=...)
 	docker-compose run --rm -T $(APP_NAME) bundle exec rake $(TASK)
+
+rails: # run a rails command non-interactively: make rails ARGS='routes'
+	docker-compose run --rm -T $(APP_NAME) bin/rails $(ARGS)
+
+runner: # run Ruby non-interactively through rails runner: make runner CMD='puts CommandTower::VERSION'
+	docker-compose run --rm -T -e RACK_ENV=development $(APP_NAME) bin/rails runner "$$CMD"
 
 annotate: # annotate models
 	docker-compose run --rm -e RACK_ENV=development $(APP_NAME) bundle exec annotate --models

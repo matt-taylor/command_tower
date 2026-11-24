@@ -50,11 +50,17 @@ module CommandTower
           end
         end
 
+        # Marks the item viewed (unless mark_viewed is false, used for impersonated
+        # opens) and renders the detail once. Exposes newly_viewed and
+        # communication_id so the calling workflow can own the first-view audit.
         class Open < Show
+          validate :mark_viewed, is_a: [TrueClass, FalseClass], required: false, default: true
+
           def call
             with_recipient do |recipient_id|
-              Inbox.detail(recipient_id:, inbox_item_id:)
-              CommandTower::Messaging::Inbox.mark_viewed(recipient_id:, inbox_item_id:)
+              marked = CommandTower::Messaging::Inbox.mark_viewed(recipient_id:, inbox_item_id:) if mark_viewed
+              context.newly_viewed = marked&.newly_viewed == true
+              context.communication_id = marked&.communication_id
               context.item = Inbox.detail(recipient_id:, inbox_item_id:)
             end
           end

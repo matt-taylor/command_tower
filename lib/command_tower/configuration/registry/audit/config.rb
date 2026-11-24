@@ -266,6 +266,18 @@ module CommandTower
               affected_user_required: true,
               global_visible_in_host_scope: true
             },
+            messaging_inbox_item_viewed: {
+              label: "Inbox item viewed",
+              tags: %w[messaging inbox],
+              enabled: true,
+              enablement_configurable: true,
+              user_history: false,
+              sensitive_fields: [],
+              allowed_changes: [],
+              retention: :ninety_days,
+              subject_required: false,
+              affected_user_required: true
+            },
             experience_state_completed: {
               label: "Experience state completed",
               tags: %w[experience account],

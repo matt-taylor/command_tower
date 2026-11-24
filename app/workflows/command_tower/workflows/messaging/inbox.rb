@@ -57,10 +57,27 @@ module CommandTower
 
         class OpenWorkflow < ShowWorkflow
           def call(user:, inbox_item_id:)
-            result = CommandTower::Services::Messaging::Inbox::Open.call(user:, inbox_item_id:)
+            impersonated = CommandTower::Current.impersonation_active == true
+            result = CommandTower::Services::Messaging::Inbox::Open.call(user:, inbox_item_id:, mark_viewed: !impersonated)
             return result_or_failure(result) unless result.success?
 
+            audit_first_view(user:, inbox_item_id:, result:) unless impersonated
+
             success(payload: CommandTower::Serializers::Messaging::Inbox::DetailSerializer.serialize(result.data[:item]), http_status: :ok)
+          end
+
+          private
+
+          # One event per first view, for every inbox type. Metadata carries ids only.
+          def audit_first_view(user:, inbox_item_id:, result:)
+            return unless result.data[:newly_viewed]
+
+            audit(
+              :messaging_inbox_item_viewed,
+              affected_user: user,
+              changes: {},
+              metadata: { inbox_item_id:, communication_id: result.data[:communication_id] }
+            )
           end
         end
 

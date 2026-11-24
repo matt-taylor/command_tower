@@ -83,6 +83,9 @@ CommandTower.config.registry.audit.set_enabled!(:login_failed, true)
 | `session_created` | yes | yes |
 | `session_cleared` | no | yes |
 | `login_failed` | no | yes |
+| `messaging_inbox_item_viewed` | yes | yes |
+
+`messaging_inbox_item_viewed` is emitted by `Workflows::Messaging::Inbox::OpenWorkflow` once per first view of an inbox item, for every notification type (metadata: `inbox_item_id`, `communication_id`; retention `ninety_days`, not in account history). A repeat open, bulk read/unread, `Show`, and `Contract::Inbox` emit nothing. An impersonated open returns the detail but neither marks the item viewed nor audits.
 
 Sensitive-field / user-history / retention stay on the **registry** for emit-time policy. At INSERT the persistence subscriber copies the **smallest historical snapshot**: `user_history`, `sensitive_fields`, and `retention`. Later registry changes must not unmask historical PII. Read APIs treat a change key as sensitive if it is in the **union** of the row snapshot and the current definition (current may be more restrictive; it cannot unmask). Account-history eligibility is **only** the snapshot `user_history` column. The snapshot does not include `enabled`, `allowed_changes`, or owner. There is no `visibility` column. Retention is stored and **not enforced** as a delete/filter yet.
 

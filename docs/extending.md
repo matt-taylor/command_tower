@@ -84,6 +84,8 @@ Product business events own **host** workflows that call:
 - `CommandTower::Services::Messaging::Communications::Produce`
 - `CommandTower::Services::Messaging::Communications::ProduceMany`
 
+`CommandTower::Messaging::Contract::Inbox` mutation (`mark_viewed_for_communication`) emits no audit and is called only from a workflow that owns the audit decision.
+
 Do not create one Messaging workflow per message type. Do not call the messaging handoff/execution pipeline directly. Summary: [messaging_integration_guide.md](messaging_integration_guide.md).
 
 ## Blank-host checklist
