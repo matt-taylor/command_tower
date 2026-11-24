@@ -64,7 +64,8 @@ module CommandTower
           end
 
           def time_text(node)
-            TimeFormatter.call(at: node.at, zone: node.zone, format: node.format, label: node.label)
+            TimeFormatter.call(at: node.at, zone: node.zone, format: node.format, label: node.label,
+                               user_zone: @user_zone)
           end
 
           def spacer_row(columns)

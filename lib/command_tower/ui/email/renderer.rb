@@ -24,6 +24,7 @@ module CommandTower
       #
       # Optional chrome keywords: `footer_html:` (trusted, escaped HTML),
       # `app_name:` and `preheader:` (plain text), passed to {Layout}.
+      # `user_zone:` (default `config.ui.default_zone`) is the zone `zone: "user"` times render in.
       class Renderer
         Output = Data.define(:html, :text)
 
@@ -49,11 +50,12 @@ module CommandTower
         include TextNodes
         include InlineNodes
 
-        def self.call(document, palette:, origin:, **chrome)
-          new(palette:, origin:).render_document(document, **chrome.assert_valid_keys(*CHROME_KEYS))
+        def self.call(document, palette:, origin:, user_zone: CommandTower.config.ui.default_zone, **chrome)
+          new(palette:, origin:, user_zone:).render_document(document, **chrome.assert_valid_keys(*CHROME_KEYS))
         end
 
-        def initialize(palette:, origin:)
+        def initialize(palette:, origin:, user_zone: CommandTower.config.ui.default_zone)
+          @user_zone = user_zone
           @palette = Styles.validate_palette!(palette)
           valid_origin = origin.is_a?(String) && ORIGIN_FORMAT.match?(origin)
           raise InvalidTokenError, "origin must be an http(s) origin" unless valid_origin
@@ -64,7 +66,7 @@ module CommandTower
         def render_document(document, preheader: nil, **chrome)
           reject_code!(document.root, "root")
           document.validate!
-          text = TextDerivation.call(document.root)
+          text = TextDerivation.call(document.root, user_zone: @user_zone)
           preheader ||= text.gsub(/\s+/, " ").strip.truncate(PREHEADER_LIMIT)
           html = Layout.call(body_html: render(document.root).to_str, palette: @palette, preheader:, **chrome)
           Output.new(html:, text:)

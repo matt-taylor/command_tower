@@ -20,6 +20,8 @@ module CommandTower
         TYPE = "time"
         FORMAT = %w[short long date time countdown].freeze
         LABEL = %w[auto always never].freeze
+        # `zone: "user"` (or :user) means the recipient's zone, resolved at render time.
+        USER_ZONE = "user"
         UTC_ISO8601 = /\A\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z\z/
 
         field :at, InstantAtType.new
@@ -48,6 +50,7 @@ module CommandTower
 
         def zone_is_known
           return errors.add(:zone, :blank) if zone.blank?
+          return if zone == USER_ZONE
 
           TZInfo::Timezone.get(zone)
         rescue TZInfo::InvalidTimezoneIdentifier

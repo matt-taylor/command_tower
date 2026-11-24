@@ -93,6 +93,27 @@ Validation errors (`InvalidDocumentError#details`) carry node paths and codes on
 
 On the server the zone label is always shown for every format except `date`, unless `label: :never`. The label comes from `ZoneAbbreviation` and the `zoneAbbreviations` / `ambiguousAbbreviations` / `tzdataVersion` data in the token mapping. Regenerate it inside Docker with the engine task `app:command_tower:ui:zone_abbreviations` (`YEAR=` pins the generation year).
 
+## User zone
+
+A `time` node, `TimeFormatter`, `TextDerivation` and `Email::Renderer` accept `zone: :user` (wire value `"user"`). The server resolves it to the `user_zone:` keyword, which defaults to `config.ui.default_zone`; the app resolves it to the device zone. A `:time` fact node without a zone renders in the render zone.
+
+## Message profile
+
+`Document#validate!(profile: :message)` adds one rule to the default checks: the document has exactly one `facts` node. The default profile is unchanged.
+
+## Redaction
+
+`UI::Redaction.call(document, impersonating:)` returns a new document in which every `code` node becomes a `text` node reading "Open the app to check in" (variant `body`, `textTone: secondary`, label dropped), so the code value never reaches the serialised document. Only `impersonating: false` skips it; any other value redacts.
+
+## Required facts
+
+`UI::RequiredFacts::Verdict.call(texts:, metadata:, required_facts:, render_zone:)` is a pure check for specs and the gallery (never the send path). It returns `[{ channel:, fact_key:, passed: }]`, one row per text and required fact.
+
+- `texts` maps channel to rendered text. Callers leave out `headline` and `pushover_title`.
+- Each required fact is a hash: `key:`, `matcher:` (`:text`, `:time` or a host matcher), `zone:` (metadata key holding an IANA zone, or `:user`) and `optional:`. An optional fact with no metadata value yields no rows.
+- `:text` passes when the metadata value is a substring of the text. `:time` passes when the `:time`-preset rendering (for example "6:00 AM PT") in the fact's zone is a substring; `:user` and a missing zone use `render_zone`.
+- Host matcher protocol: any object responding to `call(text:, metadata:, t:)` and returning a Boolean. `t` is `t.call(at, zone:, format: :short, label: :auto)`, backed by `TimeFormatter` with `render_zone` as the user zone.
+
 ## Limits
 
 `CommandTower::UI::Limits`, mirrored by `spec/fixtures/ui/wire_hardening.json` for the frontend normalizer:
