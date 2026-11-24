@@ -78,6 +78,7 @@ CommandTower.config.registry.audit.set_enabled!(:login_failed, true)
 | `phone_cleared` | yes | no |
 | `phone_verified` | yes | no |
 | `announcement_produced` | yes | no |
+| `messaging_gallery_test_sent` | yes | no |
 | `impersonation_started` | yes | no |
 | `impersonation_ended` | yes | no |
 | `session_created` | yes | yes |
@@ -86,6 +87,8 @@ CommandTower.config.registry.audit.set_enabled!(:login_failed, true)
 | `messaging_inbox_item_viewed` | yes | yes |
 
 `messaging_inbox_item_viewed` is emitted by `Workflows::Messaging::Inbox::OpenWorkflow` once per first view of an inbox item, for every notification type (metadata: `inbox_item_id`, `communication_id`; retention `ninety_days`, not in account history). A repeat open, bulk read/unread, `Show`, and `Contract::Inbox` emit nothing. An impersonated open returns the detail but neither marks the item viewed nor audits.
+
+`messaging_gallery_test_sent` is emitted by `Workflows::Admin::Messaging::Gallery::TestSendWorkflow` for each accepted gallery test send (affected user: the actor; metadata: `actor_id`, `notification_type_key`, `fixture`, never the address; retention `one_year`, not in account history).
 
 Sensitive-field / user-history / retention stay on the **registry** for emit-time policy. At INSERT the persistence subscriber copies the **smallest historical snapshot**: `user_history`, `sensitive_fields`, and `retention`. Later registry changes must not unmask historical PII. Read APIs treat a change key as sensitive if it is in the **union** of the row snapshot and the current definition (current may be more restrictive; it cannot unmask). Account-history eligibility is **only** the snapshot `user_history` column. The snapshot does not include `enabled`, `allowed_changes`, or owner. There is no `visibility` column. Retention is stored and **not enforced** as a delete/filter yet.
 

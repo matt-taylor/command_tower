@@ -216,6 +216,18 @@ module CommandTower
               affected_user_required: true,
               global_visible_in_host_scope: true
             },
+            messaging_gallery_test_sent: {
+              label: "Gallery test message sent",
+              tags: %w[messaging gallery admin],
+              enabled: true,
+              enablement_configurable: false,
+              user_history: false,
+              sensitive_fields: [],
+              allowed_changes: [],
+              retention: :one_year,
+              subject_required: false,
+              affected_user_required: true
+            },
             session_created: {
               label: "Session created",
               tags: %w[authentication session security],

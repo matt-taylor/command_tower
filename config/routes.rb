@@ -142,6 +142,7 @@ CommandTower::Engine.routes.draw do
       post "announcements", to: "announcements#create"
       get "gallery", to: "gallery#index"
       get "gallery/:notification_type_key", to: "gallery#show"
+      post "gallery/:notification_type_key/test-send", to: "gallery_test_sends#create"
     end
   end
 end

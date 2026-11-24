@@ -15,11 +15,12 @@ module CommandTower
           module_function
 
           # @param context [Messaging::Definitions::RenderContext] with slots resolved
+          # @param footer_notice [String, nil] a line above the compliance footer (test send)
           # @return [Hash] `subject`, `html`, `text`, `used_fallback`
-          def call(definition:, context:)
+          def call(definition:, context:, footer_notice: nil)
             output = ChannelFailed.guard("email") do
               CommandTower::Messaging::Rendering::DefinedEmailRenderer.render(
-                communication: subject_for(context), definition:
+                communication: subject_for(context), definition:, footer_notice:
               )
             end
             { subject: (context.slots[:subject] || context.slots[:headline]).to_s, html: output.html,

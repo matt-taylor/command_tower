@@ -639,7 +639,21 @@ Previews every channel of each notification type that declares a `MessageDefinit
 
 **Fixtures.** Example payloads for both endpoints, the inbox documents and the email parts are committed under `spec/fixtures/messaging/gallery/`, `spec/fixtures/ui/documents/` and `spec/fixtures/ui/email/`. Regenerate them from the dummy app with `make rake TASK=app:command_tower:messaging:fixtures`; `spec/lib/command_tower/messaging/messaging_fixtures_spec.rb` fails when a committed file differs from a fresh render. Files are sorted, pretty-printed JSON, so consumers can copy them byte for byte.
 
-Engine admin HTTP includes workspace manifest, announcements, the message gallery, audit events, Users list/show, and impersonation start. Users admin also includes identity mutations (`PATCH /admin/users/:id/{name,username,email,email-validation}`) and role assignment (`PATCH /admin/users/:id/roles`); see [Admin Users](#admin-users).
+### `POST /admin/messaging/gallery/:notification_type_key/test-send`
+
+| | |
+|--|--|
+| **Auth** | authenticate + authorize (RBAC entity `admin_messaging_gallery_test_send`; principal capability of the same id). Separate from `admin_messaging_gallery`: a host grants it explicitly. |
+| **Body / params** | `fixture`, `zone` (both optional, as for the preview) |
+| **Success** | **202** `{ notificationTypeKey, sent: true }`, `Cache-Control: no-store` |
+| **Errors** | `401`; `403` without the grant; `403` `gallery_test_send_impersonating` while impersonating (or when the actor is not the effective user), checked before authorization and instead of the generic admin `418`; `404` unknown type, no definition or unknown `fixture`; `422` invalid `zone`, a failing composer, or a type that does not allow email; `429` `gallery_test_send_rate_limited` with `details.retry_after_seconds`; `500` when the rate-limit store (Redis) is unavailable (fails closed, nothing is sent); `502` `gallery_test_send_failed` with `details.error_code` when the email adapter refuses |
+| **Spec** | `spec/requests/command_tower/admin/messaging/gallery_test_send_spec.rb` |
+
+Sends the email channel of one declared fixture to the **real actor's own address** (from the user record, never from the request), through the same adapter boundary as the sender (`SelectAdapter`: the fake adapter when `config.messaging.allow_fake_adapter` is on, else the configured email adapter). Email only. It writes no `Communication`. The subject is the preview subject unchanged; a "Test message" line sits above the compliance footer; no `List-Unsubscribe*` headers are added.
+
+Rate limit, keyed on the real actor: 5 an hour and 20 a day. A rejected call returns `429` and sends nothing. Each accepted send audits `messaging_gallery_test_sent` (retention `one_year`; metadata `actor_id`, `notification_type_key`, `fixture`; never the address). See [Audit](audit.md).
+
+Engine admin HTTP includes workspace manifest, announcements, the message gallery (preview and test send), audit events, Users list/show, and impersonation start. Users admin also includes identity mutations (`PATCH /admin/users/:id/{name,username,email,email-validation}`) and role assignment (`PATCH /admin/users/:id/roles`); see [Admin Users](#admin-users).
 
 ---
 

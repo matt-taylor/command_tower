@@ -16,11 +16,14 @@ module CommandTower
         # - A composer that raises fails the preview with the channel and error class only; metadata
         #   values never reach errors.
         #
+        # `footer_notice` (optional) is a line above the email's compliance footer; only the test send sets it.
+        #
         # Output: `preview` (snake_case Hash; the serializer shapes the wire form).
         class RenderGalleryPreview < CommandTower::Services::ApplicationService
           validate :notification_type_key, is_a: String, required: true
           validate :fixture, is_a: String, required: false
           validate :zone, is_a: String, required: false
+          validate :footer_notice, is_a: String, required: false
 
           def call
             target = resolve_target
@@ -29,7 +32,7 @@ module CommandTower
             render_zone = render_zone_for(target[:definition])
             return invalid_zone unless TZInfo::Timezone.all_identifiers.include?(render_zone)
 
-            context.preview = PreviewBuilder.call(**target, render_zone:)
+            context.preview = PreviewBuilder.call(**target, render_zone:, footer_notice:)
           rescue ChannelFailed => e
             fail_channel(e)
           end

@@ -17,13 +17,16 @@ module CommandTower
       # When the fallback also raises, the error propagates and `ChannelRenderer` uses the generic
       # ERB templates.
       class DefinedEmailRenderer
-        def self.render(communication:, definition:)
-          new(communication:, definition:).render
+        # @param footer_notice [String, nil] a plain line placed above the compliance footer (the
+        #   gallery test send uses it to mark the message as a test)
+        def self.render(communication:, definition:, footer_notice: nil)
+          new(communication:, definition:, footer_notice:).render
         end
 
-        def initialize(communication:, definition:)
+        def initialize(communication:, definition:, footer_notice: nil)
           @communication = communication
           @definition = definition
+          @footer_notice = footer_notice
         end
 
         # @return [CommandTower::UI::Email::Renderer::Output]
@@ -74,7 +77,7 @@ module CommandTower
 
         # The compliance footer is added here so the composed and the fallback email carry it alike.
         def present(document)
-          footer = compliance_footer
+          footer = footer_with_notice
           output = CommandTower::UI::Email::Renderer.call(
             document,
             palette: CommandTower::EmailTheme::Palette.resolve,
@@ -84,6 +87,17 @@ module CommandTower
             footer_html: footer.html
           )
           CommandTower::UI::Email::Renderer::Output.new(html: output.html, text: "#{output.text}\n\n#{footer.text}")
+        end
+
+        # The compliance footer, with the optional notice line above it.
+        def footer_with_notice
+          footer = compliance_footer
+          return footer if @footer_notice.blank?
+
+          ComplianceFooter::Output.new(
+            html: "#{ERB::Util.html_escape(@footer_notice)}<br>\n#{footer.html}",
+            text: "#{@footer_notice}\n#{footer.text}"
+          )
         end
 
         def compliance_footer

@@ -12,11 +12,12 @@ module CommandTower
             new(**).call
           end
 
-          def initialize(declaration:, definition:, fixture:, render_zone:)
+          def initialize(declaration:, definition:, fixture:, render_zone:, footer_notice: nil)
             @declaration = declaration
             @definition = definition
             @fixture = fixture
             @render_zone = render_zone
+            @footer_notice = footer_notice
           end
 
           def call
@@ -29,7 +30,7 @@ module CommandTower
 
           private
 
-          attr_reader :declaration, :definition, :fixture, :render_zone
+          attr_reader :declaration, :definition, :fixture, :render_zone, :footer_notice
 
           def instance
             @instance ||= definition.new
@@ -69,7 +70,7 @@ module CommandTower
           end
 
           def email
-            PreviewEmail.call(definition:, context:) if email_allowed?
+            PreviewEmail.call(definition:, context:, footer_notice:) if email_allowed?
           end
 
           def channels

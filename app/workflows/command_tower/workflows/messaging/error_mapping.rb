@@ -17,6 +17,12 @@ module CommandTower
             :conflict
           when CommandTower::Errors::NotFoundError
             :not_found
+          when CommandTower::Errors::Messaging::GalleryTestSendImpersonatingError
+            :forbidden
+          when CommandTower::Errors::Messaging::GalleryTestSendRateLimitError
+            :too_many_requests
+          when CommandTower::Errors::Messaging::GalleryTestSendFailedError
+            :bad_gateway
           else
             :internal_server_error
           end
