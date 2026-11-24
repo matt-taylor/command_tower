@@ -174,6 +174,13 @@ RSpec.describe CommandTower::UI::Email::Renderer, :aggregate_failures do
       expect(html).to include('href="https://app.example.com/classes?x=1"', 'href="https://app.example.com/book"')
       expect(html).to include('href="mailto:me@example.com"')
     end
+
+    it "writes label: target lines for links and buttons in the text part (G13)" do
+      expect(output.text).to eq(
+        "See classes\nclasses: https://app.example.com/classes?x=1\n" \
+        "Go: https://app.example.com/book\nMail: mailto:me@example.com"
+      )
+    end
   end
 
   context "with a component" do

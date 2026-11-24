@@ -139,7 +139,21 @@ Paths and links are hardened by `Hardening` (shared cases in `wire_hardening.jso
 - `code` nodes raise `InvalidDocumentError` (a check-in code never reaches an email).
 - Conversions: `component` becomes its fallback tree; internal `navigate` becomes `origin + path`; `countdown` becomes `short`; icons are dropped; a ghost button becomes an underlined link; image width and height derive from `aspect`.
 - Text colour comes from `textTone`.
-- **Set 2 needs an `EmailTheme` adapter.** The renderer takes a `palette:` from the caller; nothing adapts `CommandTower::EmailTheme::Resolver` output into that palette yet. A second palette set (Set 2) needs that adapter before it can be used.
+- The caller supplies `palette:`. Emails for MessageDefinition-backed types resolve it with `CommandTower::EmailTheme::Palette.resolve` (see "Email token file").
+
+### Email token file
+
+The 13-key palette comes from the first source that exists:
+
+1. The host token file `config/ui_tokens.json` under `Rails.root`.
+2. A customised `config.email_theme` (the 9 legacy keys map onto palette keys; `muted`, `success`, `warning` and `danger` come from the CT default).
+3. CT's default file, `lib/command_tower/email_theme/default_ui_tokens.json`.
+
+File format: `{ "version": 1, "palette": { "<token>": "#RRGGBB", ... } }`. `version` must be `1`. `palette` must carry every key in `UI::Email::Styles::PALETTE_KEYS` (13 keys) as `#RRGGBB`; extra tokens are ignored. The frontend export bin writes the file (`ct-export-email-tokens`).
+
+At boot, an invalid host file raises (the message names keys, never values). A missing host file logs one warning and email falls back to sources 2 and 3. When the host file exists, `EmailTheme::Resolver` derives the 9 legacy keys from it.
+
+Mailer previews for defined types: `/rails/mailers/message_definition/sample_email`, `sample_email_fallback` (composer failure, CT fallback document) and `sample_email_user_zone` (rails_app dummy app).
 
 ## Legacy mapping
 

@@ -49,7 +49,7 @@ class ClassCanceled < CommandTower::Messaging::MessageDefinition
     end
   end
 
-  def slots(metadata:, t:, **)
+  def slots(metadata:, t:, **) # rubocop:disable Naming/MethodParameterName -- `t:` is the formatter keyword
     name = metadata["class_name"]
     when_text = t.call(metadata["starts_at"], zone: metadata["studio_zone"], format: :short)
     {

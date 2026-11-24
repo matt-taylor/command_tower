@@ -35,7 +35,7 @@ class MembershipRenewal < CommandTower::Messaging::MessageDefinition
     end
   end
 
-  def slots(metadata:, t:, **)
+  def slots(metadata:, t:, **) # rubocop:disable Naming/MethodParameterName -- `t:` is the formatter keyword
     when_text = t.call(metadata["renews_at"], zone: :user, format: :short)
     {
       headline: metadata["headline"].presence || "Your membership renews soon",

@@ -23,6 +23,7 @@ module CommandTower
         CommandTower.config.class_composer_assign_defaults!(children: true)
         CommandTower::CredentialResolution::SmtpActionMailerBridge.apply!
         CommandTower.config.registry.client_compatibility.apply_env_overlay!
+        CommandTower::EmailTheme::TokenFile.validate_host_file!
 
         unless Rails.env.test?
           CommandTower.config.impersonation.validate!

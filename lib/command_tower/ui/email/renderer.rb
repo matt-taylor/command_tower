@@ -66,9 +66,10 @@ module CommandTower
         def render_document(document, preheader: nil, **chrome)
           reject_code!(document.root, "root")
           document.validate!
-          text = TextDerivation.call(document.root, user_zone: @user_zone)
-          preheader ||= text.gsub(/\s+/, " ").strip.truncate(PREHEADER_LIMIT)
+          derived = TextDerivation.call(document.root, user_zone: @user_zone)
+          preheader ||= derived.gsub(/\s+/, " ").strip.truncate(PREHEADER_LIMIT)
           html = Layout.call(body_html: render(document.root).to_str, palette: @palette, preheader:, **chrome)
+          text = TextPart.call(document.root, origin: @origin, user_zone: @user_zone)
           Output.new(html:, text:)
         end
 
