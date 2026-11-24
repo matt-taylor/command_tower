@@ -394,7 +394,10 @@ end
 # string, so registration does not depend on autoload order. Sealing runs after initialization
 # because it constantizes them. `promotional_announcement` is deliberately undefined (no
 # `message:`); slice 8.0 attaches AnnouncementDefinition to it.
-Rails.application.config.after_initialize do
+#
+# `to_prepare` (not `after_initialize`) because the registry is autoloaded: a development code
+# reload builds a fresh empty registry, and only `to_prepare` runs again to refill it.
+Rails.application.config.to_prepare do
   types = CommandTower::Messaging::NotificationTypes
   next if types::Registry.instance.sealed?
 
