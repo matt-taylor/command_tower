@@ -60,7 +60,7 @@ RSpec.describe "CommandTower Admin Workspace architecture" do
     expect(platform_tools.inspect).not_to include("pickem")
     expect(platform_tools.inspect).not_to include("wager")
     expect(platform_tools.inspect).not_to include("league")
-    expect(platform_tools.keys).to contain_exactly(:users, :audit, :messaging)
+    expect(platform_tools.keys).to contain_exactly(:users, :audit, :messaging, :messaging_gallery)
   end
 
   it "does not ship an accumulating CommandTower operational admin role" do

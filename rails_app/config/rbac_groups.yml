@@ -38,6 +38,15 @@ groups:
       - principal_capabilities
       - admin_workspace
       - admin_messaging_announcements
+  messaging_gallery_operator:
+    description: |
+      Dummy host role that maps the message gallery controllers into RBAC. RBAC fails closed for a
+      controller no role grants, so without a host grant even owner gets 403 there.
+    entities:
+      - principal_capabilities
+      - admin_workspace
+      - admin_messaging_gallery
+      - admin_messaging_gallery_test_send
   operations_admin:
     description: Dummy host role with all CT Admin Workspace capabilities
     entities:

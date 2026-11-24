@@ -73,6 +73,15 @@ module CommandTower
           Output.new(html:, text:)
         end
 
+        # The document's body tables alone (no layout chrome), for previews that show a fragment.
+        # Same code rejection and validation as {#render_document}.
+        # @return [String]
+        def render_body(document)
+          reject_code!(document.root, "root")
+          document.validate!
+          render(document.root).to_str
+        end
+
         private
 
         def reject_code!(object, path)

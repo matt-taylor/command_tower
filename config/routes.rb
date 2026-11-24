@@ -140,6 +140,8 @@ CommandTower::Engine.routes.draw do
 
     namespace :messaging do
       post "announcements", to: "announcements#create"
+      get "gallery", to: "gallery#index"
+      get "gallery/:notification_type_key", to: "gallery#show"
     end
   end
 end

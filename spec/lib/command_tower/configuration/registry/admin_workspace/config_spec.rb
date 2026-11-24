@@ -33,6 +33,17 @@ RSpec.describe CommandTower::Configuration::Registry::AdminWorkspace::Config do
           required_entity: "admin_messaging_announcements"
         )
       end
+
+      it "registers the message gallery tool" do
+        expect(CommandTower.config.registry.admin_workspace.fetch(:messaging_gallery)).to have_attributes(
+          owner: :command_tower,
+          label: "Message gallery",
+          description: "Preview every channel for each message type.",
+          route: "/admin/messaging/gallery",
+          required_entity: "admin_messaging_gallery",
+          icon: "layout-template"
+        )
+      end
     end
 
     context "when a host tool is registered" do

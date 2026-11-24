@@ -1,0 +1,61 @@
+{
+  "catalog": 2,
+  "root": {
+    "children": [
+      {
+        "spans": [
+          {
+            "text": "Your membership renews soon",
+            "type": "text"
+          }
+        ],
+        "textTone": "primary",
+        "type": "text",
+        "variant": "heading_m"
+      },
+      {
+        "children": [
+          {
+            "items": [
+              {
+                "label": "Plan",
+                "value": "Unlimited Monthly"
+              },
+              {
+                "label": "Renews",
+                "value": {
+                  "at": "2026-12-15T17:00:00Z",
+                  "format": "short",
+                  "label": "auto",
+                  "textTone": "primary",
+                  "type": "time",
+                  "variant": "body",
+                  "zone": "user"
+                }
+              }
+            ],
+            "type": "key_value"
+          }
+        ],
+        "type": "facts"
+      },
+      {
+        "action": {
+          "destination": {
+            "kind": "internal",
+            "path": "/account/membership"
+          },
+          "type": "navigate"
+        },
+        "label": "Open in RailsApp",
+        "type": "button",
+        "variant": "primary"
+      }
+    ],
+    "padding": "md",
+    "surface": "raised",
+    "type": "card"
+  },
+  "schema": "ui_document",
+  "textFallback": "Your membership renews soon\nPlan: Unlimited Monthly\nRenews: Tue, Dec 15, 12:00 PM ET\nOpen in RailsApp"
+}

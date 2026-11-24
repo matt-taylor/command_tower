@@ -190,7 +190,7 @@ Does **not** authorize `admin_impersonation` on the effective user. Shared front
 | **Errors** | `401`; `403`; `412` `email_verification_required` when email verification gate applies |
 | **Spec** | `spec/requests/command_tower/auth/principal_capabilities_spec.rb` |
 
-Projection is effective entity grants ∩ curated `config.registry.principal_capabilities` (never role/group names). CommandTower seeds `admin_workspace`, `admin_users`, `admin_users_update`, `admin_rbac_assignments`, `admin_audit_events`, `admin_messaging_announcements`, `admin_impersonation`, `me_audit_events`. Hosts may register additive host-owned ids. Distinct from `/me` capabilities and from `GET /admin/workspace` (tool manifest). See [Principal capabilities](principal_capabilities.md).
+Projection is effective entity grants ∩ curated `config.registry.principal_capabilities` (never role/group names). CommandTower seeds `admin_workspace`, `admin_users`, `admin_users_update`, `admin_rbac_assignments`, `admin_audit_events`, `admin_messaging_announcements`, `admin_messaging_gallery`, `admin_messaging_gallery_test_send`, `admin_impersonation`, `me_audit_events`. Hosts may register additive host-owned ids. Distinct from `/me` capabilities and from `GET /admin/workspace` (tool manifest). See [Principal capabilities](principal_capabilities.md).
 
 ### `GET /auth/email/availability`
 
@@ -622,7 +622,24 @@ Expired product request: overlay present + invalid row → **401** `impersonatio
 
 **Sync response:** `mode`, `requested`, `campaignIdentity`, `accepted`, `failed`, `skipped`, `failures: [{ userId, errorCode }]`.
 
-Engine admin HTTP includes workspace manifest, announcements, audit events, Users list/show, and impersonation start. Users admin also includes identity mutations (`PATCH /admin/users/:id/{name,username,email,email-validation}`) and role assignment (`PATCH /admin/users/:id/roles`); see [Admin Users](#admin-users).
+### `GET /admin/messaging/gallery` and `GET /admin/messaging/gallery/:notification_type_key`
+
+| | |
+|--|--|
+| **Auth** | authenticate + authorize (RBAC entity `admin_messaging_gallery`; principal capability of the same id) |
+| **Success** | **200**, `Cache-Control: no-store` |
+| **Errors** | `401`; `403` without the grant; `404` unknown type, type without a message definition, or unknown `fixture`; `422` invalid `zone` or a composer that fails (the failure names the channel and error class only) |
+| **Spec** | `spec/requests/command_tower/admin/messaging/gallery_spec.rb` |
+
+Previews every channel of each notification type that declares a `MessageDefinition`, from the definition's declared fixtures. It reads no `Communication` and no user data.
+
+**List** returns one item per defined type: `notificationTypeKey`, `label`, `definition`, `allowedChannels`, `promotional`, `fixtures: [{ name, metadataVersion }]`.
+
+**Show** query params (both optional): `fixture` (a declared fixture name, default the first) and `zone` (any valid TZInfo identifier, default the definition's `default_zone`). It returns `notificationTypeKey`, `fixture`, `metadataVersion`, `renderZone`, `slots`, `channels` (`push`, `sms`, `pushover`, `inbox`, `email`; a channel the type does not allow is `null`, `inbox` included), `facts` (`app`, `emailHtml`) and `checks`.
+
+**Fixtures.** Example payloads for both endpoints, the inbox documents and the email parts are committed under `spec/fixtures/messaging/gallery/`, `spec/fixtures/ui/documents/` and `spec/fixtures/ui/email/`. Regenerate them from the dummy app with `make rake TASK=app:command_tower:messaging:fixtures`; `spec/lib/command_tower/messaging/messaging_fixtures_spec.rb` fails when a committed file differs from a fresh render. Files are sorted, pretty-printed JSON, so consumers can copy them byte for byte.
+
+Engine admin HTTP includes workspace manifest, announcements, the message gallery, audit events, Users list/show, and impersonation start. Users admin also includes identity mutations (`PATCH /admin/users/:id/{name,username,email,email-validation}`) and role assignment (`PATCH /admin/users/:id/roles`); see [Admin Users](#admin-users).
 
 ---
 

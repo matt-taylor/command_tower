@@ -56,6 +56,18 @@ RSpec.describe CommandTower::Authorization do
       it "marks admin_messaging_announcements as CommandTower-owned" do
         expect(described_class::Entity.entities["admin_messaging_announcements"].source).to eq(:command_tower)
       end
+
+      it "marks both message gallery entities as CommandTower-owned" do
+        expect(described_class::Entity.entities["admin_messaging_gallery"].source).to eq(:command_tower)
+        expect(described_class::Entity.entities["admin_messaging_gallery_test_send"].source).to eq(:command_tower)
+      end
+
+      it "grants the message gallery entities to owner only" do
+        expect(described_class::Role.roles.keys).to eq(["owner"])
+        expect(described_class::Entity.entities.keys).to include(
+          "admin_messaging_gallery", "admin_messaging_gallery_test_send"
+        )
+      end
     end
 
     context "when checking retired legacy admin roles" do

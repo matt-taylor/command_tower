@@ -1,0 +1,86 @@
+[
+  {
+    "allowedChannels": [
+      "email",
+      "push",
+      "sms",
+      "pushover"
+    ],
+    "definition": "ClassCanceled",
+    "fixtures": [
+      {
+        "metadataVersion": 1,
+        "name": "default"
+      },
+      {
+        "metadataVersion": 1,
+        "name": "other_zone"
+      }
+    ],
+    "label": "Class canceled",
+    "notificationTypeKey": "class_canceled",
+    "promotional": false
+  },
+  {
+    "allowedChannels": [
+      "email",
+      "push"
+    ],
+    "definition": "MembershipRenewal",
+    "fixtures": [
+      {
+        "metadataVersion": 1,
+        "name": "default"
+      }
+    ],
+    "label": "Membership renewal",
+    "notificationTypeKey": "membership_renewal",
+    "promotional": false
+  },
+  {
+    "allowedChannels": [
+      "email",
+      "sms"
+    ],
+    "definition": "ClassReminder",
+    "fixtures": [
+      {
+        "metadataVersion": 1,
+        "name": "default"
+      }
+    ],
+    "label": "Class reminder",
+    "notificationTypeKey": "class_reminder",
+    "promotional": false
+  },
+  {
+    "allowedChannels": [
+      "email"
+    ],
+    "definition": "CheckInReady",
+    "fixtures": [
+      {
+        "metadataVersion": 1,
+        "name": "default"
+      }
+    ],
+    "label": "Check-in ready",
+    "notificationTypeKey": "check_in_ready",
+    "promotional": false
+  },
+  {
+    "allowedChannels": [
+      "email"
+    ],
+    "definition": "CommandTower::Messaging::AnnouncementDefinition",
+    "fixtures": [
+      {
+        "metadataVersion": 1,
+        "name": "default"
+      }
+    ],
+    "label": "Promotional announcement",
+    "notificationTypeKey": "promotional_announcement",
+    "promotional": true
+  }
+]

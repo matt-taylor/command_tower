@@ -89,7 +89,7 @@ RSpec.describe "GET /auth/principal-capabilities", :with_rbac_setup, type: :requ
     it "returns all registered projectable capabilities including host additive" do
       expect(response).to have_http_status(:ok)
       expect(response.parsed_body.dig("data", "principalCapabilities")).to eq(
-        %w[admin_audit_events admin_impersonation admin_messaging_announcements admin_rbac_assignments admin_users admin_users_update admin_workspace dummy_admin_example me_audit_events]
+        %w[admin_audit_events admin_impersonation admin_messaging_announcements admin_messaging_gallery admin_messaging_gallery_test_send admin_rbac_assignments admin_users admin_users_update admin_workspace dummy_admin_example me_audit_events]
       )
     end
   end

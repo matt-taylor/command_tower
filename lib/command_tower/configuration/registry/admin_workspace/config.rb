@@ -35,6 +35,15 @@ module CommandTower
               sort_order: 200,
               required_entity: "admin_messaging_announcements",
               icon: "megaphone"
+            },
+            messaging_gallery: {
+              label: "Message gallery",
+              description: "Preview every channel for each message type.",
+              route: "/admin/messaging/gallery",
+              group: "messaging",
+              sort_order: 210,
+              required_entity: "admin_messaging_gallery",
+              icon: "layout-template"
             }
           }.freeze
 

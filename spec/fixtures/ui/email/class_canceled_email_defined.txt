@@ -1,0 +1,7 @@
+Arms & Abs is canceled
+Class: Arms & Abs
+When: Fri, Dec 4, 6:00 AM PT
+Where: Studio B
+Open in RailsApp: http://localhost/schedule
+
+You're getting this email because Class canceled emails are turned on for your RailsApp account. Manage email preferences: http://localhost
