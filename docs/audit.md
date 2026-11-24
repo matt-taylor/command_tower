@@ -78,6 +78,7 @@ CommandTower.config.registry.audit.set_enabled!(:login_failed, true)
 | `phone_cleared` | yes | no |
 | `phone_verified` | yes | no |
 | `announcement_produced` | yes | no |
+| `messaging_unsubscribed` | yes | no |
 | `messaging_gallery_test_sent` | yes | no |
 | `impersonation_started` | yes | no |
 | `impersonation_ended` | yes | no |
@@ -87,6 +88,8 @@ CommandTower.config.registry.audit.set_enabled!(:login_failed, true)
 | `messaging_inbox_item_viewed` | yes | yes |
 
 `messaging_inbox_item_viewed` is emitted by `Workflows::Messaging::Inbox::OpenWorkflow` once per first view of an inbox item, for every notification type (metadata: `inbox_item_id`, `communication_id`; retention `ninety_days`, not in account history). A repeat open, bulk read/unread, `Show`, and `Contract::Inbox` emit nothing. An impersonated open returns the detail but neither marks the item viewed nor audits.
+
+`messaging_unsubscribed` is emitted by the one-click unsubscribe workflow when a token turns email off for a type (affected user: the token's user; change key `email_enabled`; `user_history`; retention `permanent`). See [messaging_integration_guide.md](messaging_integration_guide.md#email-compliance-defined-types).
 
 `messaging_gallery_test_sent` is emitted by `Workflows::Admin::Messaging::Gallery::TestSendWorkflow` for each accepted gallery test send (affected user: the actor; metadata: `actor_id`, `notification_type_key`, `fixture`, never the address; retention `one_year`, not in account history).
 

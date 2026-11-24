@@ -190,7 +190,7 @@ It changes only Inbox read responses for types registered with a `message:` Mess
 
 Push, SMS and Pushover for defined types are built from the slots stored at Accept (`headline`, `push_body`, `sms_body`, `pushover_title`, `pushover_message`), not from the catalog; undefined types keep the generic templates.
 
-See [api_reference.md](api_reference.md#me-inbox) and the CORS note in [bootstrap/11-auth-client-path.md](bootstrap/11-auth-client-path.md). See [api_reference.md](api_reference.md#me-inbox) and the CORS note in [bootstrap/11-auth-client-path.md](bootstrap/11-auth-client-path.md).
+See [api_reference.md](api_reference.md#me-inbox) and the CORS note in [bootstrap/11-auth-client-path.md](bootstrap/11-auth-client-path.md).
 
 ## Producer contracts
 

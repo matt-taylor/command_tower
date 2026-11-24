@@ -138,7 +138,7 @@ POST /admin/messaging/announcements
 DELETE /auth/impersonation-session
 ```
 
-Impersonation is a session overlay, not a User mutation and not an Admin Workspace tool. There is no role-assign or attribute-modify admin surface.
+Impersonation is a session overlay, not a User mutation and not an Admin Workspace tool. Admin user mutations (`PATCH /admin/users/:id/{name,username,email,email-validation,roles}`) are separate routes; impersonation does not perform them. See [Admin Users](api_reference.md#admin-users).
 
 ## Email verification gate
 
