@@ -7,7 +7,7 @@ RSpec.describe MessageDefinitionPreview, :aggregate_failures do
     expect(described_class.emails).to match_array(%w[sample_email sample_email_fallback sample_email_user_zone])
   end
 
-  described_class.emails.each do |preview|
+  %w[sample_email sample_email_fallback].each do |preview|
     describe preview do
       let(:mail) { described_class.new.public_send(preview) }
 
@@ -16,6 +16,16 @@ RSpec.describe MessageDefinitionPreview, :aggregate_failures do
         expect(mail.html_part.body.decoded).to include("<!DOCTYPE html>", "Arms &amp; Abs")
         expect(mail.text_part.body.decoded).to include("Arms & Abs")
       end
+    end
+  end
+
+  describe "sample_email_user_zone" do
+    let(:mail) { described_class.new.sample_email_user_zone }
+
+    it "renders the membership renewal time in the recipient zone" do
+      expect(mail.subject).to include("Unlimited Monthly membership renews")
+      expect(mail.html_part.body.decoded).to include("<!DOCTYPE html>", "Unlimited Monthly", "ET")
+      expect(mail.text_part.body.decoded).to include("Unlimited Monthly", "ET")
     end
   end
 

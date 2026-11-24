@@ -22,24 +22,26 @@ class MessageDefinitionPreview < ActionMailer::Preview
   # Composer failure: the CT fallback document.
   def sample_email_fallback = message(FailingComposer, zone: STUDIO_ZONE)
 
-  # Composer output for a recipient whose zone differs from the studio's (the `:auto` zone label shows).
-  def sample_email_user_zone = message(ClassCanceled, zone: USER_ZONE)
+  # A user-zone definition (`MembershipRenewal` shows times in the recipient's zone) rendered for a
+  # recipient whose zone differs from the default (the `:auto` zone label shows). `ClassCanceled` uses a
+  # fixed studio time, so the recipient zone would have no effect on it.
+  def sample_email_user_zone = message(MembershipRenewal, zone: USER_ZONE, key: "membership_renewal")
 
   private
 
-  def message(definition, zone:)
-    communication = communication_for(definition, zone:)
+  def message(definition, zone:, key: "class_canceled")
+    communication = communication_for(definition, zone:, key:)
     output = CommandTower::Messaging::Rendering::DefinedEmailRenderer.render(communication:, definition:)
     UiDocumentMailer.document_email(html: output.html, text: output.text, subject: communication.slots.fetch("subject"))
   end
 
-  def communication_for(definition, zone:)
+  def communication_for(definition, zone:, key:)
     metadata = definition.fixtures.fetch("default")
     resolution = CommandTower::Messaging::Accept::ResolveCommunicationSlots.call(
-      notification_type_key: "class_canceled", definition:, metadata:, recipient_id: nil
+      notification_type_key: key, definition:, metadata:, recipient_id: nil
     )
     CommandTower::Messaging::Communication.new(
-      id: 1, notification_type_key: "class_canceled", title: resolution.title, body: resolution.body,
+      id: 1, notification_type_key: key, title: resolution.title, body: resolution.body,
       metadata:, metadata_version: resolution.metadata_version, slots: resolution.slots, render_zone: zone
     )
   end
