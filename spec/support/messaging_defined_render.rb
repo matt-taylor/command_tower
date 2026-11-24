@@ -21,14 +21,44 @@ module MessagingDefinedRenderHelper
     )
   end
 
-  def definition_class(&)
+  def definition_class(&block)
     Class.new(CommandTower::Messaging::MessageDefinition) do
       metadata_version 1
       fixture :default, metadata: { "headline" => "Check in is open", "class_name" => "Arms", "door_code" => "000000" }
       define_method(:slots) do |metadata:, **|
         { headline: metadata["headline"], subject: "Subject", push_body: "Push", sms_body: "SMS" }
       end
-      class_eval(&)
+      class_eval(&block) if block
+    end
+  end
+
+  def origin
+    CommandTower.config.application.composed_url
+  end
+
+  # Lines captured from a stubbed `Rails.logger.warn`.
+  def log_lines
+    @log_lines ||= []
+  end
+
+  # A `facts` composer block (for `definition_class`) with a Class row.
+  def class_fact
+    proc do
+      define_method(:facts) do |builder, metadata:|
+        builder.facts { |f| f.key_value { |rows| rows.item "Class", metadata["class_name"] } }
+      end
+    end
+  end
+
+  # A `facts` composer block with a Class row and a `code` node (forces the email fallback).
+  def class_and_code_fact
+    proc do
+      define_method(:facts) do |builder, metadata:|
+        builder.facts do |f|
+          f.key_value { |rows| rows.item "Class", metadata["class_name"] }
+          f.code value: metadata["door_code"], label: "Door code", format: :text
+        end
+      end
     end
   end
 

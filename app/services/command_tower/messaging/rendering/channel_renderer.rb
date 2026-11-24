@@ -65,11 +65,46 @@ module CommandTower
         private
 
         def render_email(address)
+          definition = email_definition
+          return render_generic_email(address) unless definition
+
+          render_defined_email(address, definition)
+        end
+
+        def render_generic_email(address, subject: @communication.title.to_s)
           RenderedPayload.build(
             recipient_address: address,
-            subject: @communication.title.to_s,
+            subject:,
             text_body: render_template("email.text.erb"),
             html_body: render_template("email.html.erb"),
+          )
+        end
+
+        # Defined types: subject from the stored `subject` slot, document through the email
+        # composer, then the CT fallback document, then the generic ERBs (design D20).
+        def render_defined_email(address, definition)
+          subject = slot("subject") || @communication.title.to_s
+          output = DefinedEmailRenderer.render(communication: @communication, definition:)
+          RenderedPayload.build(recipient_address: address, subject:, text_body: output.text, html_body: output.html)
+        rescue StandardError => error
+          log_erb_fallback(error)
+          render_generic_email(address, subject:)
+        end
+
+        # The declared MessageDefinition class for a defined communication, else nil.
+        def email_definition
+          return nil unless @communication.message_definition_backed?
+
+          name = NotificationTypes.lookup(@communication.notification_type_key).message
+          name.presence&.constantize
+        rescue StandardError
+          nil
+        end
+
+        def log_erb_fallback(error)
+          Rails.logger.warn(
+            "[command_tower] email_erb_fallback communication_id=#{@communication.id} " \
+            "notification_type_key=#{@communication.notification_type_key} error_class=#{error.class.name}"
           )
         end
 
