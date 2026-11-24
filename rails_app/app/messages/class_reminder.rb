@@ -42,6 +42,7 @@ class ClassReminder < CommandTower::Messaging::MessageDefinition
     {
       headline: metadata["headline"].presence || "#{metadata['class_name']} starts soon",
       subject: "Reminder: #{metadata['class_name']} at #{when_text}",
+      push_body: "#{metadata['class_name']} starts #{when_text}.",
       # No start time here on purpose: this SMS fails `starts_at`.
       sms_body: "Reminder: #{metadata['class_name']} is coming up."
     }

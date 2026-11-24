@@ -100,7 +100,7 @@ The Me Inbox detail `content` field (`inbox_document_v1`, see [api_reference.md]
 |---------|----------|
 | List | `GET /me/inbox?limit=&offset=&scope=` — conversation/entry rows, meta `{ limit, offset, totalCount }` |
 | Conversation | `GET /me/inbox/conversation?key=&scope=` (+ one of `around`/`before`/`after`, `limit`) |
-| Detail / open / archive / delete | `/me/inbox/:id` (+ `open`, `archive`). Open marks viewed on first non-impersonated view and audits once (`messaging_inbox_item_viewed`) |
+| Detail / open / archive / delete | `/me/inbox/:id` (+ `open`, `archive`). Open marks viewed on first non-impersonated view and audits once (`messaging_inbox_item_viewed`). For defined types while impersonating (or unknown types), show, open and conversation return `metadata: null` and `content` with `code` nodes replaced (`UI::Redaction`) |
 | Bulk | `POST /me/inbox/bulk/{read,unread,archive,restore,delete}` with body `ids` |
 | Unread | `GET /me/inbox/unread-count` — `{ count, badgeCount }` |
 

@@ -351,6 +351,8 @@ Pagination for list: query `limit` (default **50**, max **100**), `offset` (defa
 | `POST` | `/me/inbox/bulk/restore` | same |
 | `POST` | `/me/inbox/bulk/delete` | same |
 
+For a defined notification type while impersonating (or when the type is unknown), `GET /me/inbox/:id`, `POST /me/inbox/:id/open` and `GET /me/inbox/conversation` return `metadata: null`, and `content` has its `code` nodes replaced (`UI::Redaction`).
+
 **`content` (detail only, response-only — `inbox_document_v1`):** rendered at read from the item's `Communication`, never persisted; absent from list items. Shape: `{ schema: "inbox_document_v1", blocks: [...] }`. Allowlisted block types:
 
 | Block | Fields | Notes |

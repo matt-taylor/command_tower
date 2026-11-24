@@ -39,7 +39,7 @@
   },
   {
     "allowedChannels": [
-      "email",
+      "push",
       "sms"
     ],
     "definition": "ClassReminder",

@@ -176,16 +176,16 @@ module CommandTower
             }
           end
 
-          # Raw metadata of a type with a MessageDefinition can hold the `code` value, which the
-          # document redacts when impersonating (or unknown). The raw hash must not undo that, so it
-          # is withheld for those reads. Undefined types keep their metadata unchanged.
+          # Raw metadata of a definition-backed row can hold the `code` value, which the document
+          # redacts when impersonating (or unknown). The raw hash must not undo that, so it is
+          # withheld for those reads. Decided from the stored row only (no registry lookup), and
+          # fails closed: any error withholds the metadata.
           def detail_metadata(communication, impersonating:)
             return communication.metadata if impersonating == false
 
-            defined = CommandTower::Messaging::NotificationTypes.lookup(communication.notification_type_key).message.present?
-            defined ? nil : communication.metadata
+            communication.message_definition_backed? ? nil : communication.metadata
           rescue StandardError
-            communication.metadata
+            nil
           end
 
           def detail(recipient_id:, inbox_item_id:, ui_catalog: 1, impersonating: nil)

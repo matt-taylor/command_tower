@@ -52,6 +52,41 @@ RSpec.describe "Me inbox defined type reads", :defined_render, :messaging_inbox,
     end
   end
 
+  describe "detail metadata while impersonating" do
+    let(:communication) { inbox_item.communication }
+
+    context "when the registry is down" do
+      before do
+        allow(CommandTower::Messaging::NotificationTypes).to receive(:lookup).and_raise(StandardError, "registry down")
+      end
+
+      it "withholds metadata of a definition-backed row without consulting the registry" do
+        expect(CommandTower::Services::Messaging::Inbox.detail_metadata(communication, impersonating: true)).to be_nil
+      end
+    end
+
+    context "when reading the row raises" do
+      before do
+        allow(communication).to receive(:message_definition_backed?).and_raise(StandardError, "boom")
+      end
+
+      it "withholds metadata" do
+        expect(CommandTower::Services::Messaging::Inbox.detail_metadata(communication, impersonating: nil)).to be_nil
+      end
+    end
+
+    context "when the row has no definition" do
+      before do
+        allow(communication).to receive(:message_definition_backed?).and_return(false)
+      end
+
+      it "keeps metadata" do
+        expect(CommandTower::Services::Messaging::Inbox.detail_metadata(communication, impersonating: true))
+          .to eq(communication.metadata)
+      end
+    end
+  end
+
   %i[show open conversation].each do |route|
     describe "#{route} route content" do
       it "returns a ui_document at catalog 2 with the code for the real recipient" do
