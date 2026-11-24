@@ -29,6 +29,7 @@ module CommandTower
               raise InvalidDeclarationError, "#{declaration.key}: #{found.join('; ')}" if found.any?
             end
             log_composer_deprecation(declarations)
+            Rendering::UnsubscribeHeaders.warn_when_unconfigured(declarations.select(&:message))
           end
 
           # @return [Array<String>]
