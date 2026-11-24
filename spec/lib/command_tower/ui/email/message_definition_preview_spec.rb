@@ -2,7 +2,24 @@
 
 require Rails.root.join("test/mailers/previews/message_definition_preview").to_s
 
-RSpec.describe MessageDefinitionPreview, :aggregate_failures do
+RSpec.describe MessageDefinitionPreview, :aggregate_failures, :messaging_notification_types do
+  # Other messaging specs reset the registry the host initializer fills at boot, so register the
+  # two types the previews render (the compliance footer looks the declaration up by key).
+  before do
+    email_only = {
+      allowed_channels: %w[email], default_channels: %w[email],
+      default_preference_state: { "channels" => { "email" => true }, "inbox" => true }
+    }
+    register_and_seal_notification_types(
+      build_notification_type_declaration(
+        key: "class_canceled", label: "Class canceled", message: "ClassCanceled", **email_only
+      ),
+      build_notification_type_declaration(
+        key: "membership_renewal", label: "Membership renewal", message: "MembershipRenewal", **email_only
+      )
+    )
+  end
+
   it "lists the three previews" do
     expect(described_class.emails).to match_array(%w[sample_email sample_email_fallback sample_email_user_zone])
   end

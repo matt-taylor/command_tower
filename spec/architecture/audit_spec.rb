@@ -41,6 +41,7 @@ RSpec.describe "CommandTower audit architecture" do
       admin_user_email_changed
       admin_user_email_validation_changed
       announcement_produced
+      messaging_unsubscribed
       impersonation_started
       impersonation_ended
     ]

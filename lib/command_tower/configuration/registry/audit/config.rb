@@ -202,6 +202,20 @@ module CommandTower
               subject_required: false,
               affected_user_required: false
             },
+            messaging_unsubscribed: {
+              label: "Unsubscribed from email",
+              tags: %w[messaging preferences unsubscribe],
+              enabled: true,
+              enablement_configurable: false,
+              user_history: true,
+              sensitive_fields: [],
+              allowed_changes: %i[email_enabled],
+              retention: :permanent,
+              subject_required: true,
+              subject_type: "User",
+              affected_user_required: true,
+              global_visible_in_host_scope: true
+            },
             session_created: {
               label: "Session created",
               tags: %w[authentication session security],
