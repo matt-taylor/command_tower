@@ -128,6 +128,8 @@ Nested `with_execution` shares the outer context. Do not wrap `db:migrate` or do
 
 If a host **cannot** change `ApplicationController` / `ApplicationJob` superclasses, include `CommandTower::Execution::HttpBoundary` / `CommandTower::Execution::JobBoundary` as a compatibility escape hatch. Do not include those modules into every `ActionController` or `ActiveJob::Base`.
 
+`HttpBoundary` also reads `X-Time-Zone` into `CommandTower::Current.client_time_zone` and, after a 2xx authenticated response, calls `Services::Users::RecordLastKnownTimeZone`. This is a deliberate deviation from "writes go through a workflow": it is throttled request bookkeeping on the authenticated user (like impersonation `RecordActivity`), not a business operation, and it must never change or fail the response, so it runs after the action, fails open, and skips impersonated requests. The user comes from the authentication result because `Current` carries user ids, not a user. See [api_reference.md](api_reference.md).
+
 Automatic workflow/service lifecycle notifications are emitted by CommandTower kernels. Logging is a subscriber: emission is exhaustive; materialization is selective; log records are curated projections. The host owns format. See [Eventing](eventing.md).
 
 ## Related

@@ -28,6 +28,9 @@ module CommandTower
               title: @request.fetch(:title),
               body: @request.fetch(:body),
               metadata: freeze_metadata(@request[:metadata]),
+              slots: @request[:slots],
+              render_zone: @request[:render_zone],
+              metadata_version: @request[:metadata_version],
               conversation_key: @request[:conversation_key],
               conversation_title: @request[:conversation_title],
             )

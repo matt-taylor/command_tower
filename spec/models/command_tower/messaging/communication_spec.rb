@@ -20,6 +20,28 @@ RSpec.describe CommandTower::Messaging::Communication, type: :model do
   let(:body) { "Your booking was confirmed." }
   let(:metadata) { { "deep_link" => "/bookings/1" } }
 
+  describe "definition-backed columns" do
+    it "is not definition-backed when metadata_version is null" do
+      expect(communication.slots).to be_nil
+      expect(communication.render_zone).to be_nil
+      expect(communication).not_to be_message_definition_backed
+    end
+
+    context "when metadata_version is set" do
+      subject(:reloaded) { described_class.find(communication.id) }
+
+      let(:params) do
+        super().merge(slots: { "headline" => "Class canceled" }, render_zone: "America/New_York", metadata_version: 1)
+      end
+
+      it "round-trips slots as a JSON document and reads backing from metadata_version" do
+        expect(reloaded.slots).to eq("headline" => "Class canceled")
+        expect(reloaded.render_zone).to eq("America/New_York")
+        expect(reloaded).to be_message_definition_backed
+      end
+    end
+  end
+
   describe "conversation identity" do
     context "when both values are set" do
       let(:params) { super().merge(conversation_key: "week-5", conversation_title: "Week 5") }

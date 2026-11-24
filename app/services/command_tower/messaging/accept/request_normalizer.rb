@@ -21,8 +21,10 @@ module CommandTower
           metadata:,
           preference_state:,
           platform_enabled_channels:,
-          message_overrides:
+          message_overrides:,
+          metadata_version: nil
         )
+          @metadata_version = metadata_version
           @title = title
           @body = body
           @metadata = metadata
@@ -41,15 +43,18 @@ module CommandTower
 
         private
 
+        # Defined types (a non-nil metadata_version) derive title and body from the definition, so
+        # they are not part of the basis; the version is, so a changed definition conflicts.
         def canonical_payload
-          {
-            "title" => @title.to_s,
-            "body" => @body.to_s,
+          shared = {
             "metadata" => normalize_value(@metadata),
             "preference_state" => normalize_value(@preference_state),
             "platform_enabled_channels" => normalize_channel_list(@platform_enabled_channels),
             "message_overrides" => normalize_overrides(@message_overrides),
           }
+          return { "title" => @title.to_s, "body" => @body.to_s }.merge(shared) if @metadata_version.nil?
+
+          shared.merge("metadata_version" => @metadata_version)
         end
 
         def normalize_overrides(raw)

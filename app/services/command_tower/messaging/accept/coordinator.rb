@@ -52,7 +52,8 @@ module CommandTower
           }
 
           OperationLogger.around(request:) do
-            validate_request!
+            definition = definition_class
+            validate_request!(defined_type: !definition.nil?)
             fingerprint = RequestNormalizer.fingerprint(
               title: @title,
               body: @body,
@@ -60,6 +61,7 @@ module CommandTower
               preference_state: @preference_state,
               platform_enabled_channels: @platform_enabled_channels,
               message_overrides: @message_overrides,
+              metadata_version: definition&.metadata_version,
             )
 
             existing = find_by_namespace
@@ -67,6 +69,7 @@ module CommandTower
               return resolve_existing(existing, fingerprint)
             end
 
+            request = with_definition_fields(request, definition) if definition
             plan = plan!
             persist_new!(request:, plan:, fingerprint:)
           end
@@ -74,13 +77,63 @@ module CommandTower
 
         private
 
-        def validate_request!
+        # The MessageDefinition class for a registered, definition-backed type; nil for undefined
+        # and unregistered types (the planner reports the latter).
+        def definition_class
+          return nil unless NotificationTypes.registered?(@notification_type_key)
+
+          message = NotificationTypes.lookup(@notification_type_key).message
+          klass = message&.safe_constantize
+          klass if klass.is_a?(Class) && klass < MessageDefinition
+        end
+
+        # Stored title/body/slots/zone/version come from the definition. Metadata violations fail
+        # the request in strict mode and are logged and degraded otherwise.
+        def with_definition_fields(request, definition)
+          resolution = ResolveCommunicationSlots.call(
+            notification_type_key: @notification_type_key,
+            definition:,
+            metadata: @metadata,
+            recipient_id: @recipient_id,
+          )
+          handle_resolution_failure!(resolution) if resolution.failure?
+
+          request.merge(
+            title: resolution.title,
+            body: resolution.body,
+            slots: resolution.slots,
+            render_zone: resolution.render_zone,
+            metadata_version: resolution.metadata_version,
+          )
+        end
+
+        def handle_resolution_failure!(resolution)
+          unless resolution.degradable? && !CommandTower.config.messaging.strict_definitions
+            raise ValidationError, resolution.failure_message
+          end
+
+          Contract::Observability::Publisher.warn(
+            event: "messaging.accept.metadata_schema_violation",
+            notification_type_key: @notification_type_key,
+            recipient_id: @recipient_id,
+            attributes: resolution.schema_errors,
+          )
+        end
+
+        def validate_request!(defined_type: false)
           errors = []
           errors << "recipient_id is required" if blank?(@recipient_id)
           errors << "notification_type_key is required" if blank?(@notification_type_key)
           errors << "host_event_identity is required" if blank?(@host_event_identity)
-          errors << "title is required" if blank?(@title)
-          errors << "body is required" if blank?(@body)
+          if defined_type
+            # Defined types derive title and body from the definition; explicit copy is rejected in
+            # every environment (D17). Producers decide whether to fail or drop it before accepting.
+            errors << "title must not be supplied for a defined type" unless blank?(@title)
+            errors << "body must not be supplied for a defined type" unless blank?(@body)
+          else
+            errors << "title is required" if blank?(@title)
+            errors << "body is required" if blank?(@body)
+          end
           if @platform_enabled_channels.nil?
             errors << "platform_enabled_channels is required"
           end

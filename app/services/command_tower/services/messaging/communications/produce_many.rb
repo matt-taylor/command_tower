@@ -14,8 +14,9 @@ module CommandTower
           validate :user_ids, is_a: Array, required: true
           validate :notification_type_key, is_a: String, required: true
           validate :campaign_identity, is_a: String, required: true
-          validate :title, is_a: String, required: true
-          validate :body, is_a: String, required: true
+          # Required for undefined types (Accept enforces it); defined types derive them (D17).
+          validate :title, is_a: String, required: false
+          validate :body, is_a: String, required: false
           validate :platform_enabled_channels, is_a: Array, required: true
           validate :metadata, is_a: Hash, required: false
           validate :conversation_key, is_a: String, required: false
@@ -25,6 +26,7 @@ module CommandTower
           def call
             ids = normalize_user_ids
             mode = normalized_execution_mode
+            return unless explicit_copy_allowed?
 
             if mode == :sync && ids.size > SYNC_MAX
               context.fail!(
@@ -45,6 +47,22 @@ module CommandTower
           end
 
           private
+
+          # D17, checked once for the whole fan-out: strict mode fails the call; otherwise the copy
+          # is dropped (one ids-only log) so no recipient carries it.
+          def explicit_copy_allowed?
+            return true unless ExplicitCopyRule.violation?(notification_type_key:, title:, body:)
+
+            if ExplicitCopyRule.strict?
+              context.fail!(application_error: ExplicitCopyRule.failure)
+              return false
+            end
+
+            ExplicitCopyRule.log_ignored(notification_type_key:, campaign_identity:)
+            context.title = nil
+            context.body = nil
+            true
+          end
 
           def normalize_user_ids
             Array(user_ids).map { |id| Integer(id) }

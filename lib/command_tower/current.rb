@@ -17,5 +17,6 @@ module CommandTower
     attribute :user_agent
     attribute :client_compatibility_recommendation
     attribute :ui_catalog, default: 1
+    attribute :client_time_zone
   end
 end
