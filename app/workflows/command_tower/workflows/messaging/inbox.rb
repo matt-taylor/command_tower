@@ -33,9 +33,11 @@ module CommandTower
         end
 
         class ConversationWorkflow < BaseWorkflow
-          def call(user:, key:, scope:, around: nil, before_id: nil, after_id: nil, limit: nil)
+          # `impersonating` comes from the authenticated boundary; nil (unknown) redacts.
+          def call(user:, key:, scope:, around: nil, before_id: nil, after_id: nil, limit: nil, impersonating: nil)
             result = CommandTower::Services::Messaging::Inbox::Conversation.call(
               user:, key:, scope:, around:, before_id:, after_id:, limit:,
+              ui_catalog: CommandTower::Current.ui_catalog, impersonating:,
             )
             return result_or_failure(result) unless result.success?
 
@@ -47,8 +49,11 @@ module CommandTower
         end
 
         class ShowWorkflow < BaseWorkflow
-          def call(user:, inbox_item_id:)
-            result = CommandTower::Services::Messaging::Inbox::Show.call(user:, inbox_item_id:)
+          # `impersonating` comes from the authenticated boundary; nil (unknown) redacts.
+          def call(user:, inbox_item_id:, impersonating: nil)
+            result = CommandTower::Services::Messaging::Inbox::Show.call(
+              user:, inbox_item_id:, ui_catalog: CommandTower::Current.ui_catalog, impersonating:
+            )
             return result_or_failure(result) unless result.success?
 
             success(payload: CommandTower::Serializers::Messaging::Inbox::DetailSerializer.serialize(result.data[:item]), http_status: :ok)
@@ -56,9 +61,12 @@ module CommandTower
         end
 
         class OpenWorkflow < ShowWorkflow
-          def call(user:, inbox_item_id:)
+          def call(user:, inbox_item_id:, impersonating: nil)
             impersonated = CommandTower::Current.impersonation_active == true
-            result = CommandTower::Services::Messaging::Inbox::Open.call(user:, inbox_item_id:, mark_viewed: !impersonated)
+            result = CommandTower::Services::Messaging::Inbox::Open.call(
+              user:, inbox_item_id:, mark_viewed: !impersonated,
+              ui_catalog: CommandTower::Current.ui_catalog, impersonating:
+            )
             return result_or_failure(result) unless result.success?
 
             audit_first_view(user:, inbox_item_id:, result:) unless impersonated

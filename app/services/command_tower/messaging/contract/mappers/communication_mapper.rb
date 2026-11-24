@@ -22,6 +22,9 @@ module CommandTower
               body: communication.body,
               metadata: freeze_metadata(communication.metadata),
               inbox_presentation_snapshot: freeze_snapshot(communication.inbox_presentation_snapshot),
+              slots: freeze_slots(communication.slots),
+              render_zone: communication.render_zone,
+              metadata_version: communication.metadata_version,
               created_at: communication.created_at,
               destination_plan: DestinationPlanMapper.to_result(communication.destination_plan),
               inbox_item: InboxItemMapper.to_result(communication.inbox_item),
@@ -41,6 +44,12 @@ module CommandTower
             return nil if metadata.nil?
 
             metadata.to_h.transform_keys(&:to_s).freeze
+          end
+
+          def freeze_slots(slots)
+            return nil unless slots.is_a?(Hash)
+
+            slots.deep_stringify_keys.freeze
           end
 
           def freeze_snapshot(snapshot)

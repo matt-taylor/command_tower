@@ -104,7 +104,7 @@ The Me Inbox detail `content` field (`inbox_document_v1`, see [api_reference.md]
 | Bulk | `POST /me/inbox/bulk/{read,unread,archive,restore,delete}` with body `ids` |
 | Unread | `GET /me/inbox/unread-count` — `{ count, badgeCount }` |
 
-Detail `content` is `inbox_document_v1` with blocks `paragraph`, `cta` (typed `destination`: internal `path` or external `href`), `instant`, and `presentation`. The `X-UI-Catalog` request header is accepted and defaults to `1`; it has no effect on Inbox responses yet ([ui.md](ui.md#catalog-header)). Hosts never expose `inboxEnabled` as an inbox switch to users outside the preferences contract.
+Detail `content` is `inbox_document_v1` with blocks `paragraph`, `cta` (typed `destination`: internal `path` or external `href`), `instant`, and `presentation`. The `X-UI-Catalog` request header is accepted and defaults to `1`; it changes Inbox `content` only for types registered with a `message:` MessageDefinition (catalog 2 or higher returns `ui_document`); undefined types return `inbox_document_v1` for every catalog, and Inbox read responses set `Cache-Control: no-store` ([ui.md](ui.md#catalog-header)). Hosts never expose `inboxEnabled` as an inbox switch to users outside the preferences contract.
 
 Pagination detail: [pagination.md](pagination.md). Full catalog: [api_reference.md](api_reference.md#me-inbox).
 

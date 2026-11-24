@@ -8,6 +8,8 @@ module CommandTower
 
       before_action :authenticate_request!
       before_action :authorize_request!
+      # Inbox reads can carry per-recipient, impersonation-redacted content: never cache them.
+      before_action :set_no_store, only: %i[index show open conversation]
 
       def index
         deserialized = CommandTower::Deserializers::Messaging::Inbox::ListDeserializer.call(params)
@@ -31,15 +33,16 @@ module CommandTower
           before_id: input.before_id,
           after_id: input.after_id,
           limit: input.limit,
+          impersonating: impersonating_flag,
         ))
       end
 
       def show
-        run_item_workflow(CommandTower::Workflows::Messaging::Inbox::ShowWorkflow)
+        run_item_workflow(CommandTower::Workflows::Messaging::Inbox::ShowWorkflow, impersonating: impersonating_flag)
       end
 
       def open
-        run_item_workflow(CommandTower::Workflows::Messaging::Inbox::OpenWorkflow)
+        run_item_workflow(CommandTower::Workflows::Messaging::Inbox::OpenWorkflow, impersonating: impersonating_flag)
       end
 
       def archive
@@ -76,11 +79,23 @@ module CommandTower
 
       private
 
-      def run_item_workflow(workflow)
+      def run_item_workflow(workflow, **extra)
         deserialized = CommandTower::Deserializers::Messaging::Inbox::ShowDeserializer.call(params)
         return render_deserializer_errors unless deserialized.success?
 
-        render_application_result(workflow.call(user: current_user, inbox_item_id: deserialized.input.inbox_item_id))
+        render_application_result(workflow.call(user: current_user, inbox_item_id: deserialized.input.inbox_item_id, **extra))
+      end
+
+      def set_no_store
+        response.headers["Cache-Control"] = "no-store"
+      end
+
+      # From the authentication result: true while impersonating, false for a normal session,
+      # nil when there is no auth context (unknown, which redacts).
+      def impersonating_flag
+        return nil if current_auth_context.nil?
+
+        CommandTower::Current.impersonation_active == true
       end
 
       def run_bulk_workflow(workflow)
