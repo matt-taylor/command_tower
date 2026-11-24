@@ -4,6 +4,7 @@ require "class_composer"
 require "command_tower/configuration/messaging/sms"
 require "command_tower/configuration/messaging/pushover"
 require "command_tower/configuration/messaging/expo"
+require "command_tower/configuration/messaging/compliance"
 
 module CommandTower
   module Configuration
@@ -70,6 +71,30 @@ module CommandTower
           desc: "Expo Push delivery configuration (Messaging push channel; optional access_token)",
           allowed: Expo,
           default: Expo.new
+
+        add_composer :compliance,
+          desc: "Email compliance configuration for MessageDefinition types (unsubscribe origin, " \
+                "preferences path, postal address, token secret)",
+          allowed: Compliance,
+          default: Compliance.new
+
+        add_composer :strict_definitions,
+          desc: "When true, MessageDefinition violations (metadata schema, explicit copy on a defined " \
+                "type) fail the request; when false they are logged and degraded. Default true in " \
+                "development and test, false in production.",
+          allowed: [TrueClass, FalseClass, NilClass],
+          default: nil,
+          default_shown: "!Rails.env.production?"
+
+        # nil means "not set by the host": resolve from the Rails env at call time.
+        alias configured_strict_definitions strict_definitions
+
+        def strict_definitions
+          configured = configured_strict_definitions
+          return configured unless configured.nil?
+
+          !(defined?(::Rails) && ::Rails.respond_to?(:env) && ::Rails.env.production?)
+        end
       end
     end
   end

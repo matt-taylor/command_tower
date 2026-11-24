@@ -221,6 +221,9 @@ CommandTower.configure do |config|
   # ## Default false (fail-closed). Do not enable in production.
   # config.messaging.allow_fake_adapter = false
 
+  # Fictional postal address so the sample promotional type passes the seal check.
+  config.messaging.compliance.postal_address = "100 Example Street, Suite 200, Springfield, ST 00000"
+
   # config.messaging.sms.adapter = "disabled"
   # config.messaging.pushover.adapter = "disabled"
   # Expo Push (Messaging channel "push"). access_token optional (Bearer only when set).
@@ -385,4 +388,38 @@ CommandTower.configure do |config|
     platform.minimum = "1.0.0"
     platform.recommended = "1.0.0"
   end
+end
+
+# Sample message types for the dummy host. Definitions live in app/messages and are named by
+# string, so registration does not depend on autoload order. Sealing runs after initialization
+# because it constantizes them. `promotional_announcement` is deliberately undefined (no
+# `message:`); slice 8.0 attaches AnnouncementDefinition to it.
+Rails.application.config.after_initialize do
+  types = CommandTower::Messaging::NotificationTypes
+  next if types::Registry.instance.sealed?
+
+  shared = { inbox_available: true, user_configurable: true, mandatory: false,
+             category_key: "studio", category_label: "Studio", category_order: 10 }
+  both = ->(channels) { { "channels" => channels.index_with { true }, "inbox" => true } }
+
+  [
+    { key: "class_canceled", label: "Class canceled", type_order: 10, message: "ClassCanceled",
+      allowed_channels: %w[email push sms pushover], default_channels: %w[email push],
+      default_preference_state: both.call(%w[email push]) },
+    { key: "membership_renewal", label: "Membership renewal", type_order: 20, message: "MembershipRenewal",
+      allowed_channels: %w[email push], default_channels: %w[email],
+      default_preference_state: both.call(%w[email]) },
+    { key: "class_reminder", label: "Class reminder", type_order: 30, message: "ClassReminder",
+      allowed_channels: %w[email sms], default_channels: %w[email],
+      default_preference_state: both.call(%w[email]) },
+    { key: "check_in_ready", label: "Check-in ready", type_order: 40, message: "CheckInReady",
+      allowed_channels: %w[email], default_channels: %w[email],
+      default_preference_state: both.call(%w[email]) },
+    { key: "promotional_announcement", label: "Promotional announcement", type_order: 50,
+      allowed_channels: %w[email], default_channels: %w[email],
+      default_preference_state: both.call(%w[email]) }
+  ].each do |attributes|
+    types.register(CommandTower::Messaging::NotificationTypes::Declaration.build(**shared, **attributes))
+  end
+  types.seal
 end
