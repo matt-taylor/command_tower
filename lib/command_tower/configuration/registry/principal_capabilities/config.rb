@@ -14,6 +14,8 @@ module CommandTower
             admin_workspace
             admin_audit_events
             admin_messaging_announcements
+            admin_messaging_gallery
+            admin_messaging_gallery_test_send
             admin_users
             admin_users_update
             admin_rbac_assignments

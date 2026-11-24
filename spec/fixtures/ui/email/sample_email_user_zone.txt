@@ -1,0 +1,6 @@
+Your membership renews soon
+Plan: Unlimited Monthly
+Renews: Tue, Dec 15, 12:00 PM ET
+Open in RailsApp: http://localhost/account/membership
+
+You're getting this email because Membership renewal emails are turned on for your RailsApp account. Manage email preferences: http://localhost

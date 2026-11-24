@@ -20,6 +20,7 @@ module CommandTower
         20261010000002_add_conversation_identity_to_messaging_communications.rb
         20261012000001_add_provider_metadata_to_messaging_delivery_attempts.rb
         20261012000002_add_finished_at_index_to_messaging_delivery_attempts.rb
+        20261124000001_add_message_definition_columns_to_messaging_communications.rb
       ].freeze
 
       module_function

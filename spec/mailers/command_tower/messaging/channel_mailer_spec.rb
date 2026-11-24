@@ -8,6 +8,7 @@ RSpec.describe CommandTower::Messaging::ChannelMailer do
         subject: overrides.fetch(:subject, "Hello"),
         text_body: overrides.fetch(:text_body, "Plain body"),
         html_body: overrides.fetch(:html_body, "<p>HTML body</p>"),
+        headers: overrides.fetch(:headers, {}),
       )
     end
   end
@@ -23,6 +24,33 @@ RSpec.describe CommandTower::Messaging::ChannelMailer do
       expect(ActionMailer::Base.deliveries.last.subject).to eq("Hello")
       expect(ActionMailer::Base.deliveries.last.text_part.body.to_s).to include("Plain body")
       expect(ActionMailer::Base.deliveries.last.html_part.body.to_s).to include("<p>HTML body</p>")
+    end
+  end
+
+  context "when rendered carries unsubscribe headers" do
+    let(:headers) do
+      { "List-Unsubscribe" => "<https://api.example.test/messaging/unsubscribe?token=abc>",
+        "List-Unsubscribe-Post" => "List-Unsubscribe=One-Click" }
+    end
+
+    before do
+      ActionMailer::Base.deliveries.clear
+      described_class.deliver_rendered(rendered: build_rendered.call(headers:)).deliver
+    end
+
+    it "applies rendered headers to the message" do
+      expect(ActionMailer::Base.deliveries.last.header.fields.to_h { |f| [f.name, f.value] }).to include(headers)
+    end
+  end
+
+  context "when rendered has no headers" do
+    before do
+      ActionMailer::Base.deliveries.clear
+      described_class.deliver_rendered(rendered: build_rendered.call).deliver
+    end
+
+    it "adds no unsubscribe headers" do
+      expect(ActionMailer::Base.deliveries.last["List-Unsubscribe"]).to be_nil
     end
   end
 

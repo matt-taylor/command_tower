@@ -40,6 +40,10 @@ module CommandTower
       # writes one JSON document on MySQL and on MariaDB.
       attribute :inbox_presentation_snapshot, :json
 
+      # Definition-backed slot values. Same MariaDB JSON caster rationale as
+      # the snapshot above. NULL for types without a MessageDefinition.
+      attribute :slots, :json
+
       CONVERSATION_KEY_FORMAT = /\A[A-Za-z0-9][A-Za-z0-9._:-]{0,127}\z/
 
       validates :notification_type_key, :title, :body, presence: true
@@ -59,6 +63,12 @@ module CommandTower
           notification_type_key: notification_type_key.to_s,
           host_event_identity: host_event_identity.to_s,
         )
+      end
+
+      # Reads the stored row only, never the registry: a type can lose its
+      # definition after the row was written.
+      def message_definition_backed?
+        !metadata_version.nil?
       end
 
       def handoff_terminal?

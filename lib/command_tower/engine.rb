@@ -9,6 +9,12 @@ module CommandTower
 
     paths.add "app/shared_sequences", eager_load: true
 
+    # The one-click unsubscribe token is a bearer credential in the query string. Hosts that do not
+    # already filter `token` must not log it.
+    initializer "command_tower.filter_token_parameter" do |app|
+      app.config.filter_parameters |= [:token]
+    end
+
     # Run after Rails loads the initializes and environment files
     # Ensures User has already set their desired config before we lock this down
     config.after_initialize do
@@ -23,6 +29,7 @@ module CommandTower
         CommandTower.config.class_composer_assign_defaults!(children: true)
         CommandTower::CredentialResolution::SmtpActionMailerBridge.apply!
         CommandTower.config.registry.client_compatibility.apply_env_overlay!
+        CommandTower::EmailTheme::TokenFile.validate_host_file!
 
         unless Rails.env.test?
           CommandTower.config.impersonation.validate!

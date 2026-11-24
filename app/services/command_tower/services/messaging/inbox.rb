@@ -44,18 +44,27 @@ module CommandTower
           include FailureMapping
           validate :user, is_a: User, required: true
           validate :inbox_item_id, is_a: Integer, required: true
+          validate :ui_catalog, is_a: Integer, required: false, default: 1
+          # Anything but exactly false redacts `code` nodes of defined types; nil means unknown.
+          validate :impersonating, is_a: [TrueClass, FalseClass], required: false
 
           def call
-            with_recipient { |recipient_id| context.item = Inbox.detail(recipient_id:, inbox_item_id:) }
+            with_recipient { |recipient_id| context.item = Inbox.detail(recipient_id:, inbox_item_id:, ui_catalog:, impersonating:) }
           end
         end
 
+        # Marks the item viewed (unless mark_viewed is false, used for impersonated
+        # opens) and renders the detail once. Exposes newly_viewed and
+        # communication_id so the calling workflow can own the first-view audit.
         class Open < Show
+          validate :mark_viewed, is_a: [TrueClass, FalseClass], required: false, default: true
+
           def call
             with_recipient do |recipient_id|
-              Inbox.detail(recipient_id:, inbox_item_id:)
-              CommandTower::Messaging::Inbox.mark_viewed(recipient_id:, inbox_item_id:)
-              context.item = Inbox.detail(recipient_id:, inbox_item_id:)
+              marked = CommandTower::Messaging::Inbox.mark_viewed(recipient_id:, inbox_item_id:) if mark_viewed
+              context.newly_viewed = marked&.newly_viewed == true
+              context.communication_id = marked&.communication_id
+              context.item = Inbox.detail(recipient_id:, inbox_item_id:, ui_catalog:, impersonating:)
             end
           end
         end
@@ -89,6 +98,8 @@ module CommandTower
           validate :before_id, is_a: Integer, required: false
           validate :after_id, is_a: Integer, required: false
           validate :limit, is_a: Integer, required: false
+          validate :ui_catalog, is_a: Integer, required: false, default: 1
+          validate :impersonating, is_a: [TrueClass, FalseClass], required: false
 
           def call
             with_recipient do |recipient_id|
@@ -96,7 +107,7 @@ module CommandTower
                 recipient_id:, key:, scope:, around:, before_id:, after_id:, limit:,
               )
               messages = found.message_ids.map do |inbox_item_id|
-                Inbox.detail(recipient_id:, inbox_item_id:)
+                Inbox.detail(recipient_id:, inbox_item_id:, ui_catalog:, impersonating:)
               end
               context.conversation = {
                 scope: found.scope,
@@ -165,16 +176,33 @@ module CommandTower
             }
           end
 
-          def detail(recipient_id:, inbox_item_id:)
+          # Raw metadata of a definition-backed row can hold the `code` value, which the document
+          # redacts when impersonating (or unknown). The raw hash must not undo that, so it is
+          # withheld for those reads. Decided from the stored row only (no registry lookup), and
+          # fails closed: any error withholds the metadata.
+          def detail_metadata(communication, impersonating:)
+            return communication.metadata if impersonating == false
+
+            communication.message_definition_backed? ? nil : communication.metadata
+          rescue StandardError
+            nil
+          end
+
+          def detail(recipient_id:, inbox_item_id:, ui_catalog: 1, impersonating: nil)
             item = CommandTower::Messaging::Inbox.show(recipient_id:, inbox_item_id:)
             communication = CommandTower::Messaging::Contract::Communications.find(
               CommandTower::Messaging::Contract::Requests::FindCommunication.build(communication_id: item.communication_id, recipient_id:)
             )
-            content = CommandTower::Messaging::Rendering::InboxDocumentRenderer.render(communication:, recipient_id:).to_h
+            document = CommandTower::Messaging::Rendering::InboxDocumentRenderer.render(
+              communication:, recipient_id:, ui_catalog:, impersonating:
+            )
+            # A catalog 2 defined type is a `UI::Document` (string-keyed `ui_document`); everything
+            # else is an `InboxDocument` (`inbox_document_v1`).
+            content = document.is_a?(CommandTower::UI::Document) ? document.as_json : document.to_h
 
             item(item).merge(
               body: communication.body,
-              metadata: communication.metadata,
+              metadata: detail_metadata(communication, impersonating:),
               notification_type_key: communication.notification_type_key,
               content:,
             )

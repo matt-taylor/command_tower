@@ -19,14 +19,16 @@ module CommandTower
       }.freeze
       FORMATS = (PATTERNS.keys + [:countdown]).freeze
       LABELS = %i[auto always never].freeze
+      USER_ZONE = "user"
 
       class << self
-        # `at` is a Time or a UTC ISO-8601 string; `zone` a TZInfo identifier.
-        def call(at:, zone:, format:, label: :auto)
+        # `at` is a Time or a UTC ISO-8601 string; `zone` a TZInfo identifier, or
+        # `:user` / "user", which resolves to `user_zone` (default `config.ui.default_zone`).
+        def call(at:, zone:, format:, label: :auto, user_zone: CommandTower.config.ui.default_zone)
           format = pick(format, FORMATS, "format")
           label = pick(label, LABELS, "label")
           instant = parse(at)
-          timezone = TZInfo::Timezone.get(zone.to_s)
+          timezone = TZInfo::Timezone.get(zone.to_s == USER_ZONE ? user_zone.to_s : zone.to_s)
           text = timezone.to_local(instant).strftime(PATTERNS.fetch(format == :countdown ? :short : format))
           return text unless show_label?(format, label)
 

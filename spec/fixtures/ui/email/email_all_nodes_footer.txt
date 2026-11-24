@@ -1,4 +1,5 @@
 Weekly summary bold and a link
+a link: https://app.example.com/me
 Starts: Thu, Dec 4, 6:00 AM PT
 Studio: Mission Street Studio
 Thu, Dec 4, 6:00 AM PT
@@ -7,6 +8,6 @@ Notice
 Heads up
 Picks remaining: 7
 The studio
-Open
-Not now
+Open: https://app.example.com/open
+Not now: https://example.com/later
 Fallback for a component

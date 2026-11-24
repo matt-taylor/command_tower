@@ -1,6 +1,16 @@
 {
-  "fixtureVersion": 1,
+  "fixtureVersion": 2,
   "description": "Shared wire hardening cases (design section 8.1). Asserted by RSpec in command_tower and by Jest in @commandtower/frontend. Test values only.",
+  "userZone": {
+    "description": "A time node with zone \"user\" renders in the viewer's zone (userZone); any other zone ignores userZone. Same expected text as server TimeFormatter and the frontend formatter.",
+    "cases": [
+      { "at": "2025-12-04T14:00:00Z", "zone": "user", "userZone": "America/Los_Angeles", "format": "short", "label": "always", "expected": "Thu, Dec 4, 6:00 AM PT" },
+      { "at": "2025-12-04T14:00:00Z", "zone": "user", "userZone": "America/New_York", "format": "short", "label": "always", "expected": "Thu, Dec 4, 9:00 AM ET" },
+      { "at": "2025-12-04T14:00:00Z", "zone": "user", "userZone": "UTC", "format": "time", "label": "never", "expected": "2:00 PM" },
+      { "at": "2025-12-05T08:00:00Z", "zone": "user", "userZone": "America/Los_Angeles", "format": "date", "label": "always", "expected": "Fri, Dec 5" },
+      { "at": "2025-12-04T14:00:00Z", "zone": "America/New_York", "userZone": "America/Los_Angeles", "format": "short", "label": "always", "expected": "Thu, Dec 4, 9:00 AM ET" }
+    ]
+  },
   "internalPaths": {
     "valid": [
       "/",

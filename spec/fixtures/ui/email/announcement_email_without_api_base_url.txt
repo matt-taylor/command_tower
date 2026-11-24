@@ -1,0 +1,9 @@
+New classes this week
+We added three classes.
+• Sunrise Stretch
+• Arms & Abs
+See the schedule to book.
+schedule: http://localhost/schedule
+
+You're getting this email because promotional announcement are turned on for your RailsApp account. Unsubscribe or manage email preferences: http://localhost
+100 Example Street, Suite 200, Springfield, ST 00000

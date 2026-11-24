@@ -8,10 +8,11 @@ module CommandTower
     # validation. Errors carry node paths and codes only, never values
     # (a `code` value, spans and times must not reach logs or exceptions).
     #
-    # `validate!(profile:)` is the seam for later rule sets (the blocking-notice
-    # profile in Set 3 adds external-links-only). Only :default exists.
+    # `validate!(profile:)` is the seam for rule sets. :default is the base rule
+    # set. :message adds "exactly one `facts` node" (message definitions). The
+    # blocking-notice profile in Set 3 will add external-links-only.
     class Document
-      PROFILES = %i[default].freeze
+      PROFILES = %i[default message].freeze
       MESSAGE_ERROR_LIMIT = 10
 
       attr_reader :root, :text_fallback
@@ -41,6 +42,7 @@ module CommandTower
         walker = Walker.new
         walker.check_envelope(self)
         walker.walk(root, "root", 1) if root.is_a?(Nodes::Node)
+        walker.check_facts_block if profile == :message
         walker.check_size(self)
         walker.details
       end
@@ -77,6 +79,15 @@ module CommandTower
           @primary_buttons = 0
           @open_facts = []
           @structure_overflow = false
+          @facts_nodes = 0
+        end
+
+        # :message profile. Skipped when the walk stopped early (counts would be partial).
+        def check_facts_block
+          return if @structure_overflow
+
+          add("document", :missing_facts_node) if @facts_nodes.zero?
+          add("document", :multiple_facts_nodes) if @facts_nodes > 1
         end
 
         def check_envelope(document)
@@ -128,7 +139,10 @@ module CommandTower
 
         def track(node, path)
           @open_facts.each { |entry| entry[:count] += 1 }
-          @open_facts.push({ path:, count: 0 }) if node.is_a?(Nodes::Facts)
+          if node.is_a?(Nodes::Facts)
+            @facts_nodes += 1
+            @open_facts.push({ path:, count: 0 })
+          end
           count_singletons(node, path)
         end
 

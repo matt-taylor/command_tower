@@ -28,51 +28,52 @@ module CommandTower
       }.freeze
 
       class << self
-        def call(node)
+        # `user_zone` is the zone a `zone: "user"` time resolves to.
+        def call(node, user_zone: CommandTower.config.ui.default_zone)
           _, handler = HANDLERS.find { |klass, _| node.is_a?(klass) }
-          handler ? send(handler, node) : "" # divider, avatar, code
+          handler ? send(handler, node, user_zone) : "" # divider, avatar, code
         end
 
         private
 
-        def container_text(node)
-          lines(node.children.map { |child| call(child) })
+        def container_text(node, user_zone)
+          lines(node.children.map { |child| call(child, user_zone:) })
         end
 
-        def text_text(node)
+        def text_text(node, _user_zone)
           spans_text(node.spans)
         end
 
-        def banner_text(node)
+        def banner_text(node, _user_zone)
           lines([node.title, spans_text(node.spans)])
         end
 
-        def instant_text(node)
-          TimeFormatter.call(at: node.at, zone: node.zone, format: node.format, label: :always)
+        def instant_text(node, user_zone)
+          TimeFormatter.call(at: node.at, zone: node.zone, format: node.format, label: :always, user_zone:)
         end
 
-        def key_value_text(node)
-          lines(node.items.map { |item| item_text(item) })
+        def key_value_text(node, user_zone)
+          lines(node.items.map { |item| item_text(item, user_zone) })
         end
 
-        def component_text(node)
-          call(node.fallback)
+        def component_text(node, user_zone)
+          call(node.fallback, user_zone:)
         end
 
-        def stat_tile_text(node)
+        def stat_tile_text(node, _user_zone)
           "#{node.label}: #{node.value}"
         end
 
-        def label_text(node)
+        def label_text(node, _user_zone)
           node.label.to_s
         end
 
-        def image_text(node)
+        def image_text(node, _user_zone)
           node.decorative ? "" : node.alt.to_s
         end
 
-        def item_text(item)
-          value = item.value.is_a?(Nodes::Instant) ? instant_text(item.value) : item.value.to_s
+        def item_text(item, user_zone)
+          value = item.value.is_a?(Nodes::Instant) ? instant_text(item.value, user_zone) : item.value.to_s
           item.label.to_s.empty? ? value : "#{item.label}: #{value}"
         end
 

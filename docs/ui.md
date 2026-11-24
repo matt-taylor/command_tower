@@ -78,6 +78,29 @@ Validation errors (`InvalidDocumentError#details`) carry node paths and codes on
 | `Facts` | Base class for a host fact block. `Facts.call(builder, metadata:)` emits exactly one `facts` node; subclasses implement `compose(b, metadata:)`. |
 | `CtaGroup` | Stacked buttons: the primary first, then up to two secondaries. |
 | `NoticeFrame` | Tinted card with a title and body paragraphs. Informational only. |
+| `Markdown` | One `stack` of `text` nodes from a markdown `source` (subset below). Optional `node_budget` (default 150). |
+
+### Markdown subset
+
+`Fragments::Markdown` parses with kramdown and walks the AST against an allowlist. Raw HTML never reaches the document.
+
+| Author writes | Result |
+|---|---|
+| Paragraphs | `text` body. A soft line break is a space; a hard break is a newline. |
+| `**bold**`, `__bold__` | strong span |
+| `[label](https://...)`, `mailto:`, `tel:`, `[label](/internal)`, `<https://...>` | link span (`navigate`) |
+| Links with `http:`, `javascript:`, `data:` or any other scheme | label as plain text |
+| `#`, `##` / `###` / `####`-`######` | `text` variant `title` / `subtitle` (secondary tone) / `body` |
+| `-`, `*`, `+` lists | one `text` per item with a "• " prefix, in a `stack` with gap `xs` |
+| `1.` lists | "1. ", "2. " prefixes |
+| Nested lists | flattened to one level |
+| `*em*`, `` `code` ``, fenced code, `> quote` | plain text (code keeps line breaks) |
+| Tables | one paragraph per row, cells joined by " · " |
+| `---`, images, comments | dropped |
+| Raw HTML | tags removed and text kept; `script` and `style` dropped with their content |
+| Strikethrough, task lists | literal text |
+
+Limits: a paragraph over 1999 characters, or over 50 spans, is split at a word boundary into several `text` nodes. Output beyond `node_budget` nodes is cut and ends with a "…" paragraph; the cut is logged with counts only. Design: `ux/states.md` section 6, G11 and G12.
 
 ## Time formatter and abbreviation rule
 
@@ -92,6 +115,27 @@ Validation errors (`InvalidDocumentError#details`) carry node paths and codes on
 | `countdown` | App-only; the server renders it as `short`. |
 
 On the server the zone label is always shown for every format except `date`, unless `label: :never`. The label comes from `ZoneAbbreviation` and the `zoneAbbreviations` / `ambiguousAbbreviations` / `tzdataVersion` data in the token mapping. Regenerate it inside Docker with the engine task `app:command_tower:ui:zone_abbreviations` (`YEAR=` pins the generation year).
+
+## User zone
+
+A `time` node, `TimeFormatter`, `TextDerivation` and `Email::Renderer` accept `zone: :user` (wire value `"user"`). The server resolves it to the `user_zone:` keyword, which defaults to `config.ui.default_zone`; the app resolves it to the device zone. A `:time` fact node without a zone renders in the render zone.
+
+## Message profile
+
+`Document#validate!(profile: :message)` adds one rule to the default checks: the document has exactly one `facts` node. The default profile is unchanged.
+
+## Redaction
+
+`UI::Redaction.call(document, impersonating:)` returns a new document in which every `code` node becomes a `text` node reading "Open the app to check in" (variant `body`, `textTone: secondary`, label dropped), so the code value never reaches the serialised document. Only `impersonating: false` skips it; any other value redacts.
+
+## Required facts
+
+`UI::RequiredFacts::Verdict.call(texts:, metadata:, required_facts:, render_zone:)` is a pure check for specs and the gallery (never the send path). It returns `[{ channel:, fact_key:, passed: }]`, one row per text and required fact.
+
+- `texts` maps channel to rendered text. Callers leave out `headline` and `pushover_title`.
+- Each required fact is a hash: `key:`, `matcher:` (`:text`, `:time` or a host matcher), `zone:` (metadata key holding an IANA zone, or `:user`) and `optional:`. An optional fact with no metadata value yields no rows.
+- `:text` passes when the metadata value is a substring of the text. `:time` passes when the `:time`-preset rendering (for example "6:00 AM PT") in the fact's zone is a substring; `:user` and a missing zone use `render_zone`.
+- Host matcher protocol: any object responding to `call(text:, metadata:, t:)` and returning a Boolean. `t` is `t.call(at, zone:, format: :short, label: :auto)`, backed by `TimeFormatter` with `render_zone` as the user zone.
 
 ## Limits
 
@@ -118,7 +162,21 @@ Paths and links are hardened by `Hardening` (shared cases in `wire_hardening.jso
 - `code` nodes raise `InvalidDocumentError` (a check-in code never reaches an email).
 - Conversions: `component` becomes its fallback tree; internal `navigate` becomes `origin + path`; `countdown` becomes `short`; icons are dropped; a ghost button becomes an underlined link; image width and height derive from `aspect`.
 - Text colour comes from `textTone`.
-- **Set 2 needs an `EmailTheme` adapter.** The renderer takes a `palette:` from the caller; nothing adapts `CommandTower::EmailTheme::Resolver` output into that palette yet. A second palette set (Set 2) needs that adapter before it can be used.
+- The caller supplies `palette:`. Emails for MessageDefinition-backed types resolve it with `CommandTower::EmailTheme::Palette.resolve` (see "Email token file").
+
+### Email token file
+
+The 13-key palette comes from the first source that exists:
+
+1. The host token file `config/ui_tokens.json` under `Rails.root`.
+2. A customised `config.email_theme` (the 9 legacy keys map onto palette keys; `muted`, `success`, `warning` and `danger` come from the CT default).
+3. CT's default file, `lib/command_tower/email_theme/default_ui_tokens.json`.
+
+File format: `{ "version": 1, "palette": { "<token>": "#RRGGBB", ... } }`. `version` must be `1`. `palette` must carry every key in `UI::Email::Styles::PALETTE_KEYS` (13 keys) as `#RRGGBB`; extra tokens are ignored. The frontend export bin writes the file (`ct-export-email-tokens`).
+
+At boot, an invalid host file raises (the message names keys, never values). A missing host file logs one warning and email falls back to sources 2 and 3. When the host file exists, `EmailTheme::Resolver` derives the 9 legacy keys from it.
+
+Mailer previews for defined types: `/rails/mailers/message_definition/sample_email`, `sample_email_fallback` (composer failure, CT fallback document), `sample_email_user_zone`, `sample_email_promotional` (promotional footer with postal address) and `sample_email_without_api_base_url` (footer when one-click headers are omitted) (rails_app dummy app). Footer and header contract: [messaging_integration_guide.md](messaging_integration_guide.md#email-compliance-defined-types).
 
 ## Legacy mapping
 
@@ -128,7 +186,11 @@ Paths and links are hardened by `Hardening` (shared cases in `wire_hardening.jso
 
 Clients send `X-UI-Catalog: <n>`. `UI::Catalog.from_header` returns `1` for a missing, blank, non-integer or non-positive value and clamps higher numbers to `UI::CATALOG` (currently `2`). `HttpBoundary` passes the result into `with_execution`, and it is available as `CommandTower::Current.ui_catalog` (default `1`; nested `with_execution` keeps the outer value).
 
-It has no effect yet: no response differs by catalog, and it is never read for authorization. See [api_reference.md](api_reference.md#me-inbox) and the CORS note in [bootstrap/11-auth-client-path.md](bootstrap/11-auth-client-path.md).
+It changes only Inbox read responses for types registered with a `message:` MessageDefinition: catalog 2 or higher returns the validated `UI::Document` (`ui_document`), catalog 1 returns `inbox_document_v1` through `UI::LegacyMapping`. Undefined types return the same `inbox_document_v1` for every catalog. The header is never read for authorization. Inbox read responses (list, show, open, conversation) set `Cache-Control: no-store`.
+
+Push, SMS and Pushover for defined types are built from the slots stored at Accept (`headline`, `push_body`, `sms_body`, `pushover_title`, `pushover_message`), not from the catalog; undefined types keep the generic templates.
+
+See [api_reference.md](api_reference.md#me-inbox) and the CORS note in [bootstrap/11-auth-client-path.md](bootstrap/11-auth-client-path.md).
 
 ## Producer contracts
 

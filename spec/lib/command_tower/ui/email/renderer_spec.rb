@@ -174,6 +174,13 @@ RSpec.describe CommandTower::UI::Email::Renderer, :aggregate_failures do
       expect(html).to include('href="https://app.example.com/classes?x=1"', 'href="https://app.example.com/book"')
       expect(html).to include('href="mailto:me@example.com"')
     end
+
+    it "writes label: target lines for links and buttons in the text part (G13)" do
+      expect(output.text).to eq(
+        "See classes\nclasses: https://app.example.com/classes?x=1\n" \
+        "Go: https://app.example.com/book\nMail: mailto:me@example.com"
+      )
+    end
   end
 
   context "with a component" do
@@ -196,6 +203,35 @@ RSpec.describe CommandTower::UI::Email::Renderer, :aggregate_failures do
 
     it "renders as the short format" do
       expect(html).to include("Thu, Dec 4, 6:00 AM PT")
+    end
+  end
+
+  describe "user zone" do
+    let(:document) do
+      CommandTower::UI.document(text_fallback: "x") do |d|
+        d.stack do |s|
+          s.time(at: "2025-12-04T14:00:00Z", zone: :user, format: :short)
+          s.time(at: "2025-12-04T14:00:00Z", zone: "America/Los_Angeles", format: :time)
+          s.key_value { |kv| kv.item "When", kv.time(at: "2025-12-04T14:00:00Z", zone: "user", format: :time) }
+        end
+      end
+    end
+
+    context "with user_zone" do
+      let(:options) { { user_zone: "America/New_York" } }
+
+      it "renders zone user times in that zone, in html and text" do
+        expect(html).to include("Thu, Dec 4, 9:00 AM ET", "9:00 AM ET", "6:00 AM PT")
+        expect(output.text).to eq("Thu, Dec 4, 9:00 AM ET\n6:00 AM PT\nWhen: 9:00 AM ET")
+      end
+    end
+
+    context "without user_zone" do
+      before { allow(CommandTower.config.ui).to receive(:default_zone).and_return("Europe/London") }
+
+      it "defaults to config.ui.default_zone" do
+        expect(output.text).to eq("Thu, Dec 4, 2:00 PM GMT\n6:00 AM PT\nWhen: 2:00 PM GMT")
+      end
     end
   end
 

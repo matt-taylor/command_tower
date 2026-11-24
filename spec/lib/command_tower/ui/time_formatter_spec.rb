@@ -19,6 +19,28 @@ RSpec.describe CommandTower::UI::TimeFormatter do
     end
   end
 
+  describe "zone user" do
+    UiSpecHelpers.wire_hardening.dig("userZone", "cases").each do |row|
+      it "renders #{row['expected'].inspect} for zone #{row['zone']} with user zone #{row['userZone']}" do
+        expect(described_class.call(at: row["at"], zone: row["zone"], format: row["format"], label: row["label"],
+                                    user_zone: row["userZone"])).to eq(row["expected"])
+      end
+    end
+
+    it "accepts the :user symbol" do
+      expect(described_class.call(at: instant, zone: :user, format: :time, user_zone: "America/New_York"))
+        .to eq("9:00 AM ET")
+    end
+
+    context "with a configured default zone" do
+      before { allow(CommandTower.config.ui).to receive(:default_zone).and_return("America/Los_Angeles") }
+
+      it "defaults user_zone to config.ui.default_zone" do
+        expect(described_class.call(at: instant, zone: "user", format: :time)).to eq("6:00 AM PT")
+      end
+    end
+  end
+
   it "accepts a Time instant" do
     expect(described_class.call(at: Time.utc(2025, 12, 4, 14), zone: "America/Los_Angeles", format: :short))
       .to eq("Thu, Dec 4, 6:00 AM PT")

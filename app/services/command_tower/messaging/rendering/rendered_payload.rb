@@ -8,8 +8,19 @@ module CommandTower
         :subject,
         :text_body,
         :html_body,
+        :headers,
       ) do
-        def self.build(recipient_address:, subject:, text_body:, html_body:)
+        # `headers` is optional (extra RFC 8058 mail headers, String => String) so direct callers
+        # predating it keep working.
+        def initialize(headers: {}.freeze, **attributes)
+          unless headers.is_a?(Hash) && headers.all? { |k, v| k.is_a?(String) && v.is_a?(String) }
+            raise ArgumentError, "headers must be a Hash of String to String"
+          end
+
+          super(headers: headers.dup.freeze, **attributes)
+        end
+
+        def self.build(recipient_address:, subject:, text_body:, html_body:, headers: {})
           values = [recipient_address, subject, text_body, html_body]
           raise ArgumentError, "arbitrary hashes are not accepted" if values.any? { |v| v.is_a?(Hash) }
           raise ArgumentError, "ActiveRecord objects are not accepted" if values.any? { |v| active_record_like?(v) }
@@ -25,6 +36,7 @@ module CommandTower
             subject:,
             text_body:,
             html_body:,
+            headers:,
           ).freeze
         end
 

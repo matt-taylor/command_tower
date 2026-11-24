@@ -65,16 +65,57 @@ module CommandTower
         private
 
         def render_email(address)
+          definition = email_definition
+          return render_generic_email(address) unless definition
+
+          render_defined_email(address, definition)
+        end
+
+        def render_generic_email(address, subject: @communication.title.to_s)
           RenderedPayload.build(
             recipient_address: address,
-            subject: @communication.title.to_s,
+            subject:,
             text_body: render_template("email.text.erb"),
             html_body: render_template("email.html.erb"),
           )
         end
 
+        # Defined types: subject from the stored `subject` slot, document through the email
+        # composer, then the CT fallback document, then the generic ERBs (design D20).
+        def render_defined_email(address, definition)
+          subject = slot("subject") || @communication.title.to_s
+          output = DefinedEmailRenderer.render(communication: @communication, definition:)
+          RenderedPayload.build(
+            recipient_address: address, subject:, text_body: output.text, html_body: output.html,
+            headers: UnsubscribeHeaders.call(
+              declaration: NotificationTypes.lookup(@communication.notification_type_key),
+              user_id: @communication.user_id
+            )
+          )
+        rescue StandardError => error
+          log_erb_fallback(error)
+          render_generic_email(address, subject:)
+        end
+
+        # The declared MessageDefinition class for a defined communication, else nil.
+        def email_definition
+          return nil unless @communication.message_definition_backed?
+
+          name = NotificationTypes.lookup(@communication.notification_type_key).message
+          name.presence&.constantize
+        rescue StandardError
+          nil
+        end
+
+        def log_erb_fallback(error)
+          Rails.logger.warn(
+            "[command_tower] email_erb_fallback communication_id=#{@communication.id} " \
+            "notification_type_key=#{@communication.notification_type_key} error_class=#{error.class.name}"
+          )
+        end
+
         def render_sms(address)
-          body = render_template("sms.text.erb").to_s.strip
+          body = slot("sms_body") ? with_deep_link(slot("sms_body")) : render_template("sms.text.erb").to_s.strip
           raise ArgumentError, "body is required" if body.empty?
 
           RenderedSmsPayload.build(
@@ -84,8 +125,13 @@ module CommandTower
         end
 
         def render_pushover(address)
-          title = notification_title
-          message = render_template("pushover.text.erb").to_s.strip
+          if slot("pushover_message")
+            title = slot("pushover_title") || slot("headline") || notification_title
+            message = with_deep_link(slot("pushover_message"))
+          else
+            title = notification_title
+            message = render_template("pushover.text.erb").to_s.strip
+          end
           raise ArgumentError, "message is required" if message.empty?
 
           RenderedPushoverPayload.build(
@@ -96,8 +142,13 @@ module CommandTower
         end
 
         def render_push(address)
-          title = notification_title
-          body = render_template("push.text.erb").to_s.strip
+          if slot("headline")
+            title = slot("headline")
+            body = slot("push_body") || title
+          else
+            title = notification_title
+            body = render_template("push.text.erb").to_s.strip
+          end
           raise ArgumentError, "body is required" if body.empty?
 
           deep_link = resolve_push_deep_link
@@ -113,6 +164,22 @@ module CommandTower
             thread_id: presentation.thread_id,
             badge: presentation.badge,
           )
+        end
+
+        # Stored slot text for a MessageDefinition-backed communication (D24); nil for undefined
+        # types and blank slots, which keep the generic ERBs. Slots are stored at Accept, never re-run.
+        def slot(name)
+          return nil unless @communication.message_definition_backed?
+
+          stored = @communication.slots
+          return nil unless stored.respond_to?(:to_h)
+
+          stored.to_h.transform_keys(&:to_s)[name].to_s.strip.presence
+        end
+
+        def with_deep_link(text)
+          link = deep_link_from_metadata
+          link ? "#{text} #{link}" : text
         end
 
         def notification_title

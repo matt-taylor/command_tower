@@ -33,6 +33,36 @@ RSpec.describe CommandTower::UI::Document, :aggregate_failures do
       expect { UiSpecHelpers.document(UiSpecHelpers.text).validate!(profile: :default) }.not_to raise_error
     end
 
+    context "with profile: :message" do
+      let(:facts) { CommandTower::UI::Nodes::Facts.new(children: [UiSpecHelpers.text("Fact")]) }
+
+      let(:other) { CommandTower::UI::Nodes::Facts.new(children: [UiSpecHelpers.text("Other")]) }
+
+      it "accepts exactly one facts node, nested or not" do
+        expect(UiSpecHelpers.document(UiSpecHelpers.stack(UiSpecHelpers.text, UiSpecHelpers.stack(facts)))
+          .validation_errors(profile: :message)).to eq([])
+      end
+
+      it "reports a missing facts node" do
+        expect(UiSpecHelpers.document(UiSpecHelpers.text).validation_errors(profile: :message))
+          .to eq([{ path: "document", code: "missing_facts_node" }])
+      end
+
+      it "reports more than one facts node" do
+        expect(UiSpecHelpers.document(UiSpecHelpers.stack(facts, other)).validation_errors(profile: :message))
+          .to eq([{ path: "document", code: "multiple_facts_nodes" }])
+      end
+
+      it "does not apply the rule to the default profile" do
+        expect(UiSpecHelpers.document(UiSpecHelpers.text).validation_errors).to eq([])
+      end
+
+      it "raises through validate!" do
+        expect { UiSpecHelpers.document(UiSpecHelpers.text).validate!(profile: :message) }
+          .to raise_error(CommandTower::UI::InvalidDocumentError)
+      end
+    end
+
     context "with a blank textFallback" do
       it "reports it" do
         expect { UiSpecHelpers.document(UiSpecHelpers.text, text_fallback: "").validate! }

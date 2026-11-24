@@ -28,7 +28,13 @@ module CommandTower
         :sound,
         :deep_link_required,
         :destination_locks,
+        :message,
       ) do
+        # `message` is optional so direct `Declaration.new` callers predating it keep working.
+        def initialize(message: nil, **attributes)
+          super
+        end
+
         def self.build(
           key:,
           allowed_channels:,
@@ -53,7 +59,8 @@ module CommandTower
           urgency: nil,
           sound: nil,
           deep_link_required: false,
-          destination_locks: {}
+          destination_locks: {},
+          message: nil
         )
           new(
             key: key.nil? ? nil : key.to_s,
@@ -96,6 +103,10 @@ module CommandTower
             # so Produce can reject a missing metadata deep_link.
             deep_link_required: !!deep_link_required,
             destination_locks: freeze_destination_locks(destination_locks),
+            # String class name of a `MessageDefinition` subclass. Stored as a name, never
+            # constantized here, so host registration order cannot depend on autoload order;
+            # `Registry#seal` constantizes and validates it.
+            message: message.nil? ? nil : message.to_s,
           ).freeze
         end
 

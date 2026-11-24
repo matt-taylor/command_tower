@@ -25,20 +25,21 @@ module CommandTower
       end
 
       def resolve
-        theme = CommandTower.config.email_theme
-        {
-          canvas_background: theme.canvas_background,
-          surface_background: theme.surface_background,
-          surface_border: theme.surface_border,
-          primary_text: theme.primary_text,
-          body_text: theme.body_text,
-          muted_text: theme.muted_text,
-          accent: theme.accent,
-          text_on_accent: theme.text_on_accent,
-          primary_action: theme.primary_action,
+        colors.merge(
           product_name: CommandTower.app_name_for_comms,
           product_url: CommandTower.config.application.composed_url
-        }.freeze
+        ).freeze
+      end
+
+      private
+
+      # Derived from the host token file only when it exists (design D19);
+      # otherwise exactly today's config.email_theme values.
+      def colors
+        return Palette.legacy_keys_from(Palette.resolve) if TokenFile.host_file?
+
+        theme = CommandTower.config.email_theme
+        Palette::LEGACY_TO_PALETTE.keys.index_with { |key| theme.public_send(key) }
       end
     end
   end

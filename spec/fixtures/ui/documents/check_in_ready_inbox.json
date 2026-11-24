@@ -1,0 +1,43 @@
+{
+  "catalog": 2,
+  "root": {
+    "children": [
+      {
+        "spans": [
+          {
+            "text": "Check in for Arms & Abs",
+            "type": "text"
+          }
+        ],
+        "textTone": "primary",
+        "type": "text",
+        "variant": "heading_m"
+      },
+      {
+        "children": [
+          {
+            "items": [
+              {
+                "label": "Class",
+                "value": "Arms & Abs"
+              }
+            ],
+            "type": "key_value"
+          }
+        ],
+        "type": "facts"
+      },
+      {
+        "format": "text",
+        "label": "Check-in code",
+        "type": "code",
+        "value": "482913"
+      }
+    ],
+    "padding": "md",
+    "surface": "raised",
+    "type": "card"
+  },
+  "schema": "ui_document",
+  "textFallback": "Check in for Arms & Abs\nClass: Arms & Abs"
+}

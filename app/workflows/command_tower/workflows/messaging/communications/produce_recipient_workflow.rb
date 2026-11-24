@@ -12,9 +12,9 @@ module CommandTower
             user_id:,
             notification_type_key:,
             campaign_identity:,
-            title:,
-            body:,
             platform_enabled_channels:,
+            title: nil,
+            body: nil,
             metadata: nil,
             conversation_key: nil,
             conversation_title: nil

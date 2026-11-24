@@ -65,6 +65,86 @@ RSpec.describe CommandTower::Configuration::Messaging::Config do
     end
   end
 
+  describe "compliance composer" do
+    let(:compliance) { CommandTower.config.messaging.compliance }
+
+    around do |example|
+      previous = {
+        api_base_url: compliance.api_base_url,
+        preferences_path: compliance.preferences_path,
+        postal_address: compliance.postal_address,
+        unsubscribe_secret: compliance.unsubscribe_secret
+      }
+      example.run
+    ensure
+      previous.each { |name, value| compliance.public_send(:"#{name}=", value) }
+    end
+
+    context "with a fresh composer" do
+      subject(:fresh) { CommandTower::Configuration::Messaging::Compliance.new }
+
+      it "defaults preferences_path, postal_address and unsubscribe_secret to nil", :aggregate_failures do
+        expect(fresh.preferences_path).to be_nil
+        expect(fresh.postal_address).to be_nil
+        expect(fresh.unsubscribe_secret).to be_nil
+      end
+    end
+
+    context "when assigning strings" do
+      before do
+        compliance.api_base_url = "https://api.example.test"
+        compliance.postal_address = "1 Example Way"
+      end
+
+      it "accepts them", :aggregate_failures do
+        expect(compliance.api_base_url).to eq("https://api.example.test")
+        expect(compliance.postal_address).to eq("1 Example Way")
+      end
+    end
+
+    context "when api_base_url is unset and the ENV var is present" do
+      before do
+        compliance.api_base_url = nil
+        allow(ENV).to receive(:[]).and_call_original
+        allow(ENV).to receive(:[]).with("COMMAND_TOWER_API_BASE_URL").and_return("https://env.example.test")
+      end
+
+      it "falls back to ENV COMMAND_TOWER_API_BASE_URL" do
+        expect(compliance.api_base_url).to eq("https://env.example.test")
+      end
+    end
+
+    it "rejects a non-string value" do
+      expect { compliance.postal_address = 5 }.to raise_error(ClassComposer::ValidatorError)
+    end
+  end
+
+  describe "strict_definitions composer" do
+    around do |example|
+      previous = CommandTower.config.messaging.strict_definitions
+      example.run
+    ensure
+      CommandTower.config.messaging.strict_definitions = previous
+    end
+
+    it "is true outside production (test env)" do
+      expect(CommandTower.config.messaging.strict_definitions).to be(true)
+    end
+
+    context "when set to false" do
+      before { CommandTower.config.messaging.strict_definitions = false }
+
+      it "accepts false" do
+        expect(CommandTower.config.messaging.strict_definitions).to be(false)
+      end
+    end
+
+    it "rejects a non-boolean" do
+      expect { CommandTower.config.messaging.strict_definitions = "yes" }
+        .to raise_error(ClassComposer::ValidatorError)
+    end
+  end
+
   describe "expo composer" do
     around do |example|
       previous_adapter = CommandTower.config.messaging.expo.adapter

@@ -91,6 +91,14 @@ entities:
   - name: admin_messaging_announcements
     controller: CommandTower::Admin::Messaging::AnnouncementsController
     only: create
+  - name: admin_messaging_gallery
+    controller: CommandTower::Admin::Messaging::GalleryController
+    only:
+      - index
+      - show
+  - name: admin_messaging_gallery_test_send
+    controller: CommandTower::Admin::Messaging::GalleryTestSendsController
+    only: create
   - name: admin_audit_events
     controller: CommandTower::Admin::Audit::EventsController
     only:

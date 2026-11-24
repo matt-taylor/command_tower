@@ -158,6 +158,8 @@ allow do
 end
 ```
 
+`headers: :any` covers the `X-Time-Zone` and `X-UI-Catalog` request headers. A host that lists allowed headers explicitly must add both.
+
 `SameSite=None` cookies require `Secure=true` (HTTPS). Prefer same-site deployments with `SameSite=Lax` when possible.
 
 ## Production checklist

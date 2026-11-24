@@ -20,6 +20,7 @@ RSpec.describe "CommandTower migration baseline" do
       20261010000002_add_conversation_identity_to_messaging_communications.rb
       20261012000001_add_provider_metadata_to_messaging_delivery_attempts.rb
       20261012000002_add_finished_at_index_to_messaging_delivery_attempts.rb
+      20261124000001_add_message_definition_columns_to_messaging_communications.rb
     ]
   end
 
@@ -132,7 +133,10 @@ RSpec.describe "CommandTower migration baseline" do
         "execution_handoff_status",
         "inbox_presentation_snapshot",
         "conversation_key",
-        "conversation_title"
+        "conversation_title",
+        "slots",
+        "render_zone",
+        "metadata_version"
       )
       expect(delivery_columns).to include("execution_claimed_at", "execution_attempt_count", "status")
     end

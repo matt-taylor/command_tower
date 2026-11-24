@@ -53,6 +53,13 @@ RSpec.describe CommandTower::UI::Nodes::Instant, :aggregate_failures do
     end
   end
 
+  ["user", :user].each do |zone|
+    it "accepts zone #{zone.inspect} and serializes it as user" do
+      expect(UiSpecHelpers.error_pairs(described_class.new(at: attrs[:at], zone:))).to eq([])
+      expect(described_class.new(at: attrs[:at], zone:).as_json["zone"]).to eq("user")
+    end
+  end
+
   it "requires a known zone" do
     expect(UiSpecHelpers.error_pairs(described_class.new(at: attrs[:at], zone: "Mars/Olympus")))
       .to eq([%i[zone invalid]])

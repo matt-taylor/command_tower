@@ -63,6 +63,18 @@ module CommandTower
             ItemResult.from_record(record)
           end
 
+          # Keyed by communication. true/false for a live inbox item; nil when the
+          # communication is not the recipient's, has no inbox item, or is deleted.
+          def viewed_for_communication(recipient_id:, communication_id:)
+            recipient_id = require_recipient_id!(recipient_id)
+            raise ValidationError, "communication_id is required" if blank?(communication_id)
+
+            record = Scope.find_for_recipient_communication(recipient_id:, communication_id:)
+            return nil if record.nil? || record.deleted?
+
+            !record.viewed_at.nil?
+          end
+
           def unread_count(recipient_id:)
             recipient_id = require_recipient_id!(recipient_id)
             unread = Scope.for_recipient(recipient_id).merge(Messaging::InboxItem.unread)

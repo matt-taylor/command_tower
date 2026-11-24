@@ -96,6 +96,8 @@ module CommandTower
           end
 
           validate_home_deep_link_configuration!
+          # Constantizes `message:` class names, so it runs here (seal) and never at register.
+          MessageDefinitionChecks.validate!(@declarations.values)
         end
 
         # Sound ids are checked at seal, not register, so host initializer order cannot matter.

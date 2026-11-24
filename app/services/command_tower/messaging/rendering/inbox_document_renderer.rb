@@ -52,21 +52,36 @@ module CommandTower
         UNSAFE_SCHEMES = %w[javascript data vbscript].freeze
         DEFAULT_CTA_LABEL = "Open"
 
-        def self.render(communication:, recipient_id:)
-          new(communication:, recipient_id:).render
+        # Types registered with a `message:` MessageDefinition render through it: the composed
+        # `UI::Document` (profile `:message`) is redacted when `impersonating` is not exactly
+        # false, then returned as is for `ui_catalog >= 2` or mapped to `inbox_document_v1` for
+        # catalog 1. Every other type renders the generic/composer path, identical for all
+        # catalogs. In production a failing definition falls back to the `:basic` document and
+        # logs ids only; elsewhere it raises so the definition bug is visible.
+        def self.render(communication:, recipient_id:, ui_catalog: 1, impersonating: false)
+          new(communication:, recipient_id:, ui_catalog:, impersonating:).render
         end
 
         def self.compose_shell(communication)
           new(communication:, recipient_id: nil).compose_shell
         end
 
-        def initialize(communication:, recipient_id:)
+        def initialize(communication:, recipient_id:, ui_catalog: 1, impersonating: false)
           @communication = communication
           @recipient_id = recipient_id
+          @ui_catalog = ui_catalog
+          @impersonating = impersonating
           @presentation_attempted = false
         end
 
         def render
+          definition = message_definition
+          return render_defined(definition) if definition
+
+          render_undefined
+        end
+
+        def render_undefined
           document = compose_shell
           snapshot = stored_presentation_snapshot
           return resolve_presentation_blocks(document) if snapshot.nil?
@@ -81,7 +96,67 @@ module CommandTower
 
         private
 
-        attr_reader :communication, :recipient_id
+        attr_reader :communication, :recipient_id, :ui_catalog, :impersonating
+
+        # The declared MessageDefinition class, or nil for an unregistered or undefined type.
+        def message_definition
+          name = CommandTower::Messaging::NotificationTypes.lookup(communication.notification_type_key).message
+          name.presence&.constantize
+        rescue StandardError
+          nil
+        end
+
+        def render_defined(definition)
+          document = defined_document(definition)
+          return document unless document.is_a?(CommandTower::UI::Document)
+
+          document = CommandTower::UI::Redaction.call(document, impersonating:)
+          ui_catalog.to_i >= 2 ? document : CommandTower::UI::LegacyMapping.call(document)
+        end
+
+        def defined_document(definition)
+          composed_inbox(definition)
+        rescue StandardError => e
+          raise unless Rails.env.production?
+
+          log_fallback(e)
+          basic_fallback(definition)
+        end
+
+        def basic_fallback(definition)
+          basic = Class.new(definition) do
+            def inbox(builder, **)
+              builder.basic
+            end
+          end
+          composed_inbox(basic)
+        rescue StandardError
+          build_generic
+        end
+
+        def composed_inbox(definition)
+          CommandTower::Messaging::Definitions::DocumentBuilder.inbox(
+            definition: definition.new, context: render_context(definition), profile: definition.document_profile
+          )
+        end
+
+        def render_context(definition)
+          CommandTower::Messaging::Definitions::RenderContext.new(
+            notification_type_key: communication.notification_type_key,
+            metadata: (communication.metadata.is_a?(Hash) ? communication.metadata : {}).transform_keys(&:to_s),
+            metadata_version: communication.metadata_version || definition.metadata_version,
+            slots: communication.slots,
+            render_zone: communication.render_zone
+          )
+        end
+
+        # Ids and the error class only: metadata values and error messages can quote user data.
+        def log_fallback(error)
+          Rails.logger.warn(
+            "[command_tower] inbox_document_fallback communication_id=#{communication.id} " \
+            "notification_type_key=#{communication.notification_type_key} error_class=#{error.class.name}"
+          )
+        end
 
         def build_from_type_composer
           declaration = CommandTower::Messaging::NotificationTypes.lookup(communication.notification_type_key)

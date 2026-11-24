@@ -475,6 +475,30 @@ RSpec.describe CommandTower::Workflows::Messaging::Execution::DeliverWorkflow, :
     end
   end
 
+  context "when SMS is delivered for a defined type with stored slots" do
+    let(:adapter) { CommandTower::Messaging::Execution::Adapters::FakeAdapter.new(outcome: :success) }
+    let(:communication) do
+      create(
+        :messaging_communication,
+        user:, host_event_identity: "exec-#{SecureRandom.hex(4)}", accept_request_fingerprint: "fp",
+        status: "accepted", execution_handoff_status: "enqueued",
+        title: "Generic title", body: "Generic body", metadata_version: 1,
+        slots: { "sms_body" => "Studio: class canceled at 6:00 PM." }
+      )
+    end
+
+    before do
+      enable_sms_platform!
+      user.update!(phone_number: "+14155552671", phone_number_validated: true)
+      delivery.update!(channel_key: "sms")
+      described_class.call(channel_delivery_id: delivery.id, executor: adapter)
+    end
+
+    it "hands the slot text to the FakeAdapter" do
+      expect(adapter.last_request.rendered.body).to eq("Studio: class canceled at 6:00 PM.")
+    end
+  end
+
   context "when the adapter must not be invoked because readiness resolution fails" do
     let(:adapter) { instance_double(CommandTower::Messaging::Execution::Adapters::FakeAdapter) }
 
@@ -724,6 +748,27 @@ RSpec.describe CommandTower::Workflows::Messaging::Execution::DeliverWorkflow, :
         expect(delivery.delivery_attempts.sole.normalized_provider_status).to eq("accepted")
         expect(delivery.delivery_attempts.sole.provider_message_id).to be_present
         expect(CommandTower::Messaging::Pushover::Adapters::FakeAdapter.messages.size).to eq(1)
+      end
+    end
+
+    context "when the communication is a defined type with stored slots" do
+      let(:communication) do
+        create(
+          :messaging_communication,
+          user:, host_event_identity: "exec-#{SecureRandom.hex(4)}", accept_request_fingerprint: "fp",
+          status: "accepted", execution_handoff_status: "enqueued",
+          title: "Generic title", body: "Generic body", metadata_version: 1,
+          slots: { "pushover_title" => "Class canceled", "pushover_message" => "Tonight's class is canceled." }
+        )
+      end
+
+      before { described_class.call(channel_delivery_id: delivery.id) }
+
+      subject(:sent_message) { CommandTower::Messaging::Pushover::Adapters::FakeAdapter.messages.sole }
+
+      it "sends the slot text through the Pushover FakeAdapter", :aggregate_failures do
+        expect(sent_message[:title]).to eq("Class canceled")
+        expect(sent_message[:message]).to eq("Tonight's class is canceled.")
       end
     end
 

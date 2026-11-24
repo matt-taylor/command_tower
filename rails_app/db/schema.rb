@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_10_12_000002) do
+ActiveRecord::Schema[7.2].define(version: 2026_11_24_000001) do
   create_table "command_tower_audit_events", charset: "utf8mb3", force: :cascade do |t|
     t.string "action", null: false
     t.bigint "actor_user_id"
@@ -107,7 +107,10 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_12_000002) do
     t.string "host_event_identity"
     t.json "inbox_presentation_snapshot"
     t.text "metadata"
+    t.integer "metadata_version"
     t.string "notification_type_key", null: false
+    t.string "render_zone", limit: 64
+    t.json "slots"
     t.string "status"
     t.string "title", null: false
     t.datetime "updated_at", null: false

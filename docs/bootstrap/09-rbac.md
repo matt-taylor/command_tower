@@ -74,6 +74,8 @@ The frontend workspace and user detail call these entities. Grant each one the r
 - `admin_users`
 - `admin_audit_events`
 - `admin_messaging_announcements`
+- `admin_messaging_gallery`
+- `admin_messaging_gallery_test_send`
 - `admin_impersonation`
 
 `admin_impersonation` is what shows Impersonate. The frontend does not add a route for it.

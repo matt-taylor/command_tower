@@ -29,6 +29,26 @@ RSpec.describe CommandTower::EmailTheme::Resolver do
       expect(result).to be_frozen
     end
 
+    context "when the host has a config/ui_tokens.json" do
+      let(:fixture_path) { File.expand_path("../../../fixtures/messaging/ui_tokens.json", __dir__) }
+
+      before do
+        allow(CommandTower::EmailTheme::TokenFile).to receive(:host_path).and_return(fixture_path)
+      end
+
+      it "derives its 9 colour keys from the token file, ignoring config.email_theme" do
+        expect(result).to include(
+          canvas_background: "#faf8f5", surface_background: "#ffffff", surface_border: "#ddd8d0",
+          primary_text: "#191f2e", body_text: "#191f2e", muted_text: "#606776",
+          accent: "#5c2fc6", text_on_accent: "#ffffff", primary_action: "#5c2fc6"
+        )
+      end
+
+      it "still composes product identity" do
+        expect(result).to include(product_name: CommandTower.app_name_for_comms)
+      end
+    end
+
     context "when the host has overridden theme and identity config" do
       around do |example|
         previous_accent = CommandTower.config.email_theme.accent

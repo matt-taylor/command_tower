@@ -1,0 +1,124 @@
+{
+  "catalog": 2,
+  "root": {
+    "children": [
+      {
+        "align": "start",
+        "children": [
+          {
+            "children": [
+              {
+                "spans": [
+                  {
+                    "text": "New classes this week",
+                    "type": "text"
+                  }
+                ],
+                "textTone": "primary",
+                "type": "text",
+                "variant": "heading_m"
+              }
+            ],
+            "gap": "xs",
+            "type": "stack"
+          }
+        ],
+        "gap": "sm",
+        "type": "stack"
+      },
+      {
+        "children": [
+          {
+            "spans": [
+              {
+                "text": "We added ",
+                "type": "text"
+              },
+              {
+                "strong": true,
+                "text": "three",
+                "type": "text"
+              },
+              {
+                "text": " classes.",
+                "type": "text"
+              }
+            ],
+            "textTone": "primary",
+            "type": "text",
+            "variant": "body"
+          },
+          {
+            "children": [
+              {
+                "spans": [
+                  {
+                    "text": "• ",
+                    "type": "text"
+                  },
+                  {
+                    "text": "Sunrise Stretch",
+                    "type": "text"
+                  }
+                ],
+                "textTone": "primary",
+                "type": "text",
+                "variant": "body"
+              },
+              {
+                "spans": [
+                  {
+                    "text": "• ",
+                    "type": "text"
+                  },
+                  {
+                    "text": "Arms & Abs",
+                    "type": "text"
+                  }
+                ],
+                "textTone": "primary",
+                "type": "text",
+                "variant": "body"
+              }
+            ],
+            "gap": "xs",
+            "type": "stack"
+          },
+          {
+            "spans": [
+              {
+                "text": "See the ",
+                "type": "text"
+              },
+              {
+                "action": {
+                  "destination": {
+                    "kind": "internal",
+                    "path": "/schedule"
+                  },
+                  "type": "navigate"
+                },
+                "text": "schedule",
+                "type": "link"
+              },
+              {
+                "text": " to book.",
+                "type": "text"
+              }
+            ],
+            "textTone": "primary",
+            "type": "text",
+            "variant": "body"
+          }
+        ],
+        "gap": "md",
+        "type": "stack"
+      }
+    ],
+    "padding": "md",
+    "surface": "raised",
+    "type": "card"
+  },
+  "schema": "ui_document",
+  "textFallback": "New classes this week\nWe added three classes.\n• Sunrise Stretch\n• Arms & Abs\nSee the schedule to book."
+}

@@ -4,6 +4,7 @@ Host-facing upgrade / change summaries for CommandTower releases.
 
 | Version | Summary |
 |---------|---------|
+| [0.23.0](0.23.0.md) | Message definitions: `MessageDefinition` / `AnnouncementDefinition`, composer-built email with compliance footer and one-click unsubscribe, shared email token file, first-view inbox audit, `X-Time-Zone` writer, admin message gallery and test send; `no-store` on inbox reads; one additive migration |
 | [0.22.0](0.22.0.md) | Server-driven UI document library (`CommandTower::UI`), legacy mapping, email renderer; `X-UI-Catalog` header read into `Current.ui_catalog` (no behavior change) |
 | [0.21.0](0.21.0.md) | Notification preference reads: channel catalog, destinations, settings rows; PATCH merges onto stored member state |
 | [0.20.0](0.20.0.md) | Push delivery certainty: JSON `provider_metadata` caster; duplicate-averse push recovery and Expo submission guards |

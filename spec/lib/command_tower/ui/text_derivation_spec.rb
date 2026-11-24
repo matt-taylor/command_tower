@@ -23,6 +23,41 @@ RSpec.describe CommandTower::UI::TextDerivation, :aggregate_failures do
     end
   end
 
+  context "with a zone user time" do
+    let(:root) do
+      CommandTower::UI.document(text_fallback: "x") do |d|
+        d.stack do |s|
+          s.time(at:, zone: :user, format: :time)
+          s.key_value { |kv| kv.item "When", kv.time(at:, zone: "user", format: :time) }
+          s.time(at:, zone: "UTC", format: :time)
+        end
+      end.root
+    end
+
+    it "renders in the given user zone, leaving named zones alone" do
+      expect(described_class.call(root, user_zone: "America/Los_Angeles"))
+        .to eq("6:00 AM PT\nWhen: 6:00 AM PT\n2:00 PM UTC")
+    end
+
+    context "with a configured default zone" do
+      before { allow(CommandTower.config.ui).to receive(:default_zone).and_return("America/New_York") }
+
+      it "defaults to config.ui.default_zone" do
+        expect(described_class.call(root)).to eq("9:00 AM ET\nWhen: 9:00 AM ET\n2:00 PM UTC")
+      end
+    end
+  end
+
+  context "with a time without a zone" do
+    before { allow(CommandTower.config.ui).to receive(:default_zone).and_return("America/New_York") }
+
+    let(:text) { UiSpecHelpers.derive_text { |d| d.time(at:, format: :time) } }
+
+    it "defaults to the configured default zone (the render zone)" do
+      expect(text).to eq("9:00 AM ET")
+    end
+  end
+
   context "with a component" do
     let(:text) do
       UiSpecHelpers.derive_text do |d|

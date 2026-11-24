@@ -21,6 +21,14 @@ module CommandTower
         Reader.unread_count(recipient_id:)
       end
 
+      def viewed_for_communication(recipient_id:, communication_id:)
+        Reader.viewed_for_communication(recipient_id:, communication_id:)
+      end
+
+      def mark_viewed_for_communication(recipient_id:, communication_id:)
+        Mutator.mark_viewed_for_communication(recipient_id:, communication_id:)
+      end
+
       def mark_viewed(recipient_id:, inbox_item_id:)
         Mutator.mark_viewed(recipient_id:, inbox_item_id:)
       end

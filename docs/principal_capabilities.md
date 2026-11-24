@@ -41,6 +41,8 @@ Lookup: `CommandTower.config.registry.principal_capabilities.fetch(:admin_worksp
 | `admin_rbac_assignments` | Gate Admin Users role assignment (assignable catalog + PATCH roles) |
 | `admin_audit_events` | Gate Audit Admin affordances and deep links outside the workspace manifest |
 | `admin_messaging_announcements` | Gate Messaging Admin affordances outside the manifest |
+| `admin_messaging_gallery` | Gate the Message gallery (preview every channel per message type). Only `owner` holds it by default; hosts grant it explicitly. |
+| `admin_messaging_gallery_test_send` | Gate the gallery test send. Only `owner` holds it by default; hosts grant it explicitly. |
 | `admin_impersonation` | Gate Impersonate affordances (5.6 composition). Possession does not start a session by itself. |
 | `me_audit_events` | Gate Account **Activity** / self-audit Explorer presentation (4.7.1). Hosts own who receives the entity. |
 

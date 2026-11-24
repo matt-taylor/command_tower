@@ -64,7 +64,9 @@ RSpec.describe CommandTower::Services::Admin::Workspace::Manifest, :with_rbac_se
       let(:owner) { create(:user, :role_owner) }
 
       it "includes CommandTower tools and the dummy host tool" do
-        expect(result.data[:tools].map { |tool| tool[:id] }).to eq(%w[messaging users audit dummy_admin_example])
+        expect(result.data[:tools].map { |tool| tool[:id] }).to eq(
+          %w[messaging messaging_gallery users audit dummy_admin_example]
+        )
       end
     end
 

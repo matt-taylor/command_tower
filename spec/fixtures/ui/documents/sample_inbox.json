@@ -1,0 +1,65 @@
+{
+  "catalog": 2,
+  "root": {
+    "children": [
+      {
+        "spans": [
+          {
+            "text": "Arms & Abs is canceled",
+            "type": "text"
+          }
+        ],
+        "textTone": "primary",
+        "type": "text",
+        "variant": "heading_m"
+      },
+      {
+        "children": [
+          {
+            "items": [
+              {
+                "label": "Class",
+                "value": "Arms & Abs"
+              },
+              {
+                "label": "When",
+                "value": {
+                  "at": "2026-12-04T14:00:00Z",
+                  "format": "short",
+                  "label": "auto",
+                  "textTone": "primary",
+                  "type": "time",
+                  "variant": "body",
+                  "zone": "America/Los_Angeles"
+                }
+              },
+              {
+                "label": "Where",
+                "value": "Studio B"
+              }
+            ],
+            "type": "key_value"
+          }
+        ],
+        "type": "facts"
+      },
+      {
+        "action": {
+          "destination": {
+            "kind": "internal",
+            "path": "/schedule"
+          },
+          "type": "navigate"
+        },
+        "label": "Open in RailsApp",
+        "type": "button",
+        "variant": "primary"
+      }
+    ],
+    "padding": "md",
+    "surface": "raised",
+    "type": "card"
+  },
+  "schema": "ui_document",
+  "textFallback": "Arms & Abs is canceled\nClass: Arms & Abs\nWhen: Fri, Dec 4, 6:00 AM PT\nWhere: Studio B\nOpen in RailsApp"
+}

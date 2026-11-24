@@ -11,6 +11,9 @@ module CommandTower
 
           ROUTE = %r{\A/admin(/[a-z][a-z0-9_-]*)+\z}
 
+          # Icon names may be kebab-case (for example `layout-template`).
+          ICON = /\A[a-z][a-z0-9_-]*\z/
+
           DESCRIPTION_MAX_LENGTH = 160
 
           add_composer :label,
@@ -130,7 +133,13 @@ module CommandTower
           def normalize_icon!(name:)
             return if icon.nil? || icon.to_s.strip.empty?
 
-            require_segment!(icon, field: "icon", name:)
+            token = icon.to_s.strip
+            unless token.match?(ICON)
+              raise CommandTower::AdminWorkspace::InvalidToolDefinitionError,
+                "admin workspace tool #{name} has invalid icon #{icon.inspect}"
+            end
+
+            token
           end
 
           def normalize_scope!(name:)

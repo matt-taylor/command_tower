@@ -17,14 +17,15 @@ Proof for contracts lives primarily under `spec/requests/command_tower/`.
 5. [Me Inbox](#me-inbox)
 6. [Audit events](#audit-events)
 7. [Preferences](#preferences)
-8. [Phone](#phone)
-9. [Pushover](#pushover)
-10. [Admin Workspace](#admin-workspace)
-11. [Impersonation](#impersonation)
-12. [Admin messaging](#admin-messaging)
-13. [Non-HTTP emit APIs](#non-http-emit-apis)
-14. [RBAC overview](#rbac-overview)
-15. [Feature gates](#feature-gates)
+8. [Unsubscribe](#unsubscribe)
+9. [Phone](#phone)
+10. [Pushover](#pushover)
+11. [Admin Workspace](#admin-workspace)
+12. [Impersonation](#impersonation)
+13. [Admin messaging](#admin-messaging)
+14. [Non-HTTP emit APIs](#non-http-emit-apis)
+15. [RBAC overview](#rbac-overview)
+16. [Feature gates](#feature-gates)
 
 ---
 
@@ -189,7 +190,7 @@ Does **not** authorize `admin_impersonation` on the effective user. Shared front
 | **Errors** | `401`; `403`; `412` `email_verification_required` when email verification gate applies |
 | **Spec** | `spec/requests/command_tower/auth/principal_capabilities_spec.rb` |
 
-Projection is effective entity grants ∩ curated `config.registry.principal_capabilities` (never role/group names). CommandTower seeds `admin_workspace`, `admin_users`, `admin_users_update`, `admin_rbac_assignments`, `admin_audit_events`, `admin_messaging_announcements`, `admin_impersonation`, `me_audit_events`. Hosts may register additive host-owned ids. Distinct from `/me` capabilities and from `GET /admin/workspace` (tool manifest). See [Principal capabilities](principal_capabilities.md).
+Projection is effective entity grants ∩ curated `config.registry.principal_capabilities` (never role/group names). CommandTower seeds `admin_workspace`, `admin_users`, `admin_users_update`, `admin_rbac_assignments`, `admin_audit_events`, `admin_messaging_announcements`, `admin_messaging_gallery`, `admin_messaging_gallery_test_send`, `admin_impersonation`, `me_audit_events`. Hosts may register additive host-owned ids. Distinct from `/me` capabilities and from `GET /admin/workspace` (tool manifest). See [Principal capabilities](principal_capabilities.md).
 
 ### `GET /auth/email/availability`
 
@@ -337,17 +338,20 @@ Pagination for list: query `limit` (default **50**, max **100**), `offset` (defa
 
 | Method | Path | Notes |
 |--------|------|--------|
-| `GET` | `/me/inbox` | List — `data` array of items; pagination meta |
+| `GET` | `/me/inbox` | List — `data` array of conversation/entry rows; pagination meta; query `limit`, `offset`, `scope` only |
+| `GET` | `/me/inbox/conversation` | One conversation's messages. Query: `key` (required), `scope` (`inbox` \| `archived`), and at most one of `around` (item id or `oldest_unread`), `before` (item id), `after` (item id); optional `limit` (only with a window mode) |
 | `GET` | `/me/inbox/:id` | Detail (+ `body`, `metadata`, `notificationTypeKey`, `content`) |
-| `POST` | `/me/inbox/:id/open` | Detail (+ `content`) |
+| `POST` | `/me/inbox/:id/open` | Detail (+ `content`). Renders once; the first non-impersonated open marks the item viewed and emits one `messaging_inbox_item_viewed` audit event (see [audit.md](audit.md)). Impersonated opens return the detail without marking viewed or auditing. |
 | `PATCH` | `/me/inbox/:id/archive` | Item |
 | `DELETE` | `/me/inbox/:id` | `data: null` |
-| `GET` | `/me/inbox/unread-count` | `{ count }` |
+| `GET` | `/me/inbox/unread-count` | `{ count, badgeCount }` (`badgeCount` counts only unread items of badge-eligible notification types) |
 | `POST` | `/me/inbox/bulk/read` | Body `ids` (1–100 ints) → `{ ids, count, changedCount }` |
 | `POST` | `/me/inbox/bulk/unread` | same |
 | `POST` | `/me/inbox/bulk/archive` | same |
 | `POST` | `/me/inbox/bulk/restore` | same |
 | `POST` | `/me/inbox/bulk/delete` | same |
+
+For a defined notification type while impersonating (or when the type is unknown), `GET /me/inbox/:id`, `POST /me/inbox/:id/open` and `GET /me/inbox/conversation` return `metadata: null`, and `content` has its `code` nodes replaced (`UI::Redaction`).
 
 **`content` (detail only, response-only — `inbox_document_v1`):** rendered at read from the item's `Communication`, never persisted; absent from list items. Shape: `{ schema: "inbox_document_v1", blocks: [...] }`. Allowlisted block types:
 
@@ -358,13 +362,19 @@ Pagination for list: query `limit` (default **50**, max **100**), `offset` (defa
 | `instant` | `at` (string) | ISO-8601 UTC. Input without an explicit offset adds no block. |
 | `presentation` | `key` (string), `variant` (string or null) | Names a registered presentation capability; its data is composed after authoring. |
 
-Generic (default) rendering: one `paragraph` block from `communication.body` (omitted if blank — `blocks` can legitimately be `[]`), plus one `cta` block if `metadata.deep_link` is a safe destination (label from `metadata.cta_label`, default `"Open"`).
+Generic (default) rendering: one `paragraph` block from `communication.body` (omitted if blank — `blocks` can legitimately be `[]`), plus one `cta` block if there is a safe destination: `metadata.deep_link_path` (internal, wins when present and safe) else `metadata.deep_link` (external). Label from `metadata.cta_label`, default `"Open"`.
 
-**`X-UI-Catalog` request header:** accepted on every request (CommandTower reads it in the HTTP boundary). Missing or invalid values mean `1`; it has no effect on any response yet, including Inbox bodies. See [ui.md](ui.md#catalog-header).
+**`X-UI-Catalog` request header:** accepted on every request (CommandTower reads it in the HTTP boundary). Missing or invalid values mean `1`; it changes only Inbox `content` for types registered with a `message:` MessageDefinition (catalog 2 or higher returns `ui_document`, catalog 1 returns `inbox_document_v1`); undefined types are identical for every catalog. Inbox read responses set `Cache-Control: no-store`. See [ui.md](ui.md#catalog-header).
 
-Hosts may override the document per `notificationTypeKey` with an `inbox_document.json.erb` view at `app/views/command_tower/messaging/rendering/<notification_type_key>/inbox_document.json.erb` (same lookup convention as [`messaging_integration_guide.md`](messaging_integration_guide.md#rendering-template-overrides)). Any failure resolving or rendering that template (missing file, malformed JSON, wrong `schema`/`blocks` shape, or a raising template) fails open to the generic document — the Inbox read path never 500s on a bad type template. A valid envelope with one invalid/unknown block strips only that block; if stripping empties `blocks`, the generic document is used instead.
+**`X-Time-Zone` request header:** an optional TZInfo identifier (for example `America/New_York`, at most 64 characters). The HTTP boundary reads it into `CommandTower::Current.client_time_zone`; anything else is ignored. After a 2xx response to an authenticated, non-impersonated request, CommandTower records it as the user's `last_known_timezone` column, which `GET /me` returns (as the user's shown attribute; hosts with serializer or snapshot tests will see a real value instead of null). The write happens only when the zone changed and the previous write is more than one hour old, fails open (it never changes the response), and never logs the zone. Requests made while impersonating never write. Hosts that list CORS `headers:` explicitly must add `X-Time-Zone` ([bootstrap step 11](bootstrap/11-auth-client-path.md), [cookie guide](cookie_authentication_guide.md#cors)).
 
-**List item fields:** `id`, `title`, `status`, `read`, `viewedAt`, `createdAt`, `updatedAt`.
+**Message definition columns:** `messaging_communications` carries three nullable columns for communications of a defined message type: `slots` (JSON, the validated slot values), `render_zone` (string, at most 64 characters: the recipient's `last_known_timezone` when valid, else the definition's default zone) and `metadata_version` (integer). A communication is definition-backed when `metadata_version` is not null; undefined types leave all three NULL. `messaging.strict_definitions` (default true outside production, false in production) decides whether a definition violation (metadata schema, explicit copy on a defined type) fails the request or is logged and degraded.
+
+A notification type may override the document with a pure-Ruby composer (`declaration.inbox_document_composer`, called with `communication:`, returning an `InboxDocument`). Any failure (unregistered type, unresolvable class, a raising composer, a non-`InboxDocument` result) fails open to the generic document — the Inbox read path never 500s on a bad composer. The former `inbox_document.json.erb` host override is no longer read.
+
+**List row fields (`GET /me/inbox`):** `kind`, `id`, `title`, `preview`, `activityAt`, `createdAt`, `messageCount`, `unreadCount`, `read`, `inboxItemIds`. Item payloads (archive, `bulk` targets, conversation `messages`) use `id`, `title`, `status`, `read`, `viewedAt`, `createdAt`, `updatedAt`; conversation messages also carry the detail fields.
+
+Hosts never expose `inboxEnabled` as a user-facing inbox switch; it appears only in the preferences contract below.
 
 **Errors:** `401` / `403` / `422`; show/open may return `404` `not_found`.
 
@@ -403,6 +413,21 @@ Scoped admin audit: host-scoped rows (`scope_class: host`) matching host context
 | **Spec** | `spec/requests/command_tower/me/preferences_spec.rb` | |
 
 Category / notification serializers expose catalog fields (`key`, `label`, `description`, `order`, channel availability, `preferences: { inboxEnabled, channels, storedOverridePresent }`, …).
+
+---
+
+## Unsubscribe
+
+Unauthenticated one-click unsubscribe (RFC 8058). No session, cookie or CSRF; the signed `token` query parameter is the only credential. Configuration, token and limits: [messaging_integration_guide.md](messaging_integration_guide.md#email-compliance-defined-types).
+
+| Method | Path | Notes |
+|--------|------|--------|
+| `POST` | `/messaging/unsubscribe?token=` | Email off for the token's user and type. `200` `data`: `{ unsubscribed: true }` (also on a repeat). Any invalid token or ineligible type: identical `422`. Rate limited: `429` with `Retry-After` |
+| `GET` | `/messaging/unsubscribe?token=` | Never reads the token, never mutates. `303` to `composed_url + preferences_path` (documented transport non-envelope) |
+
+Both set `Cache-Control: no-store` and `Referrer-Policy: no-referrer`.
+
+**Specs:** `spec/requests/command_tower/messaging/unsubscribe_spec.rb`.
 
 ---
 
@@ -516,7 +541,7 @@ No query parameters. Envelope `data` (no pagination `meta`):
 
 Unscoped hosts omit `scope`, `scopeOptions`, and `availability`.
 
-Tools are filtered from the composed RBAC grant graph (`allow_everything` or an entity matching the tool's `required_entity`). `description` is additive presentation metadata (soft authoring ≤100 chars; registry hard max 160). CommandTower seeds `users`, `audit`, and `messaging`. Hosts add tools via `config.registry.admin_workspace.tool`. There is no generic tool execution route. `/me` does not duplicate this list. Do not use this endpoint as a UI permission probe — use [Principal capabilities](principal_capabilities.md).
+Tools are filtered from the composed RBAC grant graph (`allow_everything` or an entity matching the tool's `required_entity`). `description` is additive presentation metadata (soft authoring ≤100 chars; registry hard max 160). CommandTower seeds `users`, `audit`, `messaging`, and `messaging_gallery`. Hosts add tools via `config.registry.admin_workspace.tool`. There is no generic tool execution route. `/me` does not duplicate this list. Do not use this endpoint as a UI permission probe — use [Principal capabilities](principal_capabilities.md).
 
 Registration and boot rules: [Admin Workspace](admin_workspace.md).
 
@@ -593,11 +618,44 @@ Expired product request: overlay present + invalid row → **401** `impersonatio
 
 **Body** (camel preferred; snake via underscore fallback): `title`, `body`, `campaignIdentity` (required), `audience` (`user_ids` \| `all_users`), `userIds` (required when `user_ids`), `notificationTypeKey` (default `"promotional_announcement"`), `executionMode` (`async` \| `sync`, default `async`), `metadata` (optional).
 
+**Target type.** An undefined type (no `message:`) is produced with the given `title` and `body`, as before. A type defined by `CommandTower::Messaging::AnnouncementDefinition` (or a subclass) receives `title` and `body` as metadata (`title` up to 200 characters, `body` as markdown up to 5000; `metadata` keys are kept, and these two win) and produces no title or body of its own; a title or body outside those limits is **422** `validation_failed`. Any other defined type fails with **422** `announcement_type_not_supported`.
+
 **Async response:** `mode`, `requested`, `campaignIdentity`, `enqueued`, `enqueueFailed`.
 
 **Sync response:** `mode`, `requested`, `campaignIdentity`, `accepted`, `failed`, `skipped`, `failures: [{ userId, errorCode }]`.
 
-Engine admin HTTP includes workspace manifest, announcements, audit events, Users list/show, and impersonation start. There is no role-assign or User-mutation admin surface.
+### `GET /admin/messaging/gallery` and `GET /admin/messaging/gallery/:notification_type_key`
+
+| | |
+|--|--|
+| **Auth** | authenticate + authorize (RBAC entity `admin_messaging_gallery`; principal capability of the same id) |
+| **Success** | **200**, `Cache-Control: no-store` |
+| **Errors** | `401`; `403` without the grant; `404` unknown type, type without a message definition, or unknown `fixture`; `422` invalid `zone` or a composer that fails (the failure names the channel and error class only) |
+| **Spec** | `spec/requests/command_tower/admin/messaging/gallery_spec.rb` |
+
+Previews every channel of each notification type that declares a `MessageDefinition`, from the definition's declared fixtures. It reads no `Communication` and no user data.
+
+**List** returns one item per defined type: `notificationTypeKey`, `label`, `definition`, `allowedChannels`, `promotional`, `fixtures: [{ name, metadataVersion }]`.
+
+**Show** query params (both optional): `fixture` (a declared fixture name, default the first) and `zone` (any valid TZInfo identifier, default the definition's `default_zone`). It returns `notificationTypeKey`, `fixture`, `metadataVersion`, `renderZone`, `slots`, `channels` (`push`, `sms`, `pushover`, `inbox`, `email`; a channel the type does not allow is `null`, `inbox` included), `facts` (`app`, `emailHtml`) and `checks`.
+
+**Fixtures.** Example payloads for both endpoints, the inbox documents and the email parts are committed under `spec/fixtures/messaging/gallery/`, `spec/fixtures/ui/documents/` and `spec/fixtures/ui/email/`. Regenerate them from the dummy app with `make rake TASK=app:command_tower:messaging:fixtures`; `spec/lib/command_tower/messaging/messaging_fixtures_spec.rb` fails when a committed file differs from a fresh render. Files are sorted, pretty-printed JSON, so consumers can copy them byte for byte.
+
+### `POST /admin/messaging/gallery/:notification_type_key/test-send`
+
+| | |
+|--|--|
+| **Auth** | authenticate + authorize (RBAC entity `admin_messaging_gallery_test_send`; principal capability of the same id). Separate from `admin_messaging_gallery`: a host grants it explicitly. |
+| **Body / params** | `fixture`, `zone` (both optional, as for the preview) |
+| **Success** | **202** `{ notificationTypeKey, sent: true }`, `Cache-Control: no-store` |
+| **Errors** | `401`; `403` without the grant; `403` `gallery_test_send_impersonating` while impersonating (or when the actor is not the effective user), checked before authorization and instead of the generic admin `418`; `404` unknown type, no definition or unknown `fixture`; `422` invalid `zone`, a failing composer, or a type that does not allow email; `429` `gallery_test_send_rate_limited` with `details.retry_after_seconds`; `500` when the rate-limit store (Redis) is unavailable (fails closed, nothing is sent); `502` `gallery_test_send_failed` with `details.error_code` when the email adapter refuses |
+| **Spec** | `spec/requests/command_tower/admin/messaging/gallery_test_send_spec.rb` |
+
+Sends the email channel of one declared fixture to the **real actor's own address** (from the user record, never from the request), through the same adapter boundary as the sender (`SelectAdapter`: the fake adapter when `config.messaging.allow_fake_adapter` is on, else the configured email adapter). Email only. It writes no `Communication`. The subject is the preview subject unchanged; a "Test message" line sits above the compliance footer; no `List-Unsubscribe*` headers are added.
+
+Rate limit, keyed on the real actor: 5 an hour and 20 a day. A rejected call returns `429` and sends nothing. Each accepted send audits `messaging_gallery_test_sent` (retention `one_year`; metadata `actor_id`, `notification_type_key`, `fixture`; never the address). See [Audit](audit.md).
+
+Engine admin HTTP includes workspace manifest, announcements, the message gallery (preview and test send), audit events, Users list/show, and impersonation start. Users admin also includes identity mutations (`PATCH /admin/users/:id/{name,username,email,email-validation}`) and role assignment (`PATCH /admin/users/:id/roles`); see [Admin Users](#admin-users).
 
 ---
 
@@ -607,8 +665,8 @@ Hosts call these from **product workflows** (not as HTTP on the engine):
 
 | Service | Required kwargs |
 |---------|-----------------|
-| `CommandTower::Services::Messaging::Communications::Produce` | `user`, `notification_type_key`, `host_event_identity`, `title`, `body`, `platform_enabled_channels`; optional `metadata` |
-| `CommandTower::Services::Messaging::Communications::ProduceMany` | `user_ids`, `notification_type_key`, `campaign_identity`, `title`, `body`, `platform_enabled_channels`; optional `metadata`, `execution_mode` (`:async` default, `:sync` capped at 25) |
+| `CommandTower::Services::Messaging::Communications::Produce` | `user`, `notification_type_key`, `host_event_identity`, `title`, `body`, `platform_enabled_channels`; optional `metadata`, `conversation_key`, `conversation_title`. Fails validation when the registered type has `deep_link_required` and `metadata` has no non-blank `deep_link` |
+| `CommandTower::Services::Messaging::Communications::ProduceMany` | `user_ids`, `notification_type_key`, `campaign_identity`, `title`, `body`, `platform_enabled_channels`; optional `metadata`, `conversation_key`, `conversation_title`, `execution_mode` (`:async` default, `:sync` capped at 25) |
 
 Details: [messaging_integration_guide.md](messaging_integration_guide.md).
 

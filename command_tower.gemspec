@@ -32,4 +32,6 @@ Gem::Specification.new do |spec|
   spec.add_dependency "connection_pool", "~> 3.0"
   # CommandTower::UI time zone validation and abbreviations
   spec.add_dependency "tzinfo", "~> 2.0"
+  # CommandTower::UI::Fragments::Markdown parses announcement bodies into an AST
+  spec.add_dependency "kramdown", "~> 2.4"
 end

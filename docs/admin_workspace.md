@@ -34,7 +34,7 @@ Lookup: `CommandTower.config.registry.admin_workspace.fetch(:audit)`.
 | group | required segment token; **open** set |
 | sort_order | required Integer |
 | required_entity | required RBAC entity name; must exist in the composed graph after `Authorization.default_defined!` |
-| icon | optional segment token or nil |
+| icon | optional lowercase token (letters, digits, `_`, `-`; for example `layout-template`) or nil |
 
 | `scope_required` | optional Boolean (default false); when true, tool APIs require host scope transport |
 | `scope_parameter` | required when `scope_required`; query param key (e.g. `partition`) |
@@ -111,6 +111,7 @@ These routes are **frontend navigation targets**. Shared Admin shell consumes th
 | `users` | Users | Find and inspect platform user accounts. | `/admin/users` | `operations` | 50 | `admin_users` | `users` |
 | `audit` | Audit | Browse account and administrative audit history. | `/admin/audit` | `operations` | 100 | `admin_audit_events` | `history` |
 | `messaging` | Messaging | Manage platform announcements and administrative messaging. | `/admin/messaging` | `messaging` | 200 | `admin_messaging_announcements` | `megaphone` |
+| `messaging_gallery` | Message gallery | Preview every channel for each message type. | `/admin/messaging/gallery` | `messaging` | 210 | `admin_messaging_gallery` | `layout-template` |
 
 RBAC CRUD, health, and Pick'em product tools are **not** seeded. Impersonation is a session primitive (`POST /admin/users/:id/impersonation-sessions`), not an Admin Workspace tool.
 

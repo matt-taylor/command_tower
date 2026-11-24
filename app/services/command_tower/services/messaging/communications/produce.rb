@@ -11,8 +11,9 @@ module CommandTower
           validate :user, is_a: User, required: true
           validate :notification_type_key, is_a: String, required: true
           validate :host_event_identity, is_a: String, required: true
-          validate :title, is_a: String, required: true
-          validate :body, is_a: String, required: true
+          # Required for undefined types (Accept enforces it); defined types derive them (D17).
+          validate :title, is_a: String, required: false
+          validate :body, is_a: String, required: false
           validate :metadata, is_a: Hash, required: false
           validate :platform_enabled_channels, is_a: Array, required: true
           validate :conversation_key, is_a: String, required: false
@@ -34,12 +35,25 @@ module CommandTower
               return
             end
 
+            accepted_title = title
+            accepted_body = body
+            if ExplicitCopyRule.violation?(notification_type_key:, title:, body:)
+              if ExplicitCopyRule.strict?
+                context.fail!(application_error: ExplicitCopyRule.failure)
+                return
+              end
+
+              ExplicitCopyRule.log_ignored(notification_type_key:, host_event_identity:, recipient_id: user.id)
+              accepted_title = nil
+              accepted_body = nil
+            end
+
             accept_result = CommandTower::Messaging.accept(
               recipient_id: recipient_result.data[:recipient_id],
               notification_type_key:,
               host_event_identity:,
-              title:,
-              body:,
+              title: accepted_title,
+              body: accepted_body,
               metadata:,
               preference_state: nil,
               platform_enabled_channels:,

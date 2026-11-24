@@ -1,0 +1,65 @@
+{
+  "catalog": 2,
+  "root": {
+    "children": [
+      {
+        "spans": [
+          {
+            "text": "Sunrise Stretch is canceled",
+            "type": "text"
+          }
+        ],
+        "textTone": "primary",
+        "type": "text",
+        "variant": "heading_m"
+      },
+      {
+        "children": [
+          {
+            "items": [
+              {
+                "label": "Class",
+                "value": "Sunrise Stretch"
+              },
+              {
+                "label": "When",
+                "value": {
+                  "at": "2026-12-05T15:30:00Z",
+                  "format": "short",
+                  "label": "auto",
+                  "textTone": "primary",
+                  "type": "time",
+                  "variant": "body",
+                  "zone": "America/New_York"
+                }
+              },
+              {
+                "label": "Where",
+                "value": "Studio A"
+              }
+            ],
+            "type": "key_value"
+          }
+        ],
+        "type": "facts"
+      },
+      {
+        "action": {
+          "destination": {
+            "kind": "internal",
+            "path": "/schedule"
+          },
+          "type": "navigate"
+        },
+        "label": "Open in RailsApp",
+        "type": "button",
+        "variant": "primary"
+      }
+    ],
+    "padding": "md",
+    "surface": "raised",
+    "type": "card"
+  },
+  "schema": "ui_document",
+  "textFallback": "Sunrise Stretch is canceled\nClass: Sunrise Stretch\nWhen: Sat, Dec 5, 10:30 AM ET\nWhere: Studio A\nOpen in RailsApp"
+}

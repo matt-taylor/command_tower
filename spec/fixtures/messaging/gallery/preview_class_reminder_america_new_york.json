@@ -1,0 +1,185 @@
+{
+  "channels": {
+    "email": null,
+    "inbox": {
+      "content": {
+        "catalog": 2,
+        "root": {
+          "children": [
+            {
+              "spans": [
+                {
+                  "text": "Power Yoga starts soon",
+                  "type": "text"
+                }
+              ],
+              "textTone": "primary",
+              "type": "text",
+              "variant": "heading_m"
+            },
+            {
+              "children": [
+                {
+                  "items": [
+                    {
+                      "label": "Class",
+                      "value": "Power Yoga"
+                    },
+                    {
+                      "label": "When",
+                      "value": {
+                        "at": "2026-12-06T18:00:00Z",
+                        "format": "short",
+                        "label": "auto",
+                        "textTone": "primary",
+                        "type": "time",
+                        "variant": "body",
+                        "zone": "America/Los_Angeles"
+                      }
+                    }
+                  ],
+                  "type": "key_value"
+                }
+              ],
+              "type": "facts"
+            },
+            {
+              "action": {
+                "destination": {
+                  "kind": "internal",
+                  "path": "/schedule"
+                },
+                "type": "navigate"
+              },
+              "label": "Open in RailsApp",
+              "type": "button",
+              "variant": "primary"
+            }
+          ],
+          "padding": "md",
+          "surface": "raised",
+          "type": "card"
+        },
+        "schema": "ui_document",
+        "textFallback": "Power Yoga starts soon\nClass: Power Yoga\nWhen: Sun, Dec 6, 10:00 AM PT\nOpen in RailsApp"
+      }
+    },
+    "push": {
+      "body": "Power Yoga starts Sun, Dec 6, 10:00 AM PT.",
+      "title": "Power Yoga starts soon"
+    },
+    "pushover": null,
+    "sms": {
+      "text": "Reminder: Power Yoga is coming up."
+    }
+  },
+  "checks": [
+    {
+      "channel": "subject",
+      "check": "required_fact",
+      "factKey": "class_name",
+      "passed": true
+    },
+    {
+      "channel": "push_body",
+      "check": "required_fact",
+      "factKey": "class_name",
+      "passed": true
+    },
+    {
+      "channel": "sms_body",
+      "check": "required_fact",
+      "factKey": "class_name",
+      "passed": true
+    },
+    {
+      "channel": "fact_block",
+      "check": "required_fact",
+      "factKey": "class_name",
+      "passed": true
+    },
+    {
+      "channel": "subject",
+      "check": "required_fact",
+      "factKey": "starts_at",
+      "passed": true
+    },
+    {
+      "channel": "push_body",
+      "check": "required_fact",
+      "factKey": "starts_at",
+      "passed": true
+    },
+    {
+      "channel": "sms_body",
+      "check": "required_fact",
+      "factKey": "starts_at",
+      "passed": false
+    },
+    {
+      "channel": "fact_block",
+      "check": "required_fact",
+      "factKey": "starts_at",
+      "passed": true
+    },
+    {
+      "channel": "inbox",
+      "check": "fact_block_once",
+      "passed": true
+    },
+    {
+      "check": "no_code_in_slots_or_body",
+      "passed": true
+    },
+    {
+      "check": "no_time_in_headline",
+      "passed": true
+    }
+  ],
+  "facts": {
+    "app": {
+      "catalog": 2,
+      "root": {
+        "children": [
+          {
+            "items": [
+              {
+                "label": "Class",
+                "value": "Power Yoga"
+              },
+              {
+                "label": "When",
+                "value": {
+                  "at": "2026-12-06T18:00:00Z",
+                  "format": "short",
+                  "label": "auto",
+                  "textTone": "primary",
+                  "type": "time",
+                  "variant": "body",
+                  "zone": "America/Los_Angeles"
+                }
+              }
+            ],
+            "type": "key_value"
+          }
+        ],
+        "type": "facts"
+      },
+      "schema": "ui_document",
+      "textFallback": "Class: Power Yoga\nWhen: Sun, Dec 6, 10:00 AM PT"
+    },
+    "emailHtml": "<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" width=\"100%\" style=\"table-layout:fixed;\"><tr><td style=\"\"><table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" width=\"100%\" style=\"table-layout:fixed;\"><tr><td valign=\"top\" width=\"96\" style=\"margin:0;font-family:-apple-system, BlinkMacSystemFont, &#39;Segoe UI&#39;, Roboto, &#39;Helvetica Neue&#39;, Arial, sans-serif;font-size:14px;line-height:24px;font-weight:400;color:#718096;padding-right:12px;\">Class</td><td valign=\"top\" style=\"margin:0;font-family:-apple-system, BlinkMacSystemFont, &#39;Segoe UI&#39;, Roboto, &#39;Helvetica Neue&#39;, Arial, sans-serif;font-size:16px;line-height:24px;font-weight:400;color:#1a202c;word-break:break-word;\">Power Yoga</td></tr><tr><td colspan=\"2\" height=\"8\" style=\"font-size:8px;line-height:8px;\"></td></tr><tr><td valign=\"top\" width=\"96\" style=\"margin:0;font-family:-apple-system, BlinkMacSystemFont, &#39;Segoe UI&#39;, Roboto, &#39;Helvetica Neue&#39;, Arial, sans-serif;font-size:14px;line-height:24px;font-weight:400;color:#718096;padding-right:12px;\">When</td><td valign=\"top\" style=\"margin:0;font-family:-apple-system, BlinkMacSystemFont, &#39;Segoe UI&#39;, Roboto, &#39;Helvetica Neue&#39;, Arial, sans-serif;font-size:16px;line-height:24px;font-weight:400;color:#1a202c;word-break:break-word;\">Sun, Dec 6, 10:00 AM PT</td></tr></table></td></tr></table>"
+  },
+  "fixture": "default",
+  "metadataVersion": 1,
+  "notificationTypeKey": "class_reminder",
+  "renderZone": "America/New_York",
+  "slots": {
+    "headline": "Power Yoga starts soon",
+    "pushBody": "Power Yoga starts Sun, Dec 6, 10:00 AM PT.",
+    "pushoverMessage": null,
+    "pushoverTitle": null,
+    "smsBody": "Reminder: Power Yoga is coming up.",
+    "subject": "Reminder: Power Yoga at Sun, Dec 6, 10:00 AM PT"
+  }
+}

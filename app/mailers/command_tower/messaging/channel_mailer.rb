@@ -10,6 +10,8 @@ module CommandTower
 
         from_address = smtp_from_address
 
+        headers(rendered.headers)
+
         mail(
           to: rendered.recipient_address,
           from: from_address,
