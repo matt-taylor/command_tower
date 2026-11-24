@@ -7,6 +7,8 @@
 class MessageDefinitionPreview < ActionMailer::Preview
   STUDIO_ZONE = "America/Los_Angeles"
   USER_ZONE = "America/New_York"
+  PLACEHOLDER_API_BASE_URL = "https://api.example.test"
+  PLACEHOLDER_TOKEN = "preview-token"
 
   # A definition whose composer always fails, so the CT fallback document renders (design D20).
   # The fallback still derives the fact text from `facts` and builds the CTA from `deep_link_path`.
@@ -43,22 +45,43 @@ class MessageDefinitionPreview < ActionMailer::Preview
 
   # An admin announcement (`AnnouncementDefinition`): header and markdown body, promotional footer
   # with the postal address and the unsubscribe-or-manage link (states E-03, E-04, E-05).
+  # The headers panel shows `List-Unsubscribe` and `List-Unsubscribe-Post` (states E-04), with a
+  # placeholder token: the preview never issues a real one.
   def announcement_email
-    message(CommandTower::Messaging::AnnouncementDefinition, zone: STUDIO_ZONE, key: "promotional_announcement")
+    message(
+      CommandTower::Messaging::AnnouncementDefinition,
+      zone: STUDIO_ZONE, key: "promotional_announcement", one_click_headers: true
+    )
   end
 
   # The announcement footer when `compliance.api_base_url` is unset: the body render is identical
-  # (no token in the footer); only the one-click headers, set by `ChannelRenderer`, are omitted.
+  # (no token in the footer); the one-click headers `ChannelRenderer` sets are omitted, so the
+  # headers panel shows neither (states E-05).
   def announcement_email_without_api_base_url
     message(CommandTower::Messaging::AnnouncementDefinition, zone: STUDIO_ZONE, key: "promotional_announcement")
   end
 
   private
 
-  def message(definition, zone:, key: "class_canceled")
+  def message(definition, zone:, key: "class_canceled", one_click_headers: false)
     communication = communication_for(definition, zone:, key:)
     output = CommandTower::Messaging::Rendering::DefinedEmailRenderer.render(communication:, definition:)
-    UiDocumentMailer.document_email(html: output.html, text: output.text, subject: communication.slots.fetch("subject"))
+    UiDocumentMailer.document_email(
+      html: output.html, text: output.text, subject: communication.slots.fetch("subject"),
+      headers: one_click_headers ? unsubscribe_headers(key) : {}
+    )
+  end
+
+  # The header shape `Rendering::UnsubscribeHeaders` builds, for an eligible type, with a fixed token.
+  def unsubscribe_headers(key)
+    declaration = CommandTower::Messaging::NotificationTypes.lookup(key)
+    return {} unless CommandTower::Messaging::Rendering::UnsubscribeHeaders.eligible?(declaration)
+
+    base = CommandTower.config.messaging.compliance.api_base_url.presence || PLACEHOLDER_API_BASE_URL
+    {
+      "List-Unsubscribe" => "<#{base}/messaging/unsubscribe?token=#{PLACEHOLDER_TOKEN}>",
+      "List-Unsubscribe-Post" => CommandTower::Messaging::Rendering::UnsubscribeHeaders::POST_VALUE
+    }
   end
 
   def communication_for(definition, zone:, key:)

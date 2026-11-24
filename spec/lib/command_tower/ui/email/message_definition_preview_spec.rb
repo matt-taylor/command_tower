@@ -44,6 +44,26 @@ RSpec.describe MessageDefinitionPreview, :aggregate_failures, :messaging_notific
     end
   end
 
+  describe "announcement one-click headers panel" do
+    context "with announcement_email" do
+      let(:mail) { described_class.new.announcement_email }
+
+      it "shows List-Unsubscribe and List-Unsubscribe-Post" do
+        expect(mail["List-Unsubscribe"].value).to match(%r{\A<https?://.+/messaging/unsubscribe\?token=.+>\z})
+        expect(mail["List-Unsubscribe-Post"].value).to eq("List-Unsubscribe=One-Click")
+      end
+    end
+
+    context "with announcement_email_without_api_base_url" do
+      let(:mail) { described_class.new.announcement_email_without_api_base_url }
+
+      it "shows neither header" do
+        expect(mail["List-Unsubscribe"]).to be_nil
+        expect(mail["List-Unsubscribe-Post"]).to be_nil
+      end
+    end
+  end
+
   describe "compliance footer variants" do
     let(:address) { CommandTower.config.messaging.compliance.postal_address }
 
