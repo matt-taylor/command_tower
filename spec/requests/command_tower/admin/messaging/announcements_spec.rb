@@ -59,6 +59,28 @@ RSpec.describe "Admin messaging announcements", :with_rbac_setup, :messaging_acc
     it { expect(response).to have_http_status(:forbidden) }
   end
 
+  context "when the target type has a non-announcement definition" do
+    before do
+      register_and_seal_notification_types(
+        build_notification_type_declaration(
+          key: "class_canceled", allowed_channels: %w[email], default_channels: %w[email], message: "ClassCanceled",
+          default_preference_state: { "channels" => { "email" => true }, "inbox" => true },
+        ),
+      )
+      post "/admin/messaging/announcements",
+           params: {
+             title: "Invite", body: "Hello", audience: "user_ids", userIds: targets.map(&:id),
+             campaignIdentity: "admin/test/422", notificationTypeKey: "class_canceled", executionMode: "sync",
+           },
+           headers: headers
+    end
+
+    it "responds 422 announcement_type_not_supported", :aggregate_failures do
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.parsed_body.to_s).to include("announcement_type_not_supported")
+    end
+  end
+
   it "accepts an admin announcement for specific user ids" do
     post "/admin/messaging/announcements",
          params: {

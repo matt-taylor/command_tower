@@ -16,6 +16,10 @@ RSpec.describe MessageDefinitionPreview, :aggregate_failures, :messaging_notific
       ),
       build_notification_type_declaration(
         key: "membership_renewal", label: "Membership renewal", message: "MembershipRenewal", **email_only
+      ),
+      build_notification_type_declaration(
+        key: "promotional_announcement", label: "Promotional announcement",
+        message: "CommandTower::Messaging::AnnouncementDefinition", **email_only
       )
     )
   end
@@ -23,8 +27,21 @@ RSpec.describe MessageDefinitionPreview, :aggregate_failures, :messaging_notific
   it "lists the previews" do
     expect(described_class.emails).to match_array(
       %w[sample_email sample_email_fallback sample_email_user_zone sample_email_promotional
-         sample_email_without_api_base_url]
+         sample_email_without_api_base_url announcement_email announcement_email_without_api_base_url]
     )
+  end
+
+  %w[announcement_email announcement_email_without_api_base_url].each do |preview|
+    describe preview do
+      let(:mail) { described_class.new.public_send(preview) }
+      let(:address) { CommandTower.config.messaging.compliance.postal_address }
+
+      it "renders the announcement with the promotional footer", :aggregate_failures do
+        expect(mail.subject).to eq("New classes this week")
+        expect(mail.html_part.body.decoded).to include("<!DOCTYPE html>", "New classes this week", "schedule")
+        expect(mail.text_part.body.decoded).to include("Unsubscribe or manage email preferences", address)
+      end
+    end
   end
 
   describe "compliance footer variants" do

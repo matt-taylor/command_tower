@@ -392,8 +392,8 @@ end
 
 # Sample message types for the dummy host. Definitions live in app/messages and are named by
 # string, so registration does not depend on autoload order. Sealing runs after initialization
-# because it constantizes them. `promotional_announcement` is deliberately undefined (no
-# `message:`); slice 8.0 attaches AnnouncementDefinition to it.
+# because it constantizes them. `promotional_announcement` uses the platform
+# `AnnouncementDefinition`, which the admin announcement endpoint fills from its title and body.
 #
 # `to_prepare` (not `after_initialize`) because the registry is autoloaded: a development code
 # reload builds a fresh empty registry, and only `to_prepare` runs again to refill it.
@@ -419,6 +419,7 @@ Rails.application.config.to_prepare do
       allowed_channels: %w[email], default_channels: %w[email],
       default_preference_state: both.call(%w[email]) },
     { key: "promotional_announcement", label: "Promotional announcement", type_order: 50,
+      message: "CommandTower::Messaging::AnnouncementDefinition",
       allowed_channels: %w[email], default_channels: %w[email],
       default_preference_state: both.call(%w[email]) }
   ].each do |attributes|

@@ -78,6 +78,29 @@ Validation errors (`InvalidDocumentError#details`) carry node paths and codes on
 | `Facts` | Base class for a host fact block. `Facts.call(builder, metadata:)` emits exactly one `facts` node; subclasses implement `compose(b, metadata:)`. |
 | `CtaGroup` | Stacked buttons: the primary first, then up to two secondaries. |
 | `NoticeFrame` | Tinted card with a title and body paragraphs. Informational only. |
+| `Markdown` | One `stack` of `text` nodes from a markdown `source` (subset below). Optional `node_budget` (default 150). |
+
+### Markdown subset
+
+`Fragments::Markdown` parses with kramdown and walks the AST against an allowlist. Raw HTML never reaches the document.
+
+| Author writes | Result |
+|---|---|
+| Paragraphs | `text` body. A soft line break is a space; a hard break is a newline. |
+| `**bold**`, `__bold__` | strong span |
+| `[label](https://...)`, `mailto:`, `tel:`, `[label](/internal)`, `<https://...>` | link span (`navigate`) |
+| Links with `http:`, `javascript:`, `data:` or any other scheme | label as plain text |
+| `#`, `##` / `###` / `####`-`######` | `text` variant `title` / `subtitle` (secondary tone) / `body` |
+| `-`, `*`, `+` lists | one `text` per item with a "• " prefix, in a `stack` with gap `xs` |
+| `1.` lists | "1. ", "2. " prefixes |
+| Nested lists | flattened to one level |
+| `*em*`, `` `code` ``, fenced code, `> quote` | plain text (code keeps line breaks) |
+| Tables | one paragraph per row, cells joined by " · " |
+| `---`, images, comments | dropped |
+| Raw HTML | tags removed and text kept; `script` and `style` dropped with their content |
+| Strikethrough, task lists | literal text |
+
+Limits: a paragraph over 1999 characters, or over 50 spans, is split at a word boundary into several `text` nodes. Output beyond `node_budget` nodes is cut and ends with a "…" paragraph; the cut is logged with counts only. Design: `ux/states.md` section 6, G11 and G12.
 
 ## Time formatter and abbreviation rule
 

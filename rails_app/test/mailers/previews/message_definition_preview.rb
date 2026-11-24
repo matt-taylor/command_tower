@@ -41,6 +41,18 @@ class MessageDefinitionPreview < ActionMailer::Preview
   # fixed studio time, so the recipient zone would have no effect on it.
   def sample_email_user_zone = message(MembershipRenewal, zone: USER_ZONE, key: "membership_renewal")
 
+  # An admin announcement (`AnnouncementDefinition`): header and markdown body, promotional footer
+  # with the postal address and the unsubscribe-or-manage link (states E-03, E-04, E-05).
+  def announcement_email
+    message(CommandTower::Messaging::AnnouncementDefinition, zone: STUDIO_ZONE, key: "promotional_announcement")
+  end
+
+  # The announcement footer when `compliance.api_base_url` is unset: the body render is identical
+  # (no token in the footer); only the one-click headers, set by `ChannelRenderer`, are omitted.
+  def announcement_email_without_api_base_url
+    message(CommandTower::Messaging::AnnouncementDefinition, zone: STUDIO_ZONE, key: "promotional_announcement")
+  end
+
   private
 
   def message(definition, zone:, key: "class_canceled")

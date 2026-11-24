@@ -56,6 +56,14 @@ module CommandTower
           promotional
         end
 
+        # UI validation profile of the definition's documents. `:message` requires exactly one
+        # `facts` node; a definition with no fact block (`AnnouncementDefinition`) uses `:default`.
+        def document_profile(value = nil)
+          return inherited_setting(:@document_profile) || :message if value.nil?
+
+          @document_profile = value
+        end
+
         def required_fact(key, matcher, zone: nil, optional: false)
           unless MATCHER_SYMBOLS.include?(matcher) || matcher.is_a?(Class)
             raise ArgumentError,

@@ -616,6 +616,8 @@ Expired product request: overlay present + invalid row → **401** `impersonatio
 
 **Body** (camel preferred; snake via underscore fallback): `title`, `body`, `campaignIdentity` (required), `audience` (`user_ids` \| `all_users`), `userIds` (required when `user_ids`), `notificationTypeKey` (default `"promotional_announcement"`), `executionMode` (`async` \| `sync`, default `async`), `metadata` (optional).
 
+**Target type.** An undefined type (no `message:`) is produced with the given `title` and `body`, as before. A type defined by `CommandTower::Messaging::AnnouncementDefinition` (or a subclass) receives `title` and `body` as metadata (`title` up to 200 characters, `body` as markdown up to 5000; `metadata` keys are kept, and these two win) and produces no title or body of its own; a title or body outside those limits is **422** `validation_failed`. Any other defined type fails with **422** `announcement_type_not_supported`.
+
 **Async response:** `mode`, `requested`, `campaignIdentity`, `enqueued`, `enqueueFailed`.
 
 **Sync response:** `mode`, `requested`, `campaignIdentity`, `accepted`, `failed`, `skipped`, `failures: [{ userId, errorCode }]`.

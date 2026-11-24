@@ -12,13 +12,26 @@ module CommandTower
             platform_enabled_channels =
               CommandTower::Services::Messaging::Preferences::PlatformEnabledChannels.call
 
+            arguments = CommandTower::Services::Messaging::Announcements::ResolveProduceArguments.call(
+              notification_type_key: input.notification_type_key,
+              title: input.title,
+              body: input.body,
+              metadata: input.metadata
+            )
+            unless arguments.success?
+              return failure(
+                errors: arguments.errors,
+                http_status: CommandTower::Workflows::Messaging::ErrorMapping.http_status_for(arguments.errors.first)
+              )
+            end
+
             result = CommandTower::Services::Messaging::Communications::ProduceMany.call(
               user_ids:,
               notification_type_key: input.notification_type_key,
               campaign_identity: input.campaign_identity,
-              title: input.title,
-              body: input.body,
-              metadata: input.metadata,
+              title: arguments.data[:title],
+              body: arguments.data[:body],
+              metadata: arguments.data[:metadata],
               platform_enabled_channels:,
               execution_mode: input.execution_mode,
             )

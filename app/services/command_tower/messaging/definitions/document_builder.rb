@@ -19,18 +19,18 @@ module CommandTower
       # Pure: no DB, no network. The class methods return validated documents (profile `:message`
       # unless told otherwise) and raise `UI::InvalidDocumentError` (paths and codes only).
       class DocumentBuilder < CommandTower::UI::Builder
-        DEFAULT_PROFILE = :message
-
+        # `profile:` defaults to the definition's own `document_profile` (`:message` unless the
+        # definition opts out of the fact block, as `AnnouncementDefinition` does).
         class << self
           # @return [CommandTower::UI::Document] the definition's inbox document
-          def inbox(definition:, context:, profile: DEFAULT_PROFILE)
+          def inbox(definition:, context:, profile: nil)
             document(definition:, context:, profile:) do |builder|
               definition.inbox(builder, metadata: context.metadata)
             end
           end
 
           # @return [CommandTower::UI::Document] the definition's email document
-          def email(definition:, context:, profile: DEFAULT_PROFILE)
+          def email(definition:, context:, profile: nil)
             document(definition:, context:, profile:) do |builder|
               definition.email(builder, metadata: context.metadata)
             end
@@ -38,12 +38,12 @@ module CommandTower
 
           # The fact block alone as a document, or nil when the definition has no fact block.
           # @return [CommandTower::UI::Document, nil]
-          def facts(definition:, context:, profile: DEFAULT_PROFILE)
+          def facts(definition:, context:, profile: nil)
             builder = new(definition:, context:)
             builder.facts
             return nil if builder.roots.empty?
 
-            finish(builder, context:, profile:)
+            finish(builder, context:, profile: profile || profile_for(definition))
           end
 
           # Channel slots as a symbol-keyed Hash; nil values are dropped.
@@ -59,7 +59,11 @@ module CommandTower
           def document(definition:, context:, profile:)
             builder = new(definition:, context:)
             yield builder
-            finish(builder, context:, profile:)
+            finish(builder, context:, profile: profile || profile_for(definition))
+          end
+
+          def profile_for(definition)
+            definition.class.document_profile
           end
 
           # Same root rule as `UI.document`: exactly one root node.

@@ -136,7 +136,7 @@ module CommandTower
 
         def composed_inbox(definition)
           CommandTower::Messaging::Definitions::DocumentBuilder.inbox(
-            definition: definition.new, context: render_context(definition), profile: :message
+            definition: definition.new, context: render_context(definition), profile: definition.document_profile
           )
         end
 

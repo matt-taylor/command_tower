@@ -10,7 +10,8 @@ module CommandTower
           case error
           when CommandTower::Errors::ValidationError,
                CommandTower::Errors::Messaging::RecipientUnresolvedError,
-               CommandTower::Errors::Messaging::AcceptRejectedError
+               CommandTower::Errors::Messaging::AcceptRejectedError,
+               CommandTower::Errors::Messaging::AnnouncementTypeNotSupportedError
             :unprocessable_entity
           when CommandTower::Errors::Messaging::IdempotencyConflictError
             :conflict
