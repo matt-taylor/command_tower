@@ -31,6 +31,42 @@ module UiSpecHelpers
     CommandTower::UI::Nodes::Divider.new
   end
 
+  def button(action, variant: "secondary")
+    CommandTower::UI::Nodes::Button.new(label: "Go", action:, variant:)
+  end
+
+  def text_and_https_button
+    stack(text, external_button("https://example.com/a"))
+  end
+
+  def mail_and_tel_buttons
+    stack(external_button("mailto:a@example.com"), external_button("tel:+15551234567"))
+  end
+
+  def primary_https_button_stack
+    stack(external_button("https://example.com", variant: "primary"))
+  end
+
+  def primary_internal_stack
+    stack(button(navigate, variant: "primary"))
+  end
+
+  def internal_link_text
+    CommandTower::UI::Nodes::Text.new(spans: [CommandTower::UI::Nodes::Span.link("See", action: navigate)])
+  end
+
+  def external_button(href, variant: "secondary")
+    button(external_navigate(href), variant:)
+  end
+
+  def external_navigate(href)
+    CommandTower::UI::Nodes::Action::Navigate.new(href:)
+  end
+
+  def errors_for(root, profile:)
+    document(root).validation_errors(profile:)
+  end
+
   def stack(*children, **attrs)
     CommandTower::UI::Nodes::Stack.new(children:, **attrs)
   end
