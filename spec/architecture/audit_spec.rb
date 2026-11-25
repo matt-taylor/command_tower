@@ -36,6 +36,7 @@ RSpec.describe "CommandTower audit architecture" do
       phone_updated
       phone_cleared
       phone_verified
+      username_set
       admin_user_name_changed
       admin_user_username_changed
       admin_user_email_changed

@@ -30,7 +30,7 @@ All listed workflows inherit `ApplicationWorkflow` with `retry_strategy :none`. 
 
 `POST /auth/password-recovery-session`
 
-Establishes the recovery session used by subsequent reset calls. See request specs under `spec/requests/` for exact payload/envelope.
+**Deprecated:** each call emits `auth.legacy_contract_used` (see the [0.25.0 upgrade guide](upgrades/0.25.0.md)). Establishes the recovery session used by subsequent reset calls. See request specs under `spec/requests/` for exact payload/envelope.
 
 ### 2. Send reset email
 
@@ -58,11 +58,19 @@ Establishes the recovery session used by subsequent reset calls. See request spe
 
 **Auth:** Public (reset token in body)
 
-**Body (typical):** token + new password fields (`passwordConfirmation` / `password_confirmation`)
+**Body (typical):** `token` + `password`. `passwordConfirmation` / `password_confirmation` is optional; when sent it must match `password`, otherwise the request fails with `422`.
 
 **Workflow:** `ResetWorkflow`
 
+On success the reset also revokes all of the user's device sessions (`RevokeAll`, reason `password_reset`), so every signed-in device must sign in again. See [Authentication](authentication.md#session-lifecycle).
+
 Success behavior and verifier rotation differ from authenticated [change password](change_password_workflow.md) — treat recovery success per product policy (often force Sign In).
+
+## Delivery and token storage
+
+- **Neutral response:** `send` always enqueues exactly one `CommandTower::Auth::PasswordReset::IssueJob` for a well-formed email, known account or not, and returns the same 200 message. Request-side work does not vary with account existence.
+- **Off the request path:** with `config.login.mail_delivery = :later` (default) the job runs on ActiveJob; `:inline` performs it in the request (see [bootstrap 08](bootstrap/08-initializer.md)). The job's only argument is the normalized email (`log_arguments = false`); the token is generated inside `Workflows::Auth::PasswordReset::IssueWorkflow` and never travels through the queue or logs. Unknown accounts and delivery failures are logged by identifier and swallowed.
+- **Hashed tokens:** reset tokens are stored as an HMAC digest (`user_secrets.secret_digest`) and looked up by digest; no plaintext is written. Rows created before this change keep working and are cleared with `command_tower:user_secrets:clear_plaintext` (idempotent, batched).
 
 ## Errors
 

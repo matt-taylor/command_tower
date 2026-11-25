@@ -12,7 +12,8 @@ module CommandTower
             CommandTower::Workflows::Impersonation::StartWorkflow.call(
               id: deserialized.input.id,
               actor: current_user,
-              scope_value: deserialized.input.scope_value
+              scope_value: deserialized.input.scope_value,
+              device_session: current_auth_context.device_session
             )
           )
         end

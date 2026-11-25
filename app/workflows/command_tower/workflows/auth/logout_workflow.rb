@@ -24,7 +24,19 @@ module CommandTower
           return unless outcome.success?
 
           end_overlay_session(outcome)
+          revoke_device_session(outcome)
           audit(:session_cleared, affected_user: outcome.user, changes: {})
+        end
+
+        # Ends only the signing-out device; other devices stay signed in.
+        def revoke_device_session(outcome)
+          device_session = outcome.device_session
+          return if device_session.nil?
+
+          CommandTower::Auth::DeviceSession
+            .active
+            .where(id: device_session.id)
+            .update_all(revoked_at: Time.current, revoked_reason: "logout", updated_at: Time.current) # rubocop:disable Rails/SkipsModelValidations
         end
 
         def end_overlay_session(outcome)

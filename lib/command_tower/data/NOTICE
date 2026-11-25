@@ -1,0 +1,8 @@
+password-blocklist-100k.txt.gz
+
+Source: SecLists, Passwords/Common-Credentials/xato-net-10-million-passwords-100000.txt
+        https://github.com/danielmiessler/SecLists/blob/master/Passwords/Common-Credentials/xato-net-10-million-passwords-100000.txt
+        (upstream renamed it from 10-million-password-list-top-100000.txt)
+Licence: MIT, Copyright (c) Daniel Miessler
+         https://github.com/danielmiessler/SecLists/blob/master/LICENSE
+Modification: gzip-compressed only.

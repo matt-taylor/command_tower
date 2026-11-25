@@ -21,6 +21,8 @@ RSpec.describe "CommandTower migration baseline" do
       20261012000001_add_provider_metadata_to_messaging_delivery_attempts.rb
       20261012000002_add_finished_at_index_to_messaging_delivery_attempts.rb
       20261124000001_add_message_definition_columns_to_messaging_communications.rb
+      20261124000002_add_secret_digest_to_user_secrets.rb
+      20261124000003_create_command_tower_device_sessions.rb
       20261124200001_create_command_tower_home_notices.rb
       20261124200002_create_command_tower_home_notice_controls.rb
     ]
@@ -40,6 +42,7 @@ RSpec.describe "CommandTower migration baseline" do
       messaging_endpoint_pushover_credentials
       command_tower_audit_events
       command_tower_impersonation_sessions
+      command_tower_device_sessions
       user_experience_states
     ]
   end
@@ -112,6 +115,7 @@ RSpec.describe "CommandTower migration baseline" do
     )
     expect(CommandTower::Audit::Event.table_name).to eq("command_tower_audit_events")
     expect(CommandTower::Impersonation::Session.table_name).to eq("command_tower_impersonation_sessions")
+    expect(CommandTower::Auth::DeviceSession.table_name).to eq("command_tower_device_sessions")
     expect(CommandTower::UserExperienceState.table_name).to eq("user_experience_states")
   end
 

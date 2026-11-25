@@ -17,7 +17,8 @@ module AuthRequestSpecHelpers
   end
 
   def login_token_for(user, impersonation_session_id: nil)
-    CommandTower::Jwt::LoginCreate.call(user:, impersonation_session_id:).token
+    device_session = CommandTower::Services::Auth::DeviceSessions::Start.call(user:).data[:device_session]
+    CommandTower::Jwt::LoginCreate.call(user:, impersonation_session_id:, device_session:).token
   end
 
   def impersonation_token_for(actor, session)
@@ -41,6 +42,13 @@ module AuthRequestSpecHelpers
   def authenticate_request_with_cookie!(user)
     cookies[CommandTower.config.jwt.cookie.name] = login_token_for(user)
   end
+
+  # POSTs the plain-text login route. For examples whose subject is login itself.
+  def post_plain_text_login(user, headers: {})
+    post "/auth/plain-text/login",
+         params: { identifier: user.username, password: user.password }, headers: headers, as: :json
+  end
+
   def response_error_code
     response.parsed_body.dig("errors", 0, "code")
   end

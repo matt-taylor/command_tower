@@ -74,6 +74,15 @@ RSpec.describe CommandTower::UserAttributes::Mutate do
           expect { call }.to change { user.reload.verifier_token_last_reset }
         end
 
+        context "with an active device session" do
+          let!(:device_session) { create(:device_session, user:) }
+
+          it "revokes it as admin_mutation" do
+            call
+            expect(device_session.reload.revoked_reason).to eq("admin_mutation")
+          end
+        end
+
         context "when invalid" do
           let(:verifier_token) { false }
 

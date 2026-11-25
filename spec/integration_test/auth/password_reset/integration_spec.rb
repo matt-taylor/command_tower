@@ -10,6 +10,13 @@ RSpec.describe "Plain text password reset journey" do
   let(:email) { fake_user.email }
   let(:non_enumerating_message) { CommandTower::Services::Auth::PasswordReset::Send::SENT_MESSAGE }
 
+  around do |example|
+    CommandTower.configure { |config| config.login.mail_delivery = :inline }
+    example.run
+  ensure
+    CommandTower.configure { |config| config.login.mail_delivery = :later }
+  end
+
   def register!
     result = CommandTower::Services::Auth::Register.call(
       first_name: fake_user.first_name,
@@ -38,10 +45,10 @@ RSpec.describe "Plain text password reset journey" do
     expect(ActionMailer::Base.deliveries.count).to eq(1)
 
     ####
-    # Get the reset token from user_secrets
-    user_secret = UserSecret.where(user: user, reason: CommandTower::Secrets::PASSWORD_RESET).last
-    expect(user_secret).to be_present
-    token = user_secret.secret
+    # Get the reset token from the emailed link (only its digest is stored)
+    expect(UserSecret.where(user: user, reason: CommandTower::Secrets::PASSWORD_RESET)).to exist
+    token = ActionMailer::Base.deliveries.last.body.to_s[/token=([A-Za-z0-9]+)/, 1]
+    expect(token).to be_present
 
     ####
     # Validate the token

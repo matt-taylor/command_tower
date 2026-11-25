@@ -38,6 +38,28 @@ RSpec.describe CommandTower::Workflows::Auth::LogoutWorkflow do
       end
     end
 
+    context "when the user is signed in on two devices" do
+      let(:user) { create(:user) }
+      let(:this_device) { CommandTower::Services::Auth::DeviceSessions::Start.call(user:).data[:device_session] }
+      let(:other_device) { CommandTower::Services::Auth::DeviceSessions::Start.call(user:).data[:device_session] }
+      let(:token) { CommandTower::Jwt::LoginCreate.call(user:, device_session: this_device).token }
+
+      subject(:result) { described_class.call(token:) }
+
+      before { other_device }
+
+      it "revokes only the current device session" do
+        expect(result).to be_success
+        expect(this_device.reload.revoked_reason).to eq("logout")
+        expect(other_device.reload).not_to be_revoked
+      end
+
+      it "is idempotent for an already-revoked session" do
+        described_class.call(token:)
+        expect(described_class.call(token:)).to be_success
+      end
+    end
+
     context "when the token carries an impersonation overlay" do
       let(:user) { create(:user) }
       let(:target) { create(:user) }

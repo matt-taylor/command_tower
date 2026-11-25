@@ -10,6 +10,7 @@ RSpec.describe CommandTower::Workflows::Auth::SignupErrorStatus do
       CommandTower::Errors::Auth::SignupSessionExpiredError => :unauthorized,
       CommandTower::Errors::Auth::SignupSessionRateLimitError => :too_many_requests,
       CommandTower::Errors::Auth::SignupIpRateLimitError => :too_many_requests,
+      CommandTower::Errors::Auth::AuthRateLimitedError => :too_many_requests,
       CommandTower::Errors::Auth::EmailAlreadyRegisteredError => :unprocessable_entity,
       CommandTower::Errors::ValidationError => :unprocessable_entity,
       CommandTower::Errors::InternalError => :internal_server_error

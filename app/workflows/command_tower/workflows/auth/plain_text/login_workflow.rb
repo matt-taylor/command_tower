@@ -9,10 +9,11 @@ module CommandTower
 
           retry_strategy :none
 
-          def call(input:, request_context: nil)
+          def call(input:, request_context: nil, client_ip: nil)
             login_result = CommandTower::Services::Auth::PlainText::Login.call(
               identifier: input.identifier,
-              password: input.password
+              password: input.password,
+              client_ip: client_ip
             )
 
             if login_result.success?
@@ -23,21 +24,39 @@ module CommandTower
                 payload: CommandTower::Serializers::Auth::LoginResponseSerializer.serialize(
                   user: data[:user],
                   token: data[:token],
-                  token_expires_at: data[:expires_at]
+                  token_expires_at: data[:expires_at],
+                  include_token: !CommandTower::Services::Auth::OmitBodyToken.call
                 ),
                 http_status: :created,
                 meta: client_compatibility_meta,
-                response_effects: {
-                  set_token: { token: data[:token], expires_at: data[:expires_at] },
-                  ensure_csrf_cookie: { rotate: csrf_rotate_on_login? }
-                }
+                response_effects: login_response_effects(data)
               )
             end
 
-            failure(errors: login_result.errors, http_status: :unauthorized)
+            failure(errors: login_result.errors, http_status: failure_http_status(login_result.errors.first))
           end
 
           private
+
+          def login_response_effects(data)
+            effects = {
+              set_token: CommandTower::Workflows::Auth::AuthenticationResponseEffects.for_set_token(
+                token: data[:token],
+                expires_at: data[:expires_at],
+                device_session: data[:device_session]
+              ),
+              ensure_csrf_cookie: { rotate: csrf_rotate_on_login? }
+            }
+            effects[:set_installation_cookie] = data[:installation_id] if data[:set_installation_cookie]
+            effects
+          end
+
+          # Every login failure stays 401 except a rate limit, which is 429.
+          def failure_http_status(error)
+            return :unauthorized unless error.is_a?(CommandTower::Errors::Auth::AuthRateLimitedError)
+
+            CommandTower::Workflows::Auth::SessionErrorStatus.http_status_for(error)
+          end
 
           def csrf_rotate_on_login?
             return false unless CommandTower::Jwt::CsrfHelper.csrf_enabled?

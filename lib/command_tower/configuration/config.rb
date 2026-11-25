@@ -22,6 +22,7 @@ require "command_tower/configuration/otp/config"
 require "command_tower/configuration/pagination/config"
 require "command_tower/configuration/password_recovery_session/config"
 require "command_tower/configuration/registry/config"
+require "command_tower/configuration/session/config"
 require "command_tower/configuration/signup_session/config"
 require "command_tower/configuration/ui/config"
 require "command_tower/configuration/user/config"
@@ -41,6 +42,11 @@ module CommandTower
         desc: "JWT is the basis for Authorization and Authentication for this Engine. HMAC is the only support algorithm",
         allowed: Configuration::Jwt::Config,
         default: Configuration::Jwt::Config.new
+
+      add_composer :session,
+        desc: "Device session timeouts, last-seen write throttle, and kill switches",
+        allowed: Configuration::Session::Config,
+        default: Configuration::Session::Config.new
 
       add_composer :login,
         desc: "Definition of Login Strategies.",

@@ -11,21 +11,25 @@ RSpec.describe CommandTower::Workflows::Auth::IdentityPolicyWorkflow do
     it "returns the camelCase identity policy payload" do
       expect(result).to be_success
       expect(result.http_status).to eq(:ok)
-      expect(result.payload).to eq(
-        password: {
-          minLength: plain_text.password_length_min + 1,
-          maxLength: plain_text.password_length_max - 1
-        },
-        email: {
-          minLength: plain_text.email_length_min + 1,
-          maxLength: plain_text.email_length_max - 1
-        },
-        username: {
-          minLength: username.username_length_min,
-          maxLength: username.username_length_max,
-          pattern: "^\\w{#{username.username_length_min},#{username.username_length_max}}$",
-          patternDescription: username.username_failure_message
-        },
+      expect(result.payload[:password]).to include(
+        minLength: plain_text.password_length_min,
+        maxLength: plain_text.password_length_max,
+        maxBytes: 72
+      )
+      expect(result.payload[:email]).to include(
+        minLength: plain_text.email_length_min,
+        maxLength: plain_text.email_length_max
+      )
+      expect(result.payload[:username]).to include(
+        minLength: username.username_length_min,
+        maxLength: username.username_length_max,
+        pattern: "^\\w{#{username.username_length_min},#{username.username_length_max}}$",
+        patternDescription: username.username_failure_message,
+        selfService: false,
+        selfChange: false,
+        prompt: "after_signup"
+      )
+      expect(result.payload).to include(
         verificationCode: {
           length: email_verify.verify_code_length,
           characterSet: "numeric"

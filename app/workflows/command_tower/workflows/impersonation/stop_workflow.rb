@@ -6,7 +6,9 @@ module CommandTower
       class StopWorkflow < CommandTower::Workflows::ApplicationWorkflow
         retry_strategy :none
 
-        def call(actor:, impersonation_session_id:, token_expires_at: nil)
+        # `device_session` is the actor's signed-in device; the restored token keeps its `sid`
+        # (nil for a legacy sid-less token).
+        def call(actor:, impersonation_session_id:, token_expires_at: nil, device_session: nil)
           session_id = impersonation_session_id.to_s.strip
           if session_id.empty?
             return failure(
@@ -49,7 +51,7 @@ module CommandTower
             end
           end
 
-          token = CommandTower::Jwt::LoginCreate.call(user: actor).token
+          token = CommandTower::Jwt::LoginCreate.call(user: actor, device_session:).token
           expires_at = token_expires_at.presence || CommandTower.config.jwt.ttl.from_now.to_time.to_s
 
           success(

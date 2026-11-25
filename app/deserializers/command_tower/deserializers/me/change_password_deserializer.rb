@@ -13,11 +13,13 @@ module CommandTower
           password = params[:password]
           password_confirmation = params[:password_confirmation] || params[:passwordConfirmation]
 
-          if blank?(current_password) || blank?(password) || blank?(password_confirmation)
-            return failure(errors: { message: "missing_required_fields" })
-          end
+          # Confirmation is optional; when sent it must match (checked by the ChangePassword service).
+          password_confirmation = nil if blank?(password_confirmation)
 
-          unless current_password.is_a?(String) && password.is_a?(String) && password_confirmation.is_a?(String)
+          return failure(errors: { message: "missing_required_fields" }) if blank?(current_password) || blank?(password)
+
+          unless current_password.is_a?(String) && password.is_a?(String) &&
+                 (password_confirmation.nil? || password_confirmation.is_a?(String))
             return failure(errors: { message: "invalid_field_types" })
           end
 

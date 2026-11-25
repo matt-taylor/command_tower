@@ -30,6 +30,7 @@ module CommandTower
         CommandTower::CredentialResolution::SmtpActionMailerBridge.apply!
         CommandTower.config.registry.client_compatibility.apply_env_overlay!
         CommandTower::EmailTheme::TokenFile.validate_host_file!
+        CommandTower.config.jwt.validate_secret!
 
         unless Rails.env.test?
           CommandTower.config.impersonation.validate!

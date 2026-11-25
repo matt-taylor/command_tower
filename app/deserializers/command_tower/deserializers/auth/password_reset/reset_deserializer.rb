@@ -10,12 +10,13 @@ module CommandTower
           def call(params)
             token = params[:token].to_s.strip
             password = params[:password].to_s
-            password_confirmation = params[:passwordConfirmation].to_s.presence || params[:password_confirmation].to_s
+            # Confirmation is optional; when sent it must match (checked by the Reset service).
+            password_confirmation = params[:passwordConfirmation].presence || params[:password_confirmation].presence
+            password_confirmation = password_confirmation.to_s.presence
 
             errors = {}
             errors[:token] = "Token is required" if token.blank?
             errors[:password] = "Password is required" if password.blank?
-            errors[:passwordConfirmation] = "Password confirmation is required" if password_confirmation.blank?
 
             return failure(errors:) if errors.any?
 

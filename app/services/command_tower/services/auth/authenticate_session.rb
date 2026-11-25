@@ -59,6 +59,9 @@ module CommandTower
             context.impersonation_session_id = auth_result.impersonation_session_id
             context.token_expires_at = auth_result.expires_at
             context.generated_token = auth_result.generated_token if with_reset
+            context.device_session = auth_result.device_session
+            context.legacy_token = auth_result.legacy_token?
+            context.legacy_generated_at = auth_result.legacy_generated_at
             context.service_metadata = observation_metadata(
               token_source:,
               authentication_failed: false,
@@ -76,10 +79,21 @@ module CommandTower
             return
           end
 
-          fail_authentication!(CommandTower::Errors::UnauthorizedError.new, token_source:)
+          fail_authentication!(unauthorized_error_for(auth_result), token_source:)
         end
 
         private
+
+        def unauthorized_error_for(auth_result)
+          case auth_result.code
+          when CommandTower::Jwt::AuthenticationOutcome::SESSION_EXPIRED
+            CommandTower::Errors::Auth::SessionExpiredError.new
+          when CommandTower::Jwt::AuthenticationOutcome::SESSION_REVOKED
+            CommandTower::Errors::Auth::SessionRevokedError.new
+          else
+            CommandTower::Errors::UnauthorizedError.new
+          end
+        end
 
         def fail_authentication!(error, token_source:, email_verification_required: false, impersonation_session_expired: false)
           context.service_metadata = observation_metadata(

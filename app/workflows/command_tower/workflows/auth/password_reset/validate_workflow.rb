@@ -7,7 +7,7 @@ module CommandTower
         class ValidateWorkflow < CommandTower::Workflows::ApplicationWorkflow
           retry_strategy :none
 
-          def call(input:)
+          def call(input:, client_ip: nil)
             unless CommandTower.config.login.plain_text.password_reset.enabled
               error = CommandTower::Errors::Auth::PasswordResetUnavailableError.new
               return failure(errors: [error], http_status: IdentityErrorStatus.http_status_for(error))
@@ -15,7 +15,8 @@ module CommandTower
 
             validate_result = CommandTower::Services::Auth::PasswordReset::Validate.call(
               token: input.token,
-              email: input.email
+              email: input.email,
+              client_ip: client_ip
             )
             unless validate_result.success?
               return failure(

@@ -74,6 +74,7 @@ CommandTower.config.registry.audit.set_enabled!(:login_failed, true)
 | `role_assigned` | yes | no |
 | `password_changed` | yes | no |
 | `email_verified` | yes | no |
+| `username_set` | yes | no |
 | `phone_updated` | yes | no |
 | `phone_cleared` | yes | no |
 | `phone_verified` | yes | no |

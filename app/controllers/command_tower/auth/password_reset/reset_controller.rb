@@ -11,7 +11,10 @@ module CommandTower
           deserialized = CommandTower::Deserializers::Auth::PasswordReset::ResetDeserializer.call(params)
           return render_reset_deserializer_errors(deserialized) unless deserialized.success?
 
-          result = CommandTower::Workflows::Auth::PasswordReset::ResetWorkflow.call(input: deserialized.input)
+          result = CommandTower::Workflows::Auth::PasswordReset::ResetWorkflow.call(
+            input: deserialized.input,
+            client_ip: CommandTower::Services::Auth::ClientIpResolver.call(request: request)
+          )
           render_application_result(result)
         end
 

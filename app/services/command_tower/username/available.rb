@@ -50,7 +50,7 @@ module CommandTower::Username
     # If we can use Redis, a bloom filter would be great
     def populate_local_cache!
       CACHE_MUTEX.synchronize do
-        values = User.pluck(:username).map { [_1, 1] }.to_h rescue {}
+        values = User.pluck(:username).compact_blank.map { [_1, 1] }.to_h rescue {}
         realtime.local_cache.write_multi(values)
         realtime.local_cache.write(REFRESH_KEY, realtime.local_cache_ttl.from_now)
 

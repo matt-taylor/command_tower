@@ -15,17 +15,18 @@ module CommandTower
         validate :user, is_a: User, required: true
         validate :current_password, is_a: String, required: true, sensitive: true
         validate :password, is_a: String, required: true, sensitive: true
-        validate :password_confirmation, is_a: String, required: true, sensitive: true
+        validate :password_confirmation, is_a: String, required: false, sensitive: true
 
         def call
           reject!(current_password: "Incorrect current password") unless user.authenticate(current_password)
-          reject!(password_confirmation: "Password and confirmation do not match") unless password == password_confirmation
+          # Confirmation is optional; it is only compared when the caller sent one.
+          if password_confirmation.present? && password != password_confirmation
+            reject!(password_confirmation: "Password and confirmation do not match")
+          end
 
-          config = CommandTower.config.login.plain_text
-          if password.length < config.password_length_min || password.length > config.password_length_max
-            reject!(
-              password: "Password length must be between #{config.password_length_min} and #{config.password_length_max} characters"
-            )
+          check = CommandTower::Services::Auth::PasswordPolicy::Check.call(password:)
+          unless check.data[:valid]
+            reject!(password: CommandTower::Services::Auth::PasswordPolicy::Check.message_for(check.data[:failures]))
           end
 
           persistence_errors = nil
@@ -33,7 +34,7 @@ module CommandTower
 
           ActiveRecord::Base.transaction do
             user.password = password
-            user.password_confirmation = password_confirmation
+            user.password_confirmation = password
 
             unless user.save
               persistence_errors = user.errors.to_hash.transform_values { Array(_1).join(", ") }
@@ -42,6 +43,7 @@ module CommandTower
 
             begin
               user.reset_verifier_token!
+              CommandTower::Services::Auth::DeviceSessions::RevokeAll.call(user:, reason: "password_change")
               CommandTower::Services::Impersonation::TerminateOpenSessions.call(
                 actor_user_id: user.id,
                 reason: "revoked"

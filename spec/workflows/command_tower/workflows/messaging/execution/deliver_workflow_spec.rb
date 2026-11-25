@@ -582,7 +582,7 @@ RSpec.describe CommandTower::Workflows::Messaging::Execution::DeliverWorkflow, :
     before do
       allow(adapter).to receive(:call)
       allow(CommandTower::Messaging::Rendering::ChannelRenderer).to receive(:render)
-      user.update!(email: "")
+      user.update_column(:email, "")
       ActionMailer::Base.deliveries.clear
     end
 

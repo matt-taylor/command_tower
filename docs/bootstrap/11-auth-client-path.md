@@ -48,7 +48,9 @@ Rails.application.config.middleware.insert_before 0, Rack::Cors do
 end
 ```
 
-`headers: :any` already covers the `X-UI-Catalog` and `X-Time-Zone` request headers. A host that lists allowed headers explicitly must add `X-UI-Catalog` and `X-Time-Zone`.
+`headers: :any` already covers the `X-UI-Catalog`, `X-Time-Zone`, `X-Installation-Id`, `X-Client-Platform` and `X-App-Version` request headers. A host that lists allowed headers explicitly must add all five.
+
+`X-Installation-Id` (native clients, a UUID v4) identifies the app install. Web clients get it from the HttpOnly `ct_installation` cookie that login plants, so the CORS `credentials: true` setting above is required for it too. `X-Client-Platform` (`web`, `ios`, `android`) and `X-App-Version` (`MAJOR.MINOR.PATCH`) are optional. In cookie mode, login leaves `token` out of the response body only for `web` at or above `config.session.omit_body_token_min_app_version`; every other client still receives it. See [cookie guide](../cookie_authentication_guide.md#installation-id-and-body-token).
 
 `credentials: true` requires an **explicit origin list**, not `*`. Compose already passes `CORS_ALLOWED_ORIGINS` from step 01. The sample origins `8081`, `8082`, and `19006` belong to one web product. Add the origin this Expo web app actually uses, and keep it aligned with `config.application.url` and the API’s published port.
 

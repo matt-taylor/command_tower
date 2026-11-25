@@ -31,8 +31,8 @@ RSpec.describe "CommandTower client compatibility architecture" do
     expect(engine_source).to include("registry.client_compatibility.apply_env_overlay!")
   end
 
-  it "ships an empty CommandTower-owned catalog (no placeholder seeds)" do
-    expect(CommandTower::Configuration::Registry::ClientCompatibility::Config::PLATFORM_CONTRACTS).to eq([])
+  it "ships only the auth.device_session CommandTower-owned contract (no placeholder seeds)" do
+    expect(CommandTower::Configuration::Registry::ClientCompatibility::Config::PLATFORM_CONTRACTS).to eq(%w[auth.device_session])
     expect(CommandTower::Configuration::Registry::ClientCompatibility::Config::PLATFORM_ENTITY_REQUIREMENTS).to eq({})
   end
 

@@ -21,6 +21,8 @@ module CommandTower
         20261012000001_add_provider_metadata_to_messaging_delivery_attempts.rb
         20261012000002_add_finished_at_index_to_messaging_delivery_attempts.rb
         20261124000001_add_message_definition_columns_to_messaging_communications.rb
+        20261124000002_add_secret_digest_to_user_secrets.rb
+        20261124000003_create_command_tower_device_sessions.rb
         20261124200001_create_command_tower_home_notices.rb
         20261124200002_create_command_tower_home_notice_controls.rb
       ].freeze

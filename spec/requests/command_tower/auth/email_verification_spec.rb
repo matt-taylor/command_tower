@@ -16,17 +16,27 @@ RSpec.describe "POST /auth/email-verification/send", :with_rbac_setup, type: :re
     let(:user) { create(:user, :unvalidated_email, roles: ["member"]) }
     let(:headers) { authenticate_request_with_bearer!(user) }
 
-    before do
-      allow(CommandTower::EmailVerificationMailer).to receive(:verify_email).and_return(
-        instance_double(Mail::Message, deliver: true)
-      )
-      make_request
+    it "enqueues one job carrying only the user id and returns created" do
+      expect { make_request }
+        .to have_enqueued_job(CommandTower::Auth::EmailVerification::IssueJob).with(user.id).exactly(:once)
+      expect(response).to have_http_status(:created)
     end
 
-    it { expect(response).to have_http_status(:created) }
+    context "with inline mail delivery" do
+      include_context "with inline mail delivery"
 
-    it "returns a success message" do
-      expect(response.parsed_body["data"]["message"]).to include("Successfully sent")
+      before do
+        allow(CommandTower::EmailVerificationMailer).to receive(:verify_email).and_return(
+          instance_double(Mail::Message, deliver: true)
+        )
+        make_request
+      end
+
+      it { expect(response).to have_http_status(:created) }
+
+      it "returns a success message" do
+        expect(response.parsed_body["data"]["message"]).to include("Successfully sent")
+      end
     end
   end
 

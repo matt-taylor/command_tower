@@ -29,6 +29,22 @@ RSpec.describe CommandTower::Secrets::Verify do
       expect(call.user).to eq(user)
     end
 
+    context "when scoped to a user" do
+      let(:params) { { secret: input_secret, reason:, user: } }
+
+      it "succeeds for the owning user" do
+        expect(call.success?).to eq(true)
+      end
+
+      context "with another user" do
+        let(:params) { { secret: input_secret, reason:, user: create(:user) } }
+
+        it "fails" do
+          expect(call.failure?).to eq(true)
+        end
+      end
+    end
+
     context "when not found" do
       let(:input_secret) { "incorrect secret value" }
 
