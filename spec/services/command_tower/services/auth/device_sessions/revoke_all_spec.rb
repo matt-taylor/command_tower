@@ -14,7 +14,7 @@ RSpec.describe CommandTower::Services::Auth::DeviceSessions::RevokeAll do
 
   it "revokes every active session of the user" do
     result
-    expect(active.map { it.reload.revoked_reason }).to eq(%w[password_reset password_reset])
+    expect(active.map { |session| session.reload.revoked_reason }).to eq(%w[password_reset password_reset])
   end
 
   it "leaves other users' sessions active" do

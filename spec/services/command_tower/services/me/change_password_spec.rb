@@ -45,7 +45,7 @@ RSpec.describe CommandTower::Services::Me::ChangePassword do
 
       it "revokes every session, including the current one" do
         result
-        expect(sessions.map { it.reload.revoked_reason }).to eq(%w[password_change password_change])
+        expect(sessions.map { |session| session.reload.revoked_reason }).to eq(%w[password_change password_change])
       end
     end
 
