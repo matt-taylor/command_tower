@@ -362,6 +362,20 @@ module CommandTower
               subject_type: "",
               affected_user_required: true,
               global_visible_in_host_scope: false
+            },
+            # An admin switched a home notice key on or off (the kill switch). No affected user;
+            # metadata carries the key only.
+            home_notice_control_changed: {
+              label: "Home notice kill switch changed",
+              tags: %w[home_notices admin],
+              enabled: true,
+              enablement_configurable: false,
+              user_history: false,
+              sensitive_fields: [],
+              allowed_changes: %i[enabled],
+              retention: :permanent,
+              subject_required: false,
+              affected_user_required: false
             }
           }.freeze
 

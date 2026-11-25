@@ -84,6 +84,8 @@ The frontend workspace and user detail call these entities. Grant each one the r
 
 `GET /me/home-notices` is authorized by the `me_home_notices` entity. It is not part of `member`; RBAC fails closed, so grant it explicitly on the host role that should see notices (the dummy uses `home_notices_reader`). See [`../home_notices.md`](../home_notices.md).
 
+The kill switch `PATCH /admin/home-notices/:key` is authorized by the `admin_home_notices_kill` entity. It is not part of `member`, is not in the principal-capabilities catalog, and is not auto-granted to any admin role. `owner` (`entities: true`) has it; grant it explicitly on any other host role that should operate the switch.
+
 ## Stop
 
 `config/rbac_groups.yml` exists with a `member` group that grants `me` (and the rest you need). `default_membership_role` is `"member"` (or you have a documented assign path). Next: [`10-roles-and-gates.md`](10-roles-and-gates.md).

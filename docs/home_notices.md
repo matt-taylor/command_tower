@@ -158,6 +158,23 @@ Sample: `rails_app/app/messages/class_canceled_notice.rb`.
 - Always sends `Cache-Control: no-store`.
 - Rate limit: `config.home_notices.rate_limit_per_minute` (30) per user. The 31st call in a minute returns **429** `home_notices_rate_limited`. A limiter failure fails open (200) and publishes `rate_limiter_unavailable`.
 
+## Kill switch runbook
+
+Use the kill switch to stop one notice key everywhere without a deploy. A key with no control row is enabled; the first change creates the row.
+
+```
+PATCH /admin/home-notices/<key>      (add the /api prefix on a host that mounts there)
+{ "enabled": false }
+```
+
+- `<key>` is the notice key (`[a-z0-9_]` segments joined by dots, at most 128 characters). It must be a registered notice in the loaded catalog; an unknown key is **404** and nothing is written.
+- Send a strict boolean `enabled`. `false` kills the key; `true` restores it.
+- Effect: the next `GET /me/home-notices` drops the key, and impression, acknowledge and dismiss for it return 404. No restart is needed. Rows already persisted are kept, so re-enabling resumes pacing where it left off.
+- Needs the `admin_home_notices_kill` grant. The owner role has it through `entities: true`; every other role needs an explicit grant (see [Bootstrap RBAC](bootstrap/09-rbac.md)). It is not a principal capability, so no client gates on it. The call is refused while impersonating.
+- Repeating the current state is a **200** no-op and is not audited. A change emits `home_notice_control_changed` ([Audit](audit.md)).
+- Contract: [API reference](api_reference.md#patch-adminhome-noticeskey).
+- If the controls cannot be read or written, the platform fails closed: selection returns no notices and mutations return **503** `home_notices_unavailable`.
+
 ## Local verification
 
 Verify against the dummy app with `curl`. Tokens go in **header files** under `rails_app/tmp/lane-auth/` (gitignored through `/rails_app/tmp/`) and are passed with `curl -H @file`. A token never appears on a command line or in a log. Do not `cat` or print these files.

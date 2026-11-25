@@ -112,6 +112,9 @@ entities:
       - index
       - show
       - filter_options
+  - name: admin_home_notices_kill
+    controller: CommandTower::Admin::HomeNoticesController
+    only: update
   - name: admin_workspace
     controller: CommandTower::Admin::WorkspaceController
     only: show

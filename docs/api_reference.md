@@ -593,6 +593,24 @@ Dismisses a dismissible notice for the signed-in user for 7 days (`dismissed_unt
 
 **Spec:** `spec/requests/command_tower/me/home_notices_clear_spec.rb`.
 
+### `PATCH /admin/home-notices/:key`
+
+The home-notice kill switch: turns one registered notice key on or off. Body `{ "enabled": boolean }` (strict boolean, required). `:key` is `[a-z0-9_]` segments joined by dots, at most 128 characters. Always sends `Cache-Control: no-store`. Runbook: [Home Notices](home_notices.md#kill-switch-runbook).
+
+| Status | Meaning |
+|---|---|
+| 200 | `data: { key, enabled }`. Setting the state a key already has is a 200 no-op |
+| 401 / 403 | Unauthenticated / no `admin_home_notices_kill` grant. Also **403** while impersonating |
+| 404 | The key is not a registered notice |
+| 422 | Malformed key, or `enabled` missing or not a boolean |
+| 503 | `home_notices_unavailable`: a database failure |
+
+**Audit:** a request that changes the effective state emits `home_notice_control_changed` (admin attribution; changes `enabled` from/to; metadata `key`). A no-op emits nothing.
+
+**RBAC:** `admin_home_notices_kill`. Not in the principal-capabilities catalog and not in any default role except `owner` (`entities: true`).
+
+**Spec:** `spec/requests/command_tower/admin/home_notices_spec.rb`.
+
 ---
 
 ## Admin Workspace

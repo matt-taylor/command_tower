@@ -11,10 +11,11 @@ module CommandTower
 
         module_function
 
-        def errors_for(klass)
+        # `builtin` is true for platform notices, which may use the reserved key prefix.
+        def errors_for(klass, builtin: false)
           return ["must subclass CommandTower::HomeNotices::Campaign or Delivery"] unless notice_subclass?(klass)
 
-          key_errors(klass) + severity_errors(klass) + kind_errors(klass) +
+          key_errors(klass, builtin:) + severity_errors(klass) + kind_errors(klass) +
             show_errors(klass) + compose_errors(klass) + window_errors(klass)
         end
 
@@ -22,11 +23,11 @@ module CommandTower
           klass.is_a?(Class) && (klass < Campaign || klass < Delivery)
         end
 
-        def key_errors(klass)
+        def key_errors(klass, builtin: false)
           key = klass.key
           return ["key is required"] if key.nil?
           return ["key #{key.inspect} must match #{KEY_FORMAT.inspect}"] unless KEY_FORMAT.match?(key)
-          return [] unless key.start_with?(RESERVED_KEY_PREFIX)
+          return [] if builtin || !key.start_with?(RESERVED_KEY_PREFIX)
 
           ["key #{key.inspect} uses the reserved #{RESERVED_KEY_PREFIX} prefix"]
         end

@@ -236,6 +236,9 @@ CommandTower.configure do |config|
   # ClassCanceledNotice is a linked delivery (`composer :message`) over the `class_canceled` type above.
   config.home_notices.enabled = true
   config.home_notices.notices = %w[StudioTipsNotice ClassCanceledNotice TermsUpdateNotice]
+  # The built-in ct.update_app campaign stays on (the default) except in the test suite, whose
+  # selection specs count candidates; the update_app specs switch it on explicitly.
+  config.home_notices.update_app_campaign = !Rails.env.test?
 
   # ##############################
   # #                            #

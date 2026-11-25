@@ -9,12 +9,15 @@ module CommandTower
     class Catalog
       class InvalidNoticeError < StandardError; end
 
+      # Platform notices. Re-loading a list that already holds them (the registered `notices`)
+      # does not register them twice.
+      BUILTIN = [Campaigns::UpdateApp].freeze
+
       class << self
         # @param class_names [Array<String>] defaults to `config.home_notices.notices`
         # @return [Array<Class>] the validated notice classes
         def load!(class_names = CommandTower.config.home_notices.notices)
-          classes = Array(class_names).map { |name| constantize!(name) }
-          classes.each { |klass| validate!(klass) }
+          classes = validated_classes(class_names)
           validate_unique_keys!(classes)
 
           @notices = classes.freeze
@@ -44,14 +47,30 @@ module CommandTower
           !find(key).nil?
         end
 
-        def validate!(klass)
-          errors = Validator.errors_for(klass)
+        def validate!(klass, builtin: false)
+          errors = Validator.errors_for(klass, builtin:)
           return klass if errors.empty?
 
           raise InvalidNoticeError, "#{klass.name || klass.inspect}: #{errors.join('; ')}"
         end
 
         private
+
+        # The host classes, then the platform notices that are switched on, each checked.
+        def validated_classes(class_names)
+          host = Array(class_names).map { |name| constantize!(name) } - BUILTIN
+          host.each { |klass| validate!(klass) }
+          builtin = builtin_classes
+          builtin.each { |klass| validate!(klass, builtin: true) }
+          host + builtin
+        end
+
+        # Platform notices, which alone may use the reserved `ct.` key prefix.
+        def builtin_classes
+          return [] unless CommandTower.config.home_notices.update_app_campaign
+
+          BUILTIN
+        end
 
         def constantize!(name)
           return name if name.is_a?(Class)

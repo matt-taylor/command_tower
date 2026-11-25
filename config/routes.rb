@@ -132,6 +132,7 @@ CommandTower::Engine.routes.draw do
   end
 
   namespace :admin do
+    patch "home-notices/:key", to: "home_notices#update", constraints: { key: %r{[^/]+} }
     get "audit-events/filter-options", to: "audit/events#filter_options"
     get "audit-events", to: "audit/events#index"
     get "audit-events/:id", to: "audit/events#show"
