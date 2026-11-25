@@ -55,10 +55,15 @@ RSpec.describe "POST /auth/password-reset/send", type: :request do
   context "without a recovery session" do
     before { post path, params: { email: "reset@example.com" }, as: :json }
 
-    it { expect(response).to have_http_status(:unauthorized) }
+    it { expect(response).to have_http_status(:ok) }
 
-    it "returns password_recovery_session_missing" do
-      expect(response.parsed_body["errors"].first["code"]).to eq("password_recovery_session_missing")
+    it "returns the non-enumerating success message" do
+      expect(response.parsed_body["data"]["message"]).to eq(non_enumerating_message)
+    end
+
+    it "enqueues one reset job" do
+      expect(CommandTower::Auth::PasswordReset::IssueJob)
+        .to have_been_enqueued.with("reset@example.com").exactly(:once)
     end
   end
 
