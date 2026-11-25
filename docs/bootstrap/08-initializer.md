@@ -41,6 +41,12 @@ config.signup_session.jwt_secret = ENV.fetch("SIGNUP_SESSION_JWT_SECRET")
 config.password_recovery_session.jwt_secret = ENV.fetch("PASSWORD_RECOVERY_SESSION_JWT_SECRET")
 ```
 
+Boot guard: outside development/test (`Rails.env.local?`), the app raises `CommandTower::Errors::InsecureJwtSecretError` at `after_initialize` when `config.jwt.hmac_secret` is blank or the published default. Set a private secret. As a temporary escape hatch only, set `config.jwt.allow_insecure_default_secret = true` (or ENV `COMMAND_TOWER_ALLOW_INSECURE_JWT_SECRET=true`).
+
+Auth mail delivery: `config.login.mail_delivery = :later` (default) sends password-reset and email-verification mail from ActiveJob so requests never wait on mail; hosts need a working ActiveJob queue adapter. `:inline` performs the job in the request (useful for tests and hosts without a worker).
+
+Existing deployments: run `command_tower:user_secrets:clear_plaintext` once after migrating to digest and blank legacy plaintext secrets.
+
 Exact setter names are in the generated initializer comments and [`../initializing.md`](../initializing.md). Match those names; do not invent parallel keys.
 
 ### Cookies / CSRF (required for Command Tower frontend on web)

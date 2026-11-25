@@ -28,8 +28,13 @@ RSpec.describe "POST /auth/password-reset/send", type: :request do
       expect(response.parsed_body["data"]["message"]).to eq(non_enumerating_message)
     end
 
-    it "sends a reset email" do
-      expect(ActionMailer::Base.deliveries.count).to eq(1)
+    it "enqueues one reset job carrying only the email" do
+      expect(CommandTower::Auth::PasswordReset::IssueJob)
+        .to have_been_enqueued.with("reset-known@example.com").exactly(:once)
+    end
+
+    it "sends no mail in the request" do
+      expect(ActionMailer::Base.deliveries).to be_empty
     end
   end
 

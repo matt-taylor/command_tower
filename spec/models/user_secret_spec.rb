@@ -7,6 +7,7 @@
 #  extra         :string(255)
 #  reason        :string(255)
 #  secret        :string(255)
+#  secret_digest :string(64)
 #  use_count     :integer          default(0)
 #  use_count_max :integer
 #  created_at    :datetime         not null
@@ -31,7 +32,7 @@ RSpec.describe UserSecret, type: :model do
       death_time:,
       extra:,
       reason:,
-      secret:,
+      secret_digest: described_class.digest_for(secret),
       use_count_max:,
     }.compact
   end

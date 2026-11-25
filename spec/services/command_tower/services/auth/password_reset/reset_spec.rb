@@ -70,7 +70,7 @@ RSpec.describe CommandTower::Services::Auth::PasswordReset::Reset do
       end
 
       it "consumes the token" do
-        expect { result }.to change { UserSecret.find_by(secret: token).use_count }.by(1)
+        expect { result }.to change { UserSecret.find_by(secret_digest: UserSecret.digest_for(token)).use_count }.by(1)
 
         expect(described_class.call(
           token: token,
@@ -119,7 +119,7 @@ RSpec.describe CommandTower::Services::Auth::PasswordReset::Reset do
     end
 
     context "with an expired token" do
-      before { UserSecret.find_by!(secret: token).update!(death_time: 1.hour.ago) }
+      before { UserSecret.find_by!(secret_digest: UserSecret.digest_for(token)).update!(death_time: 1.hour.ago) }
 
       it "returns PasswordResetInvalidTokenError" do
         expect(result).to be_failure

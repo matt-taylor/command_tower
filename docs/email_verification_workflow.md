@@ -43,6 +43,12 @@ No body typically required (uses `current_user`). Returns a message payload on s
 
 On success, marks the user’s email validated.
 
+## Delivery and code storage
+
+- With `config.login.mail_delivery = :later` (default) `send` enqueues `CommandTower::Auth::EmailVerification::IssueJob`, which takes only the `user_id`; the code is generated and mailed inside the job and never travels through the queue or logs. `:inline` runs the job in the request, and a delivery failure then surfaces as `VerificationSendFailedError`. See [bootstrap 08](bootstrap/08-initializer.md).
+- Already-verified users get the "already verified" message and no job is enqueued.
+- Codes are stored as an HMAC digest (`user_secrets.secret_digest`) and looked up by digest; no plaintext is written. Legacy plaintext rows are cleared with `command_tower:user_secrets:clear_plaintext`.
+
 ## Errors
 
 Standard application envelope. Invalid codes and validation failures map through Auth identity error status helpers. See [API reference](api_reference.md) for envelope shape.

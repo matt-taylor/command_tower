@@ -46,7 +46,7 @@ module CommandTower
 
           def redeem!(locked, phone)
             challenge = UserSecret.find_by(
-              secret: code,
+              secret_digest: UserSecret.digest_for(code),
               reason: CommandTower::Secrets::PHONE_VERIFICATION
             )
 

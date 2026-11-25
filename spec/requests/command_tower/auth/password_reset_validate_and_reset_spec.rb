@@ -16,10 +16,12 @@ RSpec.describe "POST /auth/password-reset/validate and /auth/password-reset/rese
 
   let(:reset_token_for) do
     lambda do |target_user|
-      post "/auth/password-reset/send", params: { email: target_user.email }, headers: headers, as: :json
+      perform_enqueued_jobs do
+        post "/auth/password-reset/send", params: { email: target_user.email }, headers: headers, as: :json
+      end
       expect(response).to have_http_status(:ok)
 
-      UserSecret.where(user: target_user, reason: CommandTower::Secrets::PASSWORD_RESET).last.secret
+      ActionMailer::Base.deliveries.last.body.to_s[/token=([A-Za-z0-9]+)/, 1]
     end
   end
 

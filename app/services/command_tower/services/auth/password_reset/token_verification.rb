@@ -45,7 +45,7 @@ module CommandTower
           end
 
           def token_expires_at
-            UserSecret.find_by(secret: token, reason: CommandTower::Secrets::PASSWORD_RESET)&.death_time
+            UserSecret.find_by(secret_digest: UserSecret.digest_for(token), reason: CommandTower::Secrets::PASSWORD_RESET)&.death_time
           end
 
           def invalid_token!

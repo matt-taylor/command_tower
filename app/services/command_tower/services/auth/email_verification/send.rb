@@ -4,6 +4,10 @@ module CommandTower
   module Services
     module Auth
       module EmailVerification
+        # Requests an email-verification code. With login.mail_delivery :later (the
+        # default) the code is generated and mailed by IssueJob, which carries only
+        # the user id. With :inline the job runs synchronously and a delivery
+        # failure still surfaces as VerificationSendFailedError.
         class Send < CommandTower::Services::ApplicationService
           ALREADY_VERIFIED_MESSAGE = "Email is already verified. No code required"
           SENT_MESSAGE = "Successfully sent email verification code"
@@ -16,46 +20,26 @@ module CommandTower
               return
             end
 
-            secret = issue_code
-            deliver(secret)
-
+            enqueue
             context.message = SENT_MESSAGE
           end
 
           private
 
-          def email_verify
-            CommandTower.config.login.plain_text.email_verify
-          end
+          def enqueue
+            job_class = CommandTower::Auth::EmailVerification::IssueJob
 
-          def issue_code
-            result = CommandTower::Secrets::Generate.(
-              user:,
-              secret_length: email_verify.verify_code_length,
-              reason: CommandTower::Secrets::EMAIL_VERIFICIATION,
-              use_count_max: 1,
-              death_time: email_verify.verify_code_link_valid_for,
-              type: CommandTower::Secrets::NUMERIC,
-              cleanse: true
-            )
-
-            if result.failure?
-              log_error("Secret Generation is not available at this time for user [#{user.id}]")
-              context.fail!(application_error: CommandTower::Errors::InternalError.new)
+            if CommandTower.config.login.mail_delivery == :inline
+              perform_inline(job_class)
+            else
+              job_class.perform_later(user.id)
             end
-
-            result.secret
           end
 
-          def deliver(secret)
-            CommandTower::EmailVerificationMailer.verify_email(
-              user.email,
-              user,
-              secret,
-              template_name: email_verify.custom_template_name
-            ).deliver
+          def perform_inline(job_class)
+            job_class.perform_now(user.id)
           rescue StandardError => e
-            log_error("Failed to send message to [#{user.id}]: #{e.message}")
+            log_error("Failed to send message to [#{user.id}]: #{e.class}")
             context.fail!(application_error: CommandTower::Errors::Auth::VerificationSendFailedError.new)
           end
         end

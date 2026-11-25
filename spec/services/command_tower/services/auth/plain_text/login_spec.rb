@@ -65,6 +65,30 @@ RSpec.describe CommandTower::Services::Auth::PlainText::Login do
       end
     end
 
+    describe "timing equalization" do
+      let(:bcrypt_calls) { [] }
+
+      before do
+        described_class.dummy_digest
+        allow(BCrypt::Engine).to receive(:hash_secret).and_wrap_original do |original, *args|
+          bcrypt_calls << args
+          original.call(*args)
+        end
+      end
+
+      it "does one bcrypt comparison for a known user with a wrong password" do
+        described_class.call(identifier: user.email, password: "wrong-password")
+
+        expect(bcrypt_calls.size).to eq(1)
+      end
+
+      it "does one bcrypt comparison for an unknown identifier" do
+        described_class.call(identifier: "nobody@example.com", password: "wrong-password")
+
+        expect(bcrypt_calls.size).to eq(1)
+      end
+    end
+
     context "with an unknown identifier" do
       subject(:result) { described_class.call(identifier: "nobody@example.com", password: "wrong-password") }
 

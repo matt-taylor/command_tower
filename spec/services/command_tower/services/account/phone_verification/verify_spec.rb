@@ -15,7 +15,7 @@ RSpec.describe CommandTower::Services::Account::PhoneVerification::Verify do
       lambda do
         expect(CommandTower::Services::Account::PhoneVerification::Send.call(user:)).to be_success
 
-        UserSecret.find_by!(user:, reason: CommandTower::Secrets::PHONE_VERIFICATION).secret
+        CommandTower::Identity::PhoneVerification::SmsTransport::Adapters::FakeAdapter.deliveries.last[:body][/\d+\z/]
       end
     end
 
@@ -98,7 +98,7 @@ RSpec.describe CommandTower::Services::Account::PhoneVerification::Verify do
     context "with an expired code" do
       let(:code) { send_code!.call }
 
-      before { UserSecret.find_by!(secret: code).update!(death_time: 1.hour.ago) }
+      before { UserSecret.find_by!(secret_digest: UserSecret.digest_for(code)).update!(death_time: 1.hour.ago) }
 
       subject(:result) { described_class.call(user:, code:) }
 

@@ -8,9 +8,20 @@ module CommandTower
           validate :identifier, is_a: String, required: true, sensitive: true
           validate :password, is_a: String, required: true, sensitive: true
 
+          # Digest of a throwaway secret at the cost has_secure_password currently uses
+          # (min cost in test). Computed once, on first use after boot.
+          def self.dummy_digest
+            @dummy_digest ||= begin
+              cost = ActiveModel::SecurePassword.min_cost ? BCrypt::Engine::MIN_COST : BCrypt::Engine.cost
+              BCrypt::Password.create(SecureRandom.hex(16), cost:).to_s
+            end
+          end
+
           def call
             user = User.not_deleted.where(username: identifier).or(User.not_deleted.where(email: identifier)).first
             if user.nil?
+              # Equalize request-side work with the known-user path: one bcrypt comparison.
+              BCrypt::Password.new(self.class.dummy_digest).is_password?(password)
               audit_login_failed(affected_user: nil, outcome: "unknown_identifier")
               invalid_credentials!
             end

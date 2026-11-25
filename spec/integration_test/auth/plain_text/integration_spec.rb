@@ -3,6 +3,8 @@
 # Service-layer journey: register → login → email verify.
 # HTTP contracts live under spec/requests/command_tower/auth/ (register, login, email_verification).
 RSpec.describe "Plain text auth email verification journey" do
+  include_context "with inline mail delivery"
+
   before do
     # create some users in the system
     10.times { create(:user) }
@@ -69,7 +71,7 @@ RSpec.describe "Plain text auth email verification journey" do
 
     ####
     # Validate email using code
-    code = UserSecret.last.secret
+    code = ActionMailer::Base.deliveries.last.body.to_s[/>\s*(\d+)\s*</, 1]
     verify_result = CommandTower::Services::Auth::EmailVerification::Verify.call(user:, code:)
     expect(verify_result.success?).to be(true)
     expect(user.reload.email_validated).to be(true)

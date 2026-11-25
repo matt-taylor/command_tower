@@ -64,6 +64,12 @@ Establishes the recovery session used by subsequent reset calls. See request spe
 
 Success behavior and verifier rotation differ from authenticated [change password](change_password_workflow.md) — treat recovery success per product policy (often force Sign In).
 
+## Delivery and token storage
+
+- **Neutral response:** `send` always enqueues exactly one `CommandTower::Auth::PasswordReset::IssueJob` for a well-formed email, known account or not, and returns the same 200 message. Request-side work does not vary with account existence.
+- **Off the request path:** with `config.login.mail_delivery = :later` (default) the job runs on ActiveJob; `:inline` performs it in the request (see [bootstrap 08](bootstrap/08-initializer.md)). The job's only argument is the normalized email (`log_arguments = false`); the token is generated inside `Workflows::Auth::PasswordReset::IssueWorkflow` and never travels through the queue or logs. Unknown accounts and delivery failures are logged by identifier and swallowed.
+- **Hashed tokens:** reset tokens are stored as an HMAC digest (`user_secrets.secret_digest`) and looked up by digest; no plaintext is written. Rows created before this change keep working and are cleared with `command_tower:user_secrets:clear_plaintext` (idempotent, batched).
+
 ## Errors
 
 Failures return the standard application envelope via `render_application_result`. Status mapping uses Auth identity/password-reset error helpers. Validation failures from deserializers typically surface as `422 Unprocessable Entity`.

@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 RSpec.describe CommandTower::Workflows::Auth::EmailVerification::SendWorkflow do
+  include_context "with inline mail delivery"
+
   describe ".call" do
     subject(:result) { described_class.call(current_user: user) }
 

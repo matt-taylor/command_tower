@@ -46,7 +46,7 @@ RSpec.describe CommandTower::Services::Auth::PasswordReset::Validate do
     end
 
     context "with an expired token" do
-      before { UserSecret.find_by!(secret: token).update!(death_time: 1.hour.ago) }
+      before { UserSecret.find_by!(secret_digest: UserSecret.digest_for(token)).update!(death_time: 1.hour.ago) }
 
       it "returns PasswordResetInvalidTokenError" do
         expect(result).to be_failure

@@ -30,7 +30,7 @@ RSpec.describe "phone verification readiness transition" do
 
     send_result = CommandTower::Services::Account::PhoneVerification::Send.call(user:)
     expect(send_result).to be_success
-    code = UserSecret.find_by!(user:, reason: CommandTower::Secrets::PHONE_VERIFICATION).secret
+    code = CommandTower::Identity::PhoneVerification::SmsTransport::Adapters::FakeAdapter.deliveries.last[:body][/\d+\z/]
 
     verify_result = CommandTower::Services::Account::PhoneVerification::Verify.call(user:, code:)
     expect(verify_result).to be_success

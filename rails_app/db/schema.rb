@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_11_24_000001) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_24_000002) do
   create_table "command_tower_audit_events", charset: "utf8mb3", force: :cascade do |t|
     t.string "action", null: false
     t.bigint "actor_user_id"
@@ -224,11 +224,13 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_24_000001) do
     t.string "extra"
     t.string "reason"
     t.string "secret"
+    t.string "secret_digest", limit: 64
     t.datetime "updated_at", null: false
     t.integer "use_count", default: 0
     t.integer "use_count_max"
     t.bigint "user_id", null: false
     t.index ["secret"], name: "index_user_secrets_on_secret", unique: true
+    t.index ["secret_digest"], name: "index_user_secrets_on_secret_digest", unique: true
     t.index ["user_id"], name: "index_user_secrets_on_user_id"
   end
 
