@@ -33,6 +33,14 @@ services:
       - "3310"
     volumes:
       - mysql:/var/lib/mysql
+    # Over TCP so the first-boot init server (socket only) does not count as ready; lets
+    # `docker compose up --wait mysql` (orchestrated lanes) return only once connections work.
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -proot --silent"]
+      interval: 3s
+      timeout: 5s
+      retries: 40
+      start_period: 10s
   redis:
     image: redis
     expose:
