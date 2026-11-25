@@ -109,6 +109,8 @@ The six-field body is the old shape. It keeps working; each use emits `auth.lega
 
 `user` fields: `id`, `email`, `username`, `firstName`, `lastName`, `emailValidated`, `roles`.
 
+With `start_session: true` the body also carries `capabilities: { editUsername: { enabled } }` so the client can show the username step right after signup, including for unverified accounts with no grace period.
+
 ### `POST /auth/plain-text/login`
 
 | | |
@@ -325,7 +327,7 @@ Workflow detail: [password_reset_workflow.md](password_reset_workflow.md).
 | **Success** | **200** — account payload including `id`, `firstName`, `lastName`, `fullName`, `username`, `email`, `emailValidated`, `phoneNumber`, `phoneNumberValidated`, `roles`, `createdAt`, `capabilities` |
 | **Spec** | `spec/requests/command_tower/me_spec.rb` |
 
-`capabilities` keys (each `{ enabled: boolean }`): `editName`, `editUsername`, `changeEmail`, `changePassword`, `editPhone`, `editPushover`, `logoutAllDevices`, `verifyEmail`.
+`editUsername` is true when `config.username.self_service` is on and the user has no username (or `self_change` is on). `capabilities` keys (each `{ enabled: boolean }`): `editName`, `editUsername`, `changeEmail`, `changePassword`, `editPhone`, `editPushover`, `logoutAllDevices`, `verifyEmail`.
 
 ### `GET /profile`
 
@@ -345,7 +347,33 @@ Workflow detail: [password_reset_workflow.md](password_reset_workflow.md).
 | **Errors** | `422` `validation_failed` |
 | **Spec** | `spec/requests/command_tower/me/name_spec.rb` |
 
-Name-only. There is no engine HTTP for email/username self-modify or verifier rotation except via password change (and host ops).
+Name-only. There is no engine HTTP for email self-modify or verifier rotation except via password change (and host ops). Username has its own endpoints below.
+
+### `PATCH /me/username`
+
+| | |
+|--|--|
+| **Auth** | authenticate + authorize (`me_username`); the email-verification `412` gate is bypassed so an unverified account can finish signup |
+| **Gate** | `config.username.self_service` (set) and `config.username.self_change` (change an existing username) |
+| **Body** | `username` (string, required) |
+| **Success** | **200** — AccountSerializer (same shape as `GET /me`) |
+| **Errors** | `422` `validation_failed` (shape per `config.username`, or an `@` / email-shaped value); `422` `username_taken` (case-insensitive among non-deleted users; a concurrent race on the unique index maps to the same code); `403` `username_change_not_allowed` (flag off, deleted user, or already has a username and `self_change` is off); `403` while impersonating; `429` `auth_rate_limited` (10 per hour per user) |
+| **Audit** | `username_set` (see [audit.md](audit.md)) |
+| **Spec** | `spec/requests/command_tower/me/username_spec.rb` |
+
+Sending the current username again is a no-op success.
+
+### `GET /me/username/availability`
+
+| | |
+|--|--|
+| **Auth** | authenticate + authorize (`me_username_availability`); bypasses the email-verification `412` gate |
+| **Query** | `username` (required) |
+| **Success** | **200** — `data`: `{ valid, available, message }`; email-shaped values return `valid: false` |
+| **Errors** | `422` `validation_failed` (missing `username`); `403` `username_change_not_allowed` (same eligibility as `PATCH /me/username`); `429` `auth_rate_limited` (100 per day per user and 300 per day per IP; fails open on a Redis outage) |
+| **Spec** | `spec/requests/command_tower/me/username_availability_spec.rb` |
+
+Replaces the deprecated signup-session `GET /auth/username/availability` for signed-in users. It is not gated by `realtime_username_check`.
 
 ### `PATCH /me/password`
 
@@ -729,7 +757,7 @@ When a gate is off, the route is **not drawn** → **404**.
 | Email verification send/verify | `login.plain_text.email_verify?` |
 | Password reset send/validate/reset | `login.plain_text.password_reset?` |
 
-Always drawn (not route-gated): register, logout, session, signup-session, identity-policy, principal-capabilities, password-recovery-session, Me/profile/inbox/audit-events/preferences/phone/pushover, admin workspace, admin announcements, admin audit-events. Phone/Pushover use **503** capability errors when product adapters are unavailable.
+Always drawn (not route-gated): `PATCH /me/username` and `GET /me/username/availability` (eligibility is the `username.self_service` / `self_change` flags, not a route gate), register, logout, session, signup-session, identity-policy, principal-capabilities, password-recovery-session, Me/profile/inbox/audit-events/preferences/phone/pushover, admin workspace, admin announcements, admin audit-events. Phone/Pushover use **503** capability errors when product adapters are unavailable.
 
 ---
 

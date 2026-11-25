@@ -16,8 +16,14 @@ module CommandTower
             user:,
             token: session[:token],
             token_expires_at: session[:expires_at],
-            include_token: !CommandTower::Services::Auth::OmitBodyToken.call
+            include_token: !CommandTower::Services::Auth::OmitBodyToken.call,
+            capabilities: capabilities(user)
           )
+        end
+
+        # Lets the client show the username step right after signup (grace 0 unverified accounts included).
+        def capabilities(user)
+          { editUsername: { enabled: CommandTower::Services::Me::UsernameChangeEligibility.eligible?(user) } }
         end
 
         # Same transport effects as login: token header/cookie, CSRF cookie, installation cookie.

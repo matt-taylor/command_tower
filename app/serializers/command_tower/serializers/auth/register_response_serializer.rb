@@ -7,7 +7,7 @@ module CommandTower
         # Without `token_expires_at` the body is the legacy `{ user, message }`. A started session
         # adds the login-shaped `token` and `tokenExpiresAt`; include_token: false drops `token`
         # for the cookie-mode web client (same rule as login).
-        def self.serialize(user:, token: nil, token_expires_at: nil, include_token: true)
+        def self.serialize(user:, token: nil, token_expires_at: nil, include_token: true, capabilities: nil)
           body = {
             user: UserSerializer.serialize(user),
             message: "Account created successfully"
@@ -16,6 +16,7 @@ module CommandTower
 
           body[:token] = token if include_token
           body[:tokenExpiresAt] = token_expires_at
+          body[:capabilities] = capabilities if capabilities
           body
         end
       end

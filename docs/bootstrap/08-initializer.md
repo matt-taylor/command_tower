@@ -47,6 +47,8 @@ Password and email policy: `config.login.plain_text.password_length_min` / `pass
 
 Auth mail delivery: `config.login.mail_delivery = :later` (default) sends password-reset and email-verification mail from ActiveJob so requests never wait on mail; hosts need a working ActiveJob queue adapter. `:inline` performs the job in the request (useful for tests and hosts without a worker).
 
+Self-service username: `config.username.self_service` (default `false`) lets a user set their own username through `PATCH /me/username`; `config.username.self_change` (default `false`) also lets a user who already has one change it; `config.username.prompt` (`after_signup` default, or `off`) tells clients whether to show the post-signup step. All three are served by `GET /auth/identity-policy`, and `self_service` / `self_change` drive the `editUsername` capability on `GET /me`. Grant `me_username` and `me_username_availability` to the roles that may use it ([09 RBAC](09-rbac.md)). Contract: [API reference](../api_reference.md#patch-meusername).
+
 Rate limits: `config.login.rate_limits.*` ships with safe defaults (soft per-account lockout, per-IP ceilings, verification send caps); set a value to `0` to disable one bucket. Hosts behind a load balancer must configure `trusted_proxies` or all clients share one IP bucket. `config.login.plain_text.lockable` is a deprecated no-op. Settings and defaults: [Authentication](../authentication.md#rate-limits-and-soft-lockout).
 
 Existing deployments: run `command_tower:user_secrets:clear_plaintext` once after migrating to digest and blank legacy plaintext secrets.

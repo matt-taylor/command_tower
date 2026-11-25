@@ -53,6 +53,32 @@ RSpec.describe "POST /auth/register", type: :request do
     end
   end
 
+  context "with start_session and no username while self-service username is on" do
+    let(:params) { { email: "new-#{SecureRandom.hex(4)}@example.com", password: password, start_session: true } }
+
+    before do
+      allow(CommandTower.config.username).to receive_messages(self_service: true, self_change: false)
+      make_request
+    end
+
+    it "reports editUsername enabled" do
+      expect(response.parsed_body.dig("data", "capabilities", "editUsername", "enabled")).to be(true)
+    end
+  end
+
+  context "with start_session and self-service username off" do
+    let(:params) { { email: "new-#{SecureRandom.hex(4)}@example.com", password: password, start_session: true } }
+
+    before do
+      allow(CommandTower.config.username).to receive_messages(self_service: false)
+      make_request
+    end
+
+    it "reports editUsername disabled" do
+      expect(response.parsed_body.dig("data", "capabilities", "editUsername", "enabled")).to be(false)
+    end
+  end
+
   context "with the new shape without start_session" do
     let(:params) { { email: "new-#{SecureRandom.hex(4)}@example.com", password: password } }
 
@@ -61,6 +87,7 @@ RSpec.describe "POST /auth/register", type: :request do
     it "returns 201 without a token" do
       expect(response).to have_http_status(:created)
       expect(response.parsed_body["data"]).not_to have_key("token")
+      expect(response.parsed_body["data"]).not_to have_key("capabilities")
       expect(response.headers["X-Authorization"]).to be_nil
     end
   end

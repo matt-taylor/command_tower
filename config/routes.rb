@@ -66,6 +66,8 @@ CommandTower::Engine.routes.draw do
   get "profile", to: "profile#show"
   namespace :me do
     patch "name", to: "name#update"
+    patch "username", to: "username#update"
+    get "username/availability", to: "username_availability#show"
     patch "password", to: "password#update"
     delete "account", to: "account#destroy"
 

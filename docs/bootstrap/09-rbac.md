@@ -35,6 +35,8 @@ groups:
       - me
       - profile
       - me_name
+      - me_username
+      - me_username_availability
       - me_password
       - me_account
       - me_inbox

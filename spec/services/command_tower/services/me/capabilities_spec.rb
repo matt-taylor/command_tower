@@ -27,6 +27,18 @@ RSpec.describe CommandTower::Services::Me::Capabilities do
       )
     end
 
+    context "when username self_service is on and the user has no username" do
+      let(:user) { create(:user, email_validated: true, username: nil) }
+
+      before do
+        allow(CommandTower.config.username).to receive(:self_service).and_return(true)
+      end
+
+      it "enables editUsername" do
+        expect(project[:editUsername]).to eq(enabled: true)
+      end
+    end
+
     context "when SMS product is ready" do
       before do
         allow(CommandTower::Messaging::ChannelDetectors)
