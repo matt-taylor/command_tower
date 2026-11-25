@@ -41,7 +41,7 @@ class User < CommandTower::ApplicationRecord
 
   normalizes :email, with: ->(email) { email.strip.downcase }
 
-  validates :username, uniqueness: { conditions: -> { not_deleted } }
+  validates :username, uniqueness: { conditions: -> { not_deleted } }, allow_nil: true
   validates :email, uniqueness: { conditions: -> { not_deleted } }
   validates :email,
             format: { with: URI::MailTo::EMAIL_REGEXP },

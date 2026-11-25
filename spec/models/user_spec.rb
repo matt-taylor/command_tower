@@ -28,4 +28,17 @@
 #
 
 RSpec.describe User, type: :model do
+  describe "username uniqueness" do
+    it "allows several users without a username" do
+      create(:user, username: nil)
+
+      expect(build(:user, username: nil)).to be_valid
+    end
+
+    it "rejects a duplicate username" do
+      create(:user, username: "taken_name")
+
+      expect(build(:user, username: "taken_name")).not_to be_valid
+    end
+  end
 end
