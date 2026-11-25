@@ -84,7 +84,7 @@ The frontend workspace and user detail call these entities. Grant each one the r
 
 `GET /me/home-notices` is authorized by the `me_home_notices` entity. It is not part of `member`; RBAC fails closed, so grant it explicitly on the host role that should see notices (the dummy uses `home_notices_reader`). See [`../home_notices.md`](../home_notices.md).
 
-The kill switch `PATCH /admin/home-notices/:key` is authorized by the `admin_home_notices_kill` entity. It is not part of `member`, is not in the principal-capabilities catalog, and is not auto-granted to any admin role. `owner` (`entities: true`) has it; grant it explicitly on any other host role that should operate the switch.
+The kill switch `PATCH /admin/home-notices/:key` is authorized by the `admin_home_notices_kill` entity. It is not part of `member`, is not in the principal-capabilities catalog, and is not auto-granted to any admin role. RBAC fails closed: at least one host role must grant it, or every caller gets `403`, owner included. `owner` (`entities: true`) passes only after a host role maps the entity; grant it explicitly on any other role that should operate the switch.
 
 ## Stop
 

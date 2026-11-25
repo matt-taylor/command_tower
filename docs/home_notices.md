@@ -170,7 +170,7 @@ PATCH /admin/home-notices/<key>      (add the /api prefix on a host that mounts 
 - `<key>` is the notice key (`[a-z0-9_]` segments joined by dots, at most 128 characters). It must be a registered notice in the loaded catalog; an unknown key is **404** and nothing is written.
 - Send a strict boolean `enabled`. `false` kills the key; `true` restores it.
 - Effect: the next `GET /me/home-notices` drops the key, and impression, acknowledge and dismiss for it return 404. No restart is needed. Rows already persisted are kept, so re-enabling resumes pacing where it left off.
-- Needs the `admin_home_notices_kill` grant. The owner role has it through `entities: true`; every other role needs an explicit grant (see [Bootstrap RBAC](bootstrap/09-rbac.md)). It is not a principal capability, so no client gates on it. The call is refused while impersonating.
+- Needs the `admin_home_notices_kill` grant. RBAC fails closed: at least one host role must grant the entity, or every caller gets `403`, owner included. Once a host role grants it, `owner` (`entities: true`) passes; every other role needs the explicit grant too (see [Bootstrap RBAC](bootstrap/09-rbac.md); the dummy app's `home_notices_operator` is an example). It is not a principal capability, so no client gates on it. The call is refused while impersonating.
 - Repeating the current state is a **200** no-op and is not audited. A change emits `home_notice_control_changed` ([Audit](audit.md)).
 - Contract: [API reference](api_reference.md#patch-adminhome-noticeskey).
 - If the controls cannot be read or written, the platform fails closed: selection returns no notices and mutations return **503** `home_notices_unavailable`.
