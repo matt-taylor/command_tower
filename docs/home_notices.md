@@ -119,6 +119,67 @@ All are in category `home_notices`. Payloads carry ids, keys, counts and error c
 
 The blocking daily cap is not transactional. Selection counts rows before any impression is recorded, so concurrent requests can each start a different blocking notice before either impression lands. The cap can be exceeded by one per concurrent request. This is accepted (design D5): re-serving a started notice is always allowed, and the next request sees the new rows and holds the cap.
 
+## HTTP
+
+`GET /me/home-notices` (engine-relative; hosts mounting at `/api` use `GET /api/me/home-notices`). Full contract: [API reference](api_reference.md#get-mehome-notices).
+
+- Routed only when `config.home_notices.enabled` is true; otherwise **404**.
+- RBAC entity `me_home_notices` (`Me::HomeNoticesController`). Not part of `member`; hosts grant it explicitly. RBAC fails closed, so a user without the grant gets **403**.
+- Response `data`: `{ blocking, dismissible, readOnly }`. Each notice is `null` or a serialized document. `readOnly` is true while impersonating, or when impersonation state is unknown. An impersonated response redacts the documents.
+- A client below UI catalog 2 (`X-UI-Catalog`) gets both notices `null`.
+- Always sends `Cache-Control: no-store`.
+- Rate limit: `config.home_notices.rate_limit_per_minute` (30) per user. The 31st call in a minute returns **429** `home_notices_rate_limited`. A limiter failure fails open (200) and publishes `rate_limiter_unavailable`.
+
+## Local verification
+
+Verify against the dummy app with `curl`. Tokens go in **header files** under `rails_app/tmp/lane-auth/` (gitignored through `/rails_app/tmp/`) and are passed with `curl -H @file`. A token never appears on a command line or in a log. Do not `cat` or print these files.
+
+1. Write the mint script to `rails_app/tmp/lane-auth/mint.rb`. It creates (or reuses) three users and writes one header file each:
+
+```ruby
+dir = Rails.root.join("tmp/lane-auth")
+FileUtils.mkdir_p(dir)
+
+def lane_user(email, username, roles)
+  User.find_by(email:) || User.create!(
+    email:, username:, first_name: "Lane", last_name: username.capitalize,
+    password: SecureRandom.hex(16), email_validated: true, roles:
+  )
+end
+
+def write_header(dir, name, token)
+  path = dir.join(name)
+  File.write(path, "Authorization: Bearer #{token}\n")
+  File.chmod(0o600, path)
+end
+
+owner  = lane_user("lane-owner@example.com", "laneowner", ["owner"])
+nogrant = lane_user("lane-nogrant@example.com", "lanenogrant", [])
+target = lane_user("lane-target@example.com", "lanetarget", ["home_notices_reader"])
+
+write_header(dir, "owner.header", CommandTower::Jwt::LoginCreate.call(user: owner).token)
+write_header(dir, "nogrant.header", CommandTower::Jwt::LoginCreate.call(user: nogrant).token)
+
+session = CommandTower::Services::Impersonation::Create.call(actor: owner, target:).data[:session]
+write_header(dir, "impersonation.header",
+  CommandTower::Jwt::LoginCreate.call(user: owner, impersonation_session_id: session.id).token)
+```
+
+2. Run it: `make runner CMD='load Rails.root.join("tmp/lane-auth/mint.rb").to_s'`. It prints nothing. Re-run it to refresh tokens (they expire with `config.jwt.ttl`; the impersonation session also has idle and absolute timeouts).
+3. Call the endpoint with `curl -i -H @rails_app/tmp/lane-auth/owner.header -H 'X-UI-Catalog: 2' http://localhost:3000/me/home-notices` (add the `/api` prefix on a host that mounts there). Use `X-UI-Catalog: 1` for the null-notices case.
+
+Expected results:
+
+| Header file | Expected |
+|---|---|
+| `owner.header` | 200, `Cache-Control: no-store`, `readOnly: false` |
+| `nogrant.header` | 403 |
+| `impersonation.header` | 200, `readOnly: true`, documents redacted (the target holds `home_notices_reader`) |
+| `owner.header` against `GET /auth/principal-capabilities` | `principalCapabilities` includes `me_home_notices` |
+| `nogrant.header` against `GET /auth/principal-capabilities` | does not include `me_home_notices` |
+
+The dummy app's `home_notices_reader` group is in `rails_app/config/rbac_groups.yml`.
+
 ## Persistence
 
 Two tables, both additive: `command_tower_home_notices` (one row per user and notice, with `period_key` empty for deliveries and `campaign_key` NULL for deliveries) and `command_tower_home_notice_controls`. See [Models](models.md).

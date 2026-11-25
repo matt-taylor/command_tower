@@ -119,6 +119,10 @@ CommandTower::Engine.routes.draw do
     put "push/:id", to: "push#update"
     delete "push/:id", to: "push#destroy"
 
+    constraints(->(_req) { CommandTower.config.home_notices.enabled }) do
+      get "home-notices", to: "home_notices#index"
+    end
+
     get "experience-states", to: "experience_states#index"
     post "experience-states/complete", to: "experience_states#complete"
   end

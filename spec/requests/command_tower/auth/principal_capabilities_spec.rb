@@ -89,9 +89,25 @@ RSpec.describe "GET /auth/principal-capabilities", :with_rbac_setup, type: :requ
     it "returns all registered projectable capabilities including host additive" do
       expect(response).to have_http_status(:ok)
       expect(response.parsed_body.dig("data", "principalCapabilities")).to eq(
-        %w[admin_audit_events admin_impersonation admin_messaging_announcements admin_messaging_gallery admin_messaging_gallery_test_send admin_rbac_assignments admin_users admin_users_update admin_workspace dummy_admin_example me_audit_events]
+        %w[admin_audit_events admin_impersonation admin_messaging_announcements admin_messaging_gallery admin_messaging_gallery_test_send admin_rbac_assignments admin_users admin_users_update admin_workspace dummy_admin_example me_audit_events me_home_notices]
       )
     end
+  end
+
+  context "when a member without the me_home_notices grant requests principal capabilities" do
+    let(:member) { create(:user, roles: ["member"]) }
+
+    before { get "/auth/principal-capabilities", headers: authenticate_request_with_bearer!(member) }
+
+    it { expect(response.parsed_body.dig("data", "principalCapabilities")).not_to include("me_home_notices") }
+  end
+
+  context "when an admin without the explicit me_home_notices grant requests principal capabilities" do
+    let(:admin) { create(:user, :role_admin) }
+
+    before { get "/auth/principal-capabilities", headers: authenticate_request_with_bearer!(admin) }
+
+    it { expect(response.parsed_body.dig("data", "principalCapabilities")).not_to include("me_home_notices") }
   end
 
   context "when a user has multiple roles that grant overlapping capabilities" do

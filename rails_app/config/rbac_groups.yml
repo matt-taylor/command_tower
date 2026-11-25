@@ -47,6 +47,13 @@ groups:
       - admin_workspace
       - admin_messaging_gallery
       - admin_messaging_gallery_test_send
+  home_notices_reader:
+    description: |
+      Dummy host role that maps GET /me/home-notices into RBAC. RBAC fails closed for a controller
+      no role grants, so without a host grant even owner gets 403 there. Not part of member.
+    entities:
+      - principal_capabilities
+      - me_home_notices
   operations_admin:
     description: Dummy host role with all CT Admin Workspace capabilities
     entities:

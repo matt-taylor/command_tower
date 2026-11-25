@@ -20,7 +20,7 @@ module CommandTower
             admin_users_update
             admin_rbac_assignments
             admin_impersonation
-            me_audit_events
+            me_audit_events me_home_notices
           ].freeze
 
           def initialize

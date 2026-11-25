@@ -190,7 +190,7 @@ Does **not** authorize `admin_impersonation` on the effective user. Shared front
 | **Errors** | `401`; `403`; `412` `email_verification_required` when email verification gate applies |
 | **Spec** | `spec/requests/command_tower/auth/principal_capabilities_spec.rb` |
 
-Projection is effective entity grants ∩ curated `config.registry.principal_capabilities` (never role/group names). CommandTower seeds `admin_workspace`, `admin_users`, `admin_users_update`, `admin_rbac_assignments`, `admin_audit_events`, `admin_messaging_announcements`, `admin_messaging_gallery`, `admin_messaging_gallery_test_send`, `admin_impersonation`, `me_audit_events`. Hosts may register additive host-owned ids. Distinct from `/me` capabilities and from `GET /admin/workspace` (tool manifest). See [Principal capabilities](principal_capabilities.md).
+Projection is effective entity grants ∩ curated `config.registry.principal_capabilities` (never role/group names). CommandTower seeds `admin_workspace`, `admin_users`, `admin_users_update`, `admin_rbac_assignments`, `admin_audit_events`, `admin_messaging_announcements`, `admin_messaging_gallery`, `admin_messaging_gallery_test_send`, `admin_impersonation`, `me_audit_events`, `me_home_notices`. Hosts may register additive host-owned ids. Distinct from `/me` capabilities and from `GET /admin/workspace` (tool manifest). See [Principal capabilities](principal_capabilities.md).
 
 ### `GET /auth/email/availability`
 
@@ -505,6 +505,32 @@ Durable completion facts for host-composed experiences. CommandTower stores opaq
 **Audit:** first durable creation emits `experience_state_completed` (opaque `host_context` type/identifier). Idempotent replay does not emit again.
 
 **Spec:** `spec/requests/command_tower/me/experience_states_spec.rb`.
+
+---
+
+## Home notices
+
+### `GET /me/home-notices`
+
+Returns at most one blocking and one dismissible notice for the signed-in user. Off by default: **404** unless `config.home_notices.enabled`. Selection, pacing and authoring: [Home Notices](home_notices.md).
+
+| Header | Use |
+|--------|-----|
+| `X-UI-Catalog` | Below `2` returns both notices `null` |
+| `X-App-Version`, `X-Client-Platform` | Passed to notices as context |
+
+`data`: `{ blocking, dismissible, readOnly }`. Each notice is `null` or a document. `readOnly` is `true` while impersonating (documents are redacted) or when impersonation state is unknown. The response always carries `Cache-Control: no-store`.
+
+| Status | When |
+|--------|------|
+| 200 | Success |
+| 401 / 403 | Unauthenticated / no `me_home_notices` grant |
+| 404 | `config.home_notices.enabled` is false |
+| 429 | `home_notices_rate_limited`: over `config.home_notices.rate_limit_per_minute` (30 per user per minute). A limiter failure fails open |
+
+**RBAC:** `me_home_notices`. Not in the dummy `member`; granted by the dummy `home_notices_reader` role and by `owner`. Also a principal capability.
+
+**Spec:** `spec/requests/command_tower/me/home_notices_spec.rb`.
 
 ---
 

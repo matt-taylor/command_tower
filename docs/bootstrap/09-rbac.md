@@ -80,6 +80,10 @@ The frontend workspace and user detail call these entities. Grant each one the r
 
 `admin_impersonation` is what shows Impersonate. The frontend does not add a route for it.
 
+### 4. Home Notices (optional)
+
+`GET /me/home-notices` is authorized by the `me_home_notices` entity. It is not part of `member`; RBAC fails closed, so grant it explicitly on the host role that should see notices (the dummy uses `home_notices_reader`). See [`../home_notices.md`](../home_notices.md).
+
 ## Stop
 
 `config/rbac_groups.yml` exists with a `member` group that grants `me` (and the rest you need). `default_membership_role` is `"member"` (or you have a documented assign path). Next: [`10-roles-and-gates.md`](10-roles-and-gates.md).
