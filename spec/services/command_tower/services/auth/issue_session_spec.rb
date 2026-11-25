@@ -20,4 +20,18 @@ RSpec.describe CommandTower::Services::Auth::IssueSession do
   it "returns the token expiry" do
     expect(result.data[:expires_at]).to be_present
   end
+
+  it "returns the installation id it started the session with" do
+    expect(result.data[:installation_id]).to eq(installation_id)
+  end
+
+  context "with a boundary installation id" do
+    let(:boundary_id) { "7b0f3a52-1c4e-4d6a-9b21-3f5e8c2d1a90" }
+
+    it "falls back to the boundary installation id" do
+      CommandTower::Current.set(installation_id: boundary_id, installation_id_source: :cookie) do
+        expect(described_class.call(user:).data[:installation_id]).to eq(boundary_id)
+      end
+    end
+  end
 end

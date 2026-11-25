@@ -70,6 +70,8 @@ module CommandTower::Jwt
       failure = user_failure(user, payload)
       return failure if failure
 
+      return session_revoked if upgraded_row_revoked?(user, payload[:generated_at])
+
       generated_token = nil
       impersonation_session_id = payload[:impersonation_session_id].presence
       if with_reset
@@ -81,8 +83,24 @@ module CommandTower::Jwt
         user:,
         expires_at: expires_at.to_s,
         generated_token:,
-        impersonation_session_id:
+        impersonation_session_id:,
+        legacy_generated_at: payload[:generated_at]
       )
+    end
+
+    # A legacy token that was already upgraded has a device session row keyed by
+    # (user, generated_at). Revoking that row ends the legacy token too.
+    def upgraded_row_revoked?(user, generated_at)
+      return false unless CommandTower.config.session.enforce
+
+      row = CommandTower::Auth::DeviceSession.find_by(
+        user_id: user.id,
+        legacy_generated_at: Time.zone.at(generated_at)
+      )
+      return false unless row&.revoked?
+
+      log_info("legacy token's upgraded device session [#{row.id}] is revoked")
+      true
     end
 
     def session_failure(device_session, payload)

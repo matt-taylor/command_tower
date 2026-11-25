@@ -64,6 +64,8 @@ module CommandTower
             context.device_session = issued.data[:device_session]
             context.token = issued.data[:token]
             context.expires_at = issued.data[:expires_at]
+            context.installation_id = issued.data[:installation_id]
+            context.set_installation_cookie = issued.data[:set_installation_cookie]
           end
 
           private

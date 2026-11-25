@@ -42,6 +42,13 @@ module AuthRequestSpecHelpers
   def authenticate_request_with_cookie!(user)
     cookies[CommandTower.config.jwt.cookie.name] = login_token_for(user)
   end
+
+  # POSTs the plain-text login route. For examples whose subject is login itself.
+  def post_plain_text_login(user, headers: {})
+    post "/auth/plain-text/login",
+         params: { identifier: user.username, password: user.password }, headers: headers, as: :json
+  end
+
   def response_error_code
     response.parsed_body.dig("errors", 0, "code")
   end

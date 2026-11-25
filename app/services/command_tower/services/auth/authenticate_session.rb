@@ -61,6 +61,7 @@ module CommandTower
             context.generated_token = auth_result.generated_token if with_reset
             context.device_session = auth_result.device_session
             context.legacy_token = auth_result.legacy_token?
+            context.legacy_generated_at = auth_result.legacy_generated_at
             context.service_metadata = observation_metadata(
               token_source:,
               authentication_failed: false,

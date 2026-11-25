@@ -13,11 +13,13 @@ module CommandTower::Jwt
     SESSION_REVOKED = "session_revoked"
     SESSION_CODES = [SESSION_EXPIRED, SESSION_REVOKED].freeze
 
-    attr_reader :user, :expires_at, :generated_token, :status, :msg, :impersonation_session_id, :code, :device_session
+    attr_reader :user, :expires_at, :generated_token, :status, :msg, :impersonation_session_id, :code, :device_session,
+                :legacy_generated_at
 
-    # `device_session` is nil for legacy (sid-less) tokens.
-    def self.success(user:, expires_at:, generated_token: nil, impersonation_session_id: nil, device_session: nil)
-      new(success: true, user:, expires_at:, generated_token:, impersonation_session_id:, device_session:)
+    # `device_session` is nil for legacy (sid-less) tokens, which carry `legacy_generated_at`
+    # (the token's `generated_at`) so GET /auth/session can upgrade them.
+    def self.success(user:, expires_at:, generated_token: nil, impersonation_session_id: nil, device_session: nil, legacy_generated_at: nil)
+      new(success: true, user:, expires_at:, generated_token:, impersonation_session_id:, device_session:, legacy_generated_at:)
     end
 
     # `user` is carried on failures so callers can distinguish a known user who
@@ -26,7 +28,8 @@ module CommandTower::Jwt
       new(success: false, msg:, status:, user:, code:)
     end
 
-    def initialize(success:, user: nil, expires_at: nil, generated_token: nil, status: nil, msg: nil, impersonation_session_id: nil, code: nil, device_session: nil)
+    def initialize(success:, user: nil, expires_at: nil, generated_token: nil, status: nil, msg: nil, impersonation_session_id: nil, code: nil, device_session: nil, legacy_generated_at: nil)
+      @legacy_generated_at = legacy_generated_at
       @success = success
       @user = user
       @expires_at = expires_at

@@ -14,10 +14,11 @@ module CommandTower
       :actor_user,
       :impersonation_session_id,
       :device_session,
-      :legacy_token
+      :legacy_token,
+      :legacy_generated_at
     ) do
       # rubocop:disable Metrics/MethodLength
-      def initialize(user:, token_expires_at:, token_source:, roles:, principal_type:, generated_token: nil, actor_user: nil, impersonation_session_id: nil, device_session: nil, legacy_token: false)
+      def initialize(user:, token_expires_at:, token_source:, roles:, principal_type:, generated_token: nil, actor_user: nil, impersonation_session_id: nil, device_session: nil, legacy_token: false, legacy_generated_at: nil)
         super(
           user:,
           token_expires_at:,
@@ -28,7 +29,8 @@ module CommandTower
           actor_user: actor_user || user,
           impersonation_session_id:,
           device_session:,
-          legacy_token:
+          legacy_token:,
+          legacy_generated_at:
         )
       end
 
@@ -43,7 +45,8 @@ module CommandTower
           actor_user: data[:actor_user] || data[:user],
           impersonation_session_id: data[:impersonation_session_id],
           device_session: data[:device_session],
-          legacy_token: data[:legacy_token] || false
+          legacy_token: data[:legacy_token] || false,
+          legacy_generated_at: data[:legacy_generated_at]
         )
       end
       # rubocop:enable Metrics/MethodLength

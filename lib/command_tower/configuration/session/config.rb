@@ -11,6 +11,8 @@ module CommandTower
 
         ENFORCE_ENV = "COMMAND_TOWER_SESSION_ENFORCE"
         UPGRADE_LEGACY_ENV = "COMMAND_TOWER_SESSION_UPGRADE_LEGACY_TOKENS"
+        OMIT_BODY_TOKEN_ENV = "COMMAND_TOWER_SESSION_OMIT_BODY_TOKEN"
+        OMIT_BODY_TOKEN_MIN_VERSION_ENV = "COMMAND_TOWER_SESSION_OMIT_BODY_TOKEN_MIN_APP_VERSION"
 
         add_composer :idle_timeout,
                      desc: "A device session with no authenticated request for this long is expired",
@@ -38,6 +40,21 @@ module CommandTower
                      allowed: [TrueClass, FalseClass],
                      default: ENV.fetch(UPGRADE_LEGACY_ENV, "true") != "false",
                      default_shown: "ENV.fetch(\"#{UPGRADE_LEGACY_ENV}\", \"true\") != \"false\""
+
+        add_composer :omit_body_token,
+                     desc: "In cookie mode, omit `token` from the login response body for the new web client " \
+                           "only (X-Client-Platform: web, X-App-Version at or above " \
+                           "omit_body_token_min_app_version). Read from ENV",
+                     allowed: [TrueClass, FalseClass],
+                     default: ENV.fetch(OMIT_BODY_TOKEN_ENV, "true") != "false",
+                     default_shown: "ENV.fetch(\"#{OMIT_BODY_TOKEN_ENV}\", \"true\") != \"false\""
+
+        add_composer :omit_body_token_min_app_version,
+                     desc: "First web X-App-Version (MAJOR.MINOR.PATCH) that no longer reads the body token. " \
+                           "Read from ENV",
+                     allowed: String,
+                     default: ENV.fetch(OMIT_BODY_TOKEN_MIN_VERSION_ENV, "0.4.0"),
+                     default_shown: "ENV.fetch(\"#{OMIT_BODY_TOKEN_MIN_VERSION_ENV}\", \"0.4.0\")"
       end
     end
   end

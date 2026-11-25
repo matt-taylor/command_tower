@@ -59,6 +59,16 @@ Login starts a device session and the JWT carries its `sid`. The session's idle 
 
 On a cookie-sourced `GET /auth/session` refresh the new token is set in the cookie only. The `X-Authorization-With-Reset` response header is sent only when the request used a bearer token.
 
+## Installation id and body token
+
+The HTTP boundary reads an installation id from the `X-Installation-Id` header first, then the `ct_installation` cookie. Only a UUID v4 is accepted; anything else is ignored. A cookie-mode login that arrives without an id gets a fresh one and sets `ct_installation` (HttpOnly, 400 days, same `SameSite` / `Secure` / `domain` options as the auth cookie). When the client already sent the header (native), no cookie is set. Starting a session replaces the same installation's earlier session and records the `X-Client-Platform` and `X-App-Version` values.
+
+In cookie mode, `POST /auth/plain-text/login` omits `token` from the body (`tokenExpiresAt` stays) only when `X-Client-Platform` is `web` and `X-App-Version` is at or above `config.session.omit_body_token_min_app_version` (default `0.4.0`, ENV `COMMAND_TOWER_SESSION_OMIT_BODY_TOKEN_MIN_APP_VERSION`). Turn the behavior off with `config.session.omit_body_token = false` (ENV `COMMAND_TOWER_SESSION_OMIT_BODY_TOKEN=false`). Native clients, older web clients and requests without the headers keep the body token.
+
+## Legacy token upgrade
+
+`GET /auth/session` with a valid sid-less (legacy) token creates a device session for it and returns a replacement token that carries the `sid` (set in the cookie, or in `X-Authorization-With-Reset` for bearer). The session row is keyed by the legacy token's `generated_at`, so concurrent upgrades produce one session, and it expires at `generated_at + absolute_timeout`. The upgrade wins over a plain refresh and never rotates the CSRF cookie. Revoking the upgraded session also ends the legacy token (`401` `session_revoked`). Disable with `config.session.upgrade_legacy_tokens = false` (ENV `COMMAND_TOWER_SESSION_UPGRADE_LEGACY_TOKENS=false`).
+
 ## Login / logout examples
 
 Paths are engine-relative. Prefix with your mount (generator often mounts at `/`; hosts may use `/api`).
@@ -164,7 +174,7 @@ allow do
 end
 ```
 
-`headers: :any` covers the `X-Time-Zone` and `X-UI-Catalog` request headers. A host that lists allowed headers explicitly must add both.
+`headers: :any` covers the `X-Time-Zone`, `X-UI-Catalog`, `X-Installation-Id`, `X-Client-Platform` and `X-App-Version` request headers. A host that lists allowed headers explicitly must add all five.
 
 `SameSite=None` cookies require `Secure=true` (HTTPS). Prefer same-site deployments with `SameSite=Lax` when possible.
 

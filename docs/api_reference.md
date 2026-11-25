@@ -114,9 +114,11 @@ Default JWT TTL is **7 days** (`config.jwt.ttl`).
 | **Auth** | Public |
 | **Gate** | `config.login.plain_text.enable?` (else route absent → **404**) |
 | **Body** | `identifier`, `password` (snake_case) |
-| **Success** | **201** — `data`: `{ user, token, tokenExpiresAt }` |
+| **Success** | **201** — `data`: `{ user, token, tokenExpiresAt }`; `token` is absent for the new web client in cookie mode |
 | **Errors** | `401` `invalid_credentials`; `429` `auth_rate_limited` (per-IP ceiling or soft account lockout) |
 | **Spec** | `spec/requests/command_tower/auth/plain_text/login_spec.rb` |
+
+**Installation id and body token:** the request may carry `X-Installation-Id` (UUID v4) or the `ct_installation` cookie, plus optional `X-Client-Platform` and `X-App-Version`. A cookie-mode login without an id sets `ct_installation`. `token` is omitted from the body only when cookie mode is on, `config.session.omit_body_token` is true, `X-Client-Platform` is `web` and `X-App-Version` is at or above `config.session.omit_body_token_min_app_version`. See the [cookie guide](cookie_authentication_guide.md#installation-id-and-body-token).
 
 `429` `auth_rate_limited` carries `details.retry_after_seconds` and a `Retry-After` header. The same error is returned by the email-verification and password-reset validate/reset endpoints when their limits trip. Limits: [Authentication](authentication.md#rate-limits-and-soft-lockout).
 
@@ -137,6 +139,8 @@ Default JWT TTL is **7 days** (`config.jwt.ttl`).
 | **Success** | **200** — `data`: `{ user, tokenExpiresAt, impersonation? }` |
 | **Errors** | `401`; `403`; `412` `email_verification_required` when email verification gate applies |
 | **Spec** | `spec/requests/command_tower/auth/session_spec.rb` |
+
+A valid sid-less legacy token is upgraded here when `config.session.upgrade_legacy_tokens` is on: the response carries a replacement token with a `sid` (cookie, or `X-Authorization-With-Reset` for bearer), and the CSRF cookie is not rotated. See the [cookie guide](cookie_authentication_guide.md#legacy-token-upgrade).
 
 `user` is the **effective** principal (target while overlaying). When an impersonation overlay is active, `impersonation` is present:
 

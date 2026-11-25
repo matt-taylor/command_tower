@@ -147,6 +147,27 @@ RSpec.describe CommandTower::Jwt::AuthenticateUser do
         expect(call.expires_at).to eq((Time.zone.at(Time.current.to_i) + CommandTower.config.jwt.ttl).to_time.to_s)
       end
 
+      it "carries the token's generated_at for upgrade" do
+        expect(call.legacy_generated_at).to eq(generated_at)
+      end
+
+      context "when its upgraded device session row is revoked" do
+        before do
+          create(:device_session, :revoked, user:, legacy_generated_at: Time.zone.at(generated_at))
+        end
+
+        it "fails with session_revoked" do
+          expect(call.failure?).to be(true)
+          expect(call.code).to eq("session_revoked")
+        end
+      end
+
+      context "when its upgraded device session row is live" do
+        before { create(:device_session, user:, legacy_generated_at: Time.zone.at(generated_at)) }
+
+        it { expect(call.success?).to be(true) }
+      end
+
       it "sets the invalid_token code when past jwt.ttl" do
         token
         Timecop.freeze(Time.current + CommandTower.config.jwt.ttl + 1.minute) do

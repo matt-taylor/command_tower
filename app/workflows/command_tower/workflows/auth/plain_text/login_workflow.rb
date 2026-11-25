@@ -24,18 +24,12 @@ module CommandTower
                 payload: CommandTower::Serializers::Auth::LoginResponseSerializer.serialize(
                   user: data[:user],
                   token: data[:token],
-                  token_expires_at: data[:expires_at]
+                  token_expires_at: data[:expires_at],
+                  include_token: !CommandTower::Services::Auth::OmitBodyToken.call
                 ),
                 http_status: :created,
                 meta: client_compatibility_meta,
-                response_effects: {
-                  set_token: CommandTower::Workflows::Auth::AuthenticationResponseEffects.for_set_token(
-                    token: data[:token],
-                    expires_at: data[:expires_at],
-                    device_session: data[:device_session]
-                  ),
-                  ensure_csrf_cookie: { rotate: csrf_rotate_on_login? }
-                }
+                response_effects: login_response_effects(data)
               )
             end
 
@@ -43,6 +37,19 @@ module CommandTower
           end
 
           private
+
+          def login_response_effects(data)
+            effects = {
+              set_token: CommandTower::Workflows::Auth::AuthenticationResponseEffects.for_set_token(
+                token: data[:token],
+                expires_at: data[:expires_at],
+                device_session: data[:device_session]
+              ),
+              ensure_csrf_cookie: { rotate: csrf_rotate_on_login? }
+            }
+            effects[:set_installation_cookie] = data[:installation_id] if data[:set_installation_cookie]
+            effects
+          end
 
           # Every login failure stays 401 except a rate limit, which is 429.
           def failure_http_status(error)

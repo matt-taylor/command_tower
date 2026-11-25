@@ -5,6 +5,8 @@ module CommandTower
     module ApplicationResponseRenderer
       extend ActiveSupport::Concern
 
+      INSTALLATION_COOKIE_TTL = 400.days
+
       private
 
       def render_application_result(result)
@@ -69,14 +71,7 @@ module CommandTower
           CommandTower::Jwt::AuthorizationHelper.clear_cookie(response)
         end
 
-        if effects[:ensure_csrf_cookie]
-          CommandTower::Jwt::CsrfHelper.ensure_cookie(
-            request,
-            response,
-            should_rotate: effects[:ensure_csrf_cookie][:rotate]
-          )
-        end
-
+        apply_cookie_effects(effects)
         apply_retry_after_effect(effects[:retry_after])
 
         return unless effects[:set_expire_header]
@@ -85,6 +80,25 @@ module CommandTower
           CommandTower::Jwt::AuthorizationHelper::AUTHENTICATION_EXPIRE_HEADER,
           effects[:set_expire_header]
         )
+      end
+
+      # Long-lived, HttpOnly installation id cookie (same transport options as the auth cookie).
+      def apply_cookie_effects(effects)
+        if effects[:ensure_csrf_cookie]
+          CommandTower::Jwt::CsrfHelper.ensure_cookie(
+            request,
+            response,
+            should_rotate: effects[:ensure_csrf_cookie][:rotate]
+          )
+        end
+
+        plant_installation_cookie(effects[:set_installation_cookie]) if effects[:set_installation_cookie]
+      end
+
+      def plant_installation_cookie(installation_id)
+        options = CommandTower::Jwt::AuthorizationHelper.cookie_options(expires_at: INSTALLATION_COOKIE_TTL.from_now)
+        options[:value] = installation_id
+        response.set_cookie(CommandTower::Execution::HttpBoundary::INSTALLATION_COOKIE_NAME, options)
       end
 
       def apply_retry_after_effect(seconds)

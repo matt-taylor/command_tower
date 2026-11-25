@@ -32,5 +32,19 @@ RSpec.describe CommandTower::Serializers::Auth::LoginResponseSerializer do
         roles: ["member"]
       )
     end
+
+    context "when include_token is false" do
+      let(:omitted) do
+        described_class.serialize(user: user, token: "tok", token_expires_at: "exp", include_token: false)
+      end
+
+      it "drops token" do
+        expect(omitted).not_to have_key(:token)
+      end
+
+      it "keeps tokenExpiresAt" do
+        expect(omitted[:tokenExpiresAt]).to eq("exp")
+      end
+    end
   end
 end

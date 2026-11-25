@@ -66,6 +66,82 @@ RSpec.describe "GET /auth/session", :with_rbac_setup, type: :request do
     end
   end
 
+  context "with a legacy (sid-less) token" do
+    let(:user) { create(:user, roles: ["member"]) }
+    let(:legacy_token) { CommandTower::Jwt::LoginCreate.call(user:).token }
+    let(:headers) { { "Authorization" => "Bearer #{legacy_token}" } }
+    let(:issued_token) { response.headers["X-Authorization-Reset"] }
+    let(:issued_payload) { CommandTower::Jwt::Decode.call(token: issued_token).payload }
+
+    context "when upgrade is enabled" do
+      before { make_request }
+
+      let(:row) { CommandTower::Auth::DeviceSession.find_by!(user_id: user.id) }
+
+      it "creates one device session and issues a token carrying its sid" do
+        expect(response).to have_http_status(:ok)
+        expect(issued_payload[:sid]).to eq(row.public_id)
+        expect(row.legacy_generated_at).to be_present
+      end
+
+      it "reuses the row on a second request with the same legacy token" do
+        expect { get path, headers: headers }
+          .not_to change(CommandTower::Auth::DeviceSession, :count)
+        expect(CommandTower::Jwt::Decode.call(token: issued_token).payload[:sid]).to be_present
+      end
+    end
+
+    context "when refreshing with X-Authorization-Reset" do
+      let(:headers) { super().merge("X-Authorization-Reset" => "true") }
+
+      before { make_request }
+
+      it "issues the upgraded token, not a sid-less refresh" do
+        expect(issued_payload[:sid]).to be_present
+        expect(CommandTower::Auth::DeviceSession.where(user_id: user.id).count).to eq(1)
+      end
+    end
+
+    context "when a concurrent request already created the row" do
+      before do
+        generated_at = CommandTower::Jwt::Decode.call(token: legacy_token).payload[:generated_at]
+        create(:device_session, user:, legacy_generated_at: Time.zone.at(generated_at))
+        make_request
+      end
+
+      it "converges on the single existing row" do
+        expect(CommandTower::Auth::DeviceSession.where(user_id: user.id).count).to eq(1)
+        expect(issued_payload[:sid]).to eq(CommandTower::Auth::DeviceSession.find_by!(user_id: user.id).public_id)
+      end
+    end
+
+    context "when the upgraded row was revoked" do
+      before do
+        generated_at = CommandTower::Jwt::Decode.call(token: legacy_token).payload[:generated_at]
+        create(:device_session, :revoked, user:, legacy_generated_at: Time.zone.at(generated_at))
+        make_request
+      end
+
+      it "renders session_revoked" do
+        expect(response).to have_http_status(:unauthorized)
+        expect(response_error_code).to eq("session_revoked")
+      end
+    end
+
+    context "when upgrade_legacy_tokens is off" do
+      before do
+        allow(CommandTower.config.session).to receive(:upgrade_legacy_tokens).and_return(false)
+        make_request
+      end
+
+      it "leaves the token alone and creates no row" do
+        expect(response).to have_http_status(:ok)
+        expect(response.headers["X-Authorization-Reset"]).to be_nil
+        expect(CommandTower::Auth::DeviceSession.count).to eq(0)
+      end
+    end
+  end
+
   context "with a device session token" do
     let(:user) { create(:user, roles: ["member"]) }
     let(:session_attrs) { {} }
