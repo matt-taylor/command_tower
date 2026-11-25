@@ -121,6 +121,8 @@ CommandTower::Engine.routes.draw do
 
     constraints(->(_req) { CommandTower.config.home_notices.enabled }) do
       get "home-notices", to: "home_notices#index"
+      # The id is a public id or `campaign:<key>` (dots and a colon), so the segment is not dot-limited.
+      post "home-notices/:id/impression", to: "home_notices#impression", constraints: { id: %r{[^/]+} }
     end
 
     get "experience-states", to: "experience_states#index"

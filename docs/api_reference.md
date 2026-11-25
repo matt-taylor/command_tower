@@ -532,6 +532,26 @@ Returns at most one blocking and one dismissible notice for the signed-in user. 
 
 **Spec:** `spec/requests/command_tower/me/home_notices_spec.rb`.
 
+### `POST /me/home-notices/:id/impression`
+
+Records that the signed-in user was shown a notice. `:id` is a notice `public_id` or `campaign:<key>` (a campaign with no row yet in the current period). The notice is looked up for the current user only. Routed only when `config.home_notices.enabled`; otherwise **404**. No request body.
+
+`data`: `{ recorded }`. `recorded` is `true` when the impression was counted, `false` when nothing was written: the user is impersonating (or impersonation state is unknown), or a repeat impression arrived within 60 seconds of the last one.
+
+| Status | When |
+|--------|------|
+| 200 | Success, including `recorded: false` |
+| 401 / 403 | Unauthenticated / no `me_home_notices` grant |
+| 404 | Feature disabled; unknown, foreign or killed notice; or the notice is outside its window, acknowledged or dismissed |
+| 429 | `home_notices_rate_limited`: over `config.home_notices.mutation_rate_limit_per_minute` (120 per user per minute, shared with acknowledge and dismiss). A limiter failure fails open |
+| 503 | `home_notices_unavailable`: the kill switch could not be read, or a database failure |
+
+**Audit:** the first impression of a campaign period, or of a delivery, emits `home_notice_impression` (affected user: the current user; metadata `notice_id`, `key`, `kind`, `severity`). Later impressions only increment the row's count and emit nothing. A new campaign period audits again.
+
+**RBAC:** `me_home_notices`.
+
+**Spec:** `spec/requests/command_tower/me/home_notices_impression_spec.rb`.
+
 ---
 
 ## Admin Workspace

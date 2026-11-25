@@ -315,6 +315,22 @@ module CommandTower
               retention: :permanent,
               subject_required: false,
               affected_user_required: true
+            },
+            # The first impression of a home notice per period (campaign) or per delivery. Later
+            # impressions only increment the row's impression_count.
+            home_notice_impression: {
+              label: "Home notice first shown",
+              tags: %w[home_notices engagement],
+              enabled: true,
+              enablement_configurable: false,
+              user_history: false,
+              sensitive_fields: [],
+              allowed_changes: [],
+              retention: :ninety_days,
+              subject_required: false,
+              subject_type: "",
+              affected_user_required: true,
+              global_visible_in_host_scope: false
             }
           }.freeze
 

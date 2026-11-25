@@ -21,7 +21,30 @@ module CommandTower
         render_application_result(result)
       end
 
+      def impression
+        deserialized = CommandTower::Deserializers::HomeNotices::NoticeIdDeserializer.call(params)
+        return render_not_found unless deserialized.success?
+
+        result = CommandTower::Workflows::HomeNotices::RecordImpressionWorkflow.call(
+          user: current_user,
+          notice_id: deserialized.input,
+          impersonating: impersonating_flag,
+          app_version: header_value("X-App-Version"),
+          platform: header_value("X-Client-Platform")&.downcase
+        )
+        render_application_result(result)
+      end
+
       private
+
+      # A malformed id names no notice.
+      def render_not_found
+        render_application_result(
+          CommandTower::Workflows::WorkflowResult.failure(
+            errors: [CommandTower::Errors::NotFoundError.new], http_status: :not_found
+          )
+        )
+      end
 
       # Notices are per user and redacted while impersonating: never cache them.
       def set_no_store

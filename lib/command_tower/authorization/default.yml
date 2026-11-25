@@ -90,7 +90,9 @@ entities:
       - filter_options
   - name: me_home_notices
     controller: CommandTower::Me::HomeNoticesController
-    only: index
+    only:
+      - index
+      - impression
   - name: admin_messaging_announcements
     controller: CommandTower::Admin::Messaging::AnnouncementsController
     only: create

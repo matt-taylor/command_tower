@@ -17,6 +17,7 @@ RSpec.describe CommandTower::Current do
       %w[
         app/workflows/command_tower/workflows/messaging/inbox.rb
         app/workflows/command_tower/workflows/home_notices/show_workflow.rb
+        app/workflows/command_tower/workflows/home_notices/record_impression_workflow.rb
       ]
     end
     let(:readers) do
