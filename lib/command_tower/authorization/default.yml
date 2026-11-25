@@ -93,6 +93,8 @@ entities:
     only:
       - index
       - impression
+      - acknowledge
+      - dismiss
   - name: admin_messaging_announcements
     controller: CommandTower::Admin::Messaging::AnnouncementsController
     only: create

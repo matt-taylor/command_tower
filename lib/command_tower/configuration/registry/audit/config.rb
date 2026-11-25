@@ -331,6 +331,37 @@ module CommandTower
               subject_type: "",
               affected_user_required: true,
               global_visible_in_host_scope: false
+            },
+            # A user acknowledged a home notice. Metadata is ids only; the content hash of a
+            # blocking acknowledgement stays on the notice row.
+            home_notice_acknowledged: {
+              label: "Home notice acknowledged",
+              tags: %w[home_notices engagement],
+              enabled: true,
+              enablement_configurable: false,
+              user_history: true,
+              sensitive_fields: [],
+              allowed_changes: [],
+              retention: :one_year,
+              subject_required: true,
+              subject_type: "User",
+              affected_user_required: true,
+              global_visible_in_host_scope: true
+            },
+            # A user dismissed a dismissible home notice. Metadata is ids only.
+            home_notice_dismissed: {
+              label: "Home notice dismissed",
+              tags: %w[home_notices engagement],
+              enabled: true,
+              enablement_configurable: false,
+              user_history: false,
+              sensitive_fields: [],
+              allowed_changes: [],
+              retention: :ninety_days,
+              subject_required: false,
+              subject_type: "",
+              affected_user_required: true,
+              global_visible_in_host_scope: false
             }
           }.freeze
 

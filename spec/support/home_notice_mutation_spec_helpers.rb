@@ -29,8 +29,38 @@ module HomeNoticeMutationSpecHelpers
     )
   end
 
+  def acknowledge_notice(user:, notice_class:, row: nil, period_key: "week-48", **options)
+    at = options.fetch(:at, HomeNoticeSelectSpecHelpers.start_time)
+    impersonating = options.fetch(:impersonating, false)
+    request_context = HomeNoticeSelectSpecHelpers.request_context(now: at).with(impersonating:)
+    CommandTower::Services::HomeNotices::Acknowledge.call(
+      user:, notice_class:, row:, period_key:, request_context:
+    )
+  end
+
+  def dismiss_notice(user:, notice_class:, row: nil, period_key: "week-48", **options)
+    at = options.fetch(:at, HomeNoticeSelectSpecHelpers.start_time)
+    impersonating = options.fetch(:impersonating, false)
+    request_context = HomeNoticeSelectSpecHelpers.request_context(now: at).with(impersonating:)
+    CommandTower::Services::HomeNotices::Dismiss.call(
+      user:, notice_class:, row:, period_key:, request_context:
+    )
+  end
+
+  def dismissal_audits
+    CommandTower::Audit::Event.where(action: "home_notice_dismissed")
+  end
+
+  def notice_id_for(public_id)
+    CommandTower::Deserializers::HomeNotices::NoticeIdDeserializer::Input.new(public_id:, campaign_key: nil)
+  end
+
   def impression_audits
     CommandTower::Audit::Event.where(action: "home_notice_impression")
+  end
+
+  def acknowledgement_audits
+    CommandTower::Audit::Event.where(action: "home_notice_acknowledged")
   end
 
   def campaign_rows(campaign_key)

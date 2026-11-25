@@ -123,6 +123,8 @@ CommandTower::Engine.routes.draw do
       get "home-notices", to: "home_notices#index"
       # The id is a public id or `campaign:<key>` (dots and a colon), so the segment is not dot-limited.
       post "home-notices/:id/impression", to: "home_notices#impression", constraints: { id: %r{[^/]+} }
+      post "home-notices/:id/acknowledge", to: "home_notices#acknowledge", constraints: { id: %r{[^/]+} }
+      post "home-notices/:id/dismiss", to: "home_notices#dismiss", constraints: { id: %r{[^/]+} }
     end
 
     get "experience-states", to: "experience_states#index"

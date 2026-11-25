@@ -22,10 +22,24 @@ module CommandTower
       end
 
       def impression
+        mutate(CommandTower::Workflows::HomeNotices::RecordImpressionWorkflow)
+      end
+
+      def acknowledge
+        mutate(CommandTower::Workflows::HomeNotices::AcknowledgeWorkflow)
+      end
+
+      def dismiss
+        mutate(CommandTower::Workflows::HomeNotices::DismissWorkflow)
+      end
+
+      private
+
+      def mutate(workflow)
         deserialized = CommandTower::Deserializers::HomeNotices::NoticeIdDeserializer.call(params)
         return render_not_found unless deserialized.success?
 
-        result = CommandTower::Workflows::HomeNotices::RecordImpressionWorkflow.call(
+        result = workflow.call(
           user: current_user,
           notice_id: deserialized.input,
           impersonating: impersonating_flag,
@@ -34,8 +48,6 @@ module CommandTower
         )
         render_application_result(result)
       end
-
-      private
 
       # A malformed id names no notice.
       def render_not_found

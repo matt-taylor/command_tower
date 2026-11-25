@@ -552,6 +552,47 @@ Records that the signed-in user was shown a notice. `:id` is a notice `public_id
 
 **Spec:** `spec/requests/command_tower/me/home_notices_impression_spec.rb`.
 
+### `POST /me/home-notices/:id/acknowledge`
+
+Acknowledges a notice for the signed-in user. `:id` is a notice `public_id` or `campaign:<key>` (a campaign with no row yet in the current period). Works for blocking and dismissible notices. It never runs the notice's `show?`: a user who saw a notice can always clear it, even if `show?` is now false or raises. Routed only when `config.home_notices.enabled`; otherwise **404**. No request body.
+
+`data`: `{ acknowledged, recorded, public_id }`. `acknowledged` is always `true` on success. `recorded` is `true` only when this request made the change; a repeat acknowledge is an idempotent success with `recorded: false`. A blocking acknowledgement stores the content hash of the shown document on the row (for blocking only); the hash is never returned and never audited.
+
+| Status | When |
+|--------|------|
+| 200 | Success, including `recorded: false` |
+| 401 / 403 | Unauthenticated / no `me_home_notices` grant. Also **403** while impersonating (or impersonation state is unknown); nothing is written |
+| 404 | Feature disabled; unknown, foreign or killed notice |
+| 429 | `home_notices_rate_limited`: over `config.home_notices.mutation_rate_limit_per_minute` (120 per user per minute, shared with impression and dismiss). A limiter failure fails open |
+| 503 | `home_notices_unavailable`: the kill switch could not be read, or a database failure |
+
+**Audit:** when this request changes the row, it emits `home_notice_acknowledged` (subject and affected user: the current user; metadata `notice_id`, `key`, `kind`, `severity`; never the content hash). A repeat acknowledge emits nothing.
+
+**RBAC:** `me_home_notices`.
+
+**Spec:** `spec/requests/command_tower/me/home_notices_clear_spec.rb`.
+
+### `POST /me/home-notices/:id/dismiss`
+
+Dismisses a dismissible notice for the signed-in user for 7 days (`dismissed_until`); the notice's window, kill switch and pacing still apply afterward. `:id` is as for acknowledge. It never runs `show?`. Routed only when `config.home_notices.enabled`; otherwise **404**. No request body.
+
+`data`: `{ dismissed, recorded, public_id, dismissed_until }`. `dismissed` is always `true` on success. `recorded` is `true` only when this request made the change; a repeat dismiss while already dismissed into the future is an idempotent success with `recorded: false`.
+
+| Status | When |
+|--------|------|
+| 200 | Success, including `recorded: false` |
+| 401 / 403 | Unauthenticated / no `me_home_notices` grant. Also **403** while impersonating (or impersonation state is unknown); nothing is written |
+| 404 | Feature disabled; unknown, foreign or killed notice |
+| 422 | The notice is blocking: only dismissible notices can be dismissed; nothing is written |
+| 429 | `home_notices_rate_limited`: over `config.home_notices.mutation_rate_limit_per_minute` (shared with impression and acknowledge). A limiter failure fails open |
+| 503 | `home_notices_unavailable`: the kill switch could not be read, or a database failure |
+
+**Audit:** when this request changes the row, it emits `home_notice_dismissed` (affected user: the current user; metadata `notice_id`, `key`, `kind`, `severity`). A repeat dismiss emits nothing.
+
+**RBAC:** `me_home_notices`.
+
+**Spec:** `spec/requests/command_tower/me/home_notices_clear_spec.rb`.
+
 ---
 
 ## Admin Workspace
