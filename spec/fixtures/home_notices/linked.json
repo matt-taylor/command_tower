@@ -1,0 +1,81 @@
+{
+  "blocking": null,
+  "dismissible": {
+    "document": {
+      "catalog": 2,
+      "root": {
+        "children": [
+          {
+            "spans": [
+              {
+                "text": "Arms & Abs is canceled",
+                "type": "text"
+              }
+            ],
+            "textTone": "primary",
+            "type": "text",
+            "variant": "heading_m"
+          },
+          {
+            "children": [
+              {
+                "items": [
+                  {
+                    "label": "Class",
+                    "value": "Arms & Abs"
+                  },
+                  {
+                    "label": "When",
+                    "value": {
+                      "at": "2026-12-04T14:00:00Z",
+                      "format": "short",
+                      "label": "auto",
+                      "textTone": "primary",
+                      "type": "time",
+                      "variant": "body",
+                      "zone": "America/Los_Angeles"
+                    }
+                  },
+                  {
+                    "label": "Where",
+                    "value": "Studio B"
+                  }
+                ],
+                "type": "key_value"
+              }
+            ],
+            "type": "facts"
+          },
+          {
+            "children": [
+              {
+                "action": {
+                  "destination": {
+                    "kind": "internal",
+                    "path": "/classes"
+                  },
+                  "type": "navigate"
+                },
+                "label": "Find another class",
+                "type": "button",
+                "variant": "primary"
+              }
+            ],
+            "gap": "sm",
+            "type": "stack"
+          }
+        ],
+        "padding": "md",
+        "surface": "raised",
+        "type": "card"
+      },
+      "schema": "ui_document",
+      "textFallback": "Arms & Abs is canceled\nClass: Arms & Abs\nWhen: Fri, Dec 4, 6:00 AM PT\nWhere: Studio B\nFind another class"
+    },
+    "endsAt": "2026-12-04T22:00:00Z",
+    "id": "hn_fixture_class_canceled",
+    "key": "studio.class_canceled",
+    "severity": "dismissible"
+  },
+  "readOnly": false
+}

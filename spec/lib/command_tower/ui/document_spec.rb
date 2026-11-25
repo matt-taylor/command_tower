@@ -25,8 +25,48 @@ RSpec.describe CommandTower::UI::Document, :aggregate_failures do
 
   describe "#validate!" do
     it "raises for an unknown profile" do
-      expect { UiSpecHelpers.document(UiSpecHelpers.text).validate!(profile: :blocking_notice) }
+      expect { UiSpecHelpers.document(UiSpecHelpers.text).validate!(profile: :unknown) }
         .to raise_error(ArgumentError)
+    end
+
+    context "with profile: :blocking_notice" do
+      let(:helpers) { UiSpecHelpers }
+      let(:profile) { :blocking_notice }
+
+      it "accepts plain text and an https secondary button" do
+        expect(helpers.errors_for(helpers.text_and_https_button, profile:)).to eq([])
+      end
+
+      it "rejects an internal navigate" do
+        expect(helpers.errors_for(helpers.stack(helpers.button(helpers.navigate)), profile:))
+          .to eq([{ path: "root.children[0].action", code: "internal_navigation_not_allowed" }])
+      end
+
+      it "rejects mailto and tel hrefs" do
+        expect(helpers.errors_for(helpers.mail_and_tel_buttons, profile:).pluck(:code))
+          .to eq(%w[external_scheme_not_allowed external_scheme_not_allowed])
+      end
+
+      it "rejects an http href" do
+        expect(helpers.errors_for(helpers.stack(helpers.external_button("http://example.com")), profile:))
+          .to include({ path: "root.children[0].action.href", code: "unsafe_scheme" })
+      end
+
+      it "rejects a primary button" do
+        expect(helpers.errors_for(helpers.primary_https_button_stack, profile:))
+          .to eq([{ path: "root.children[0]", code: "primary_button_not_allowed" }])
+      end
+
+      it "rejects an internal link span" do
+        expect(helpers.errors_for(helpers.internal_link_text, profile:).pluck(:code))
+          .to eq(["internal_navigation_not_allowed"])
+      end
+
+      it "leaves the default and message profiles unchanged" do
+        expect(helpers.document(helpers.primary_internal_stack).validation_errors).to eq([])
+        expect(helpers.document(helpers.primary_internal_stack).validation_errors(profile: :message))
+          .to eq([{ path: "document", code: "missing_facts_node" }])
+      end
     end
 
     it "accepts the default profile explicitly" do

@@ -30,7 +30,7 @@ All listed workflows inherit `ApplicationWorkflow` with `retry_strategy :none`. 
 
 `POST /auth/password-recovery-session`
 
-**Deprecated:** each call emits `auth.legacy_contract_used` (see the [0.24.0 upgrade guide](upgrades/0.24.0.md)). Establishes the recovery session used by subsequent reset calls. See request specs under `spec/requests/` for exact payload/envelope.
+**Deprecated:** each call emits `auth.legacy_contract_used` (see the [0.25.0 upgrade guide](upgrades/0.25.0.md)). Establishes the recovery session used by subsequent reset calls. See request specs under `spec/requests/` for exact payload/envelope.
 
 ### 2. Send reset email
 

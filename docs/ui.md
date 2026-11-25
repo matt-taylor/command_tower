@@ -124,6 +124,19 @@ A `time` node, `TimeFormatter`, `TextDerivation` and `Email::Renderer` accept `z
 
 `Document#validate!(profile: :message)` adds one rule to the default checks: the document has exactly one `facts` node. The default profile is unchanged.
 
+## Blocking notice profile
+
+`Document#validate!(profile: :blocking_notice)` keeps every default check and rejects, with codes only (hrefs are never echoed):
+
+| Rejected | Code | Path |
+|---|---|---|
+| Primary button | `primary_button_not_allowed` | the button node |
+| Navigate action with an internal `path` | `internal_navigation_not_allowed` | the action node |
+| Navigate action with a `mailto:` or `tel:` href | `external_scheme_not_allowed` | the action node |
+| Plain `http` href | `unsafe_scheme` (base rule) | the action node |
+
+Only `https` external links remain. The `default` and `message` profiles are unchanged.
+
 ## Redaction
 
 `UI::Redaction.call(document, impersonating:)` returns a new document in which every `code` node becomes a `text` node reading "Open the app to check in" (variant `body`, `textTone: secondary`, label dropped), so the code value never reaches the serialised document. Only `impersonating: false` skips it; any other value redacts.

@@ -122,11 +122,20 @@ CommandTower::Engine.routes.draw do
     put "push/:id", to: "push#update"
     delete "push/:id", to: "push#destroy"
 
+    constraints(->(_req) { CommandTower.config.home_notices.enabled }) do
+      get "home-notices", to: "home_notices#index"
+      # The id is a public id or `campaign:<key>` (dots and a colon), so the segment is not dot-limited.
+      post "home-notices/:id/impression", to: "home_notices#impression", constraints: { id: %r{[^/]+} }
+      post "home-notices/:id/acknowledge", to: "home_notices#acknowledge", constraints: { id: %r{[^/]+} }
+      post "home-notices/:id/dismiss", to: "home_notices#dismiss", constraints: { id: %r{[^/]+} }
+    end
+
     get "experience-states", to: "experience_states#index"
     post "experience-states/complete", to: "experience_states#complete"
   end
 
   namespace :admin do
+    patch "home-notices/:key", to: "home_notices#update", constraints: { key: %r{[^/]+} }
     get "audit-events/filter-options", to: "audit/events#filter_options"
     get "audit-events", to: "audit/events#index"
     get "audit-events/:id", to: "audit/events#show"

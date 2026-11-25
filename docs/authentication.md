@@ -118,7 +118,7 @@ Ended rows accumulate (one per login) until purged. `CommandTower::Auth::DeviceS
 
 **The host schedules the job.** CommandTower does not schedule it. Run it daily with the host's scheduler (for example a recurring job or cron calling `CommandTower::Auth::DeviceSessions::PurgeEndedJob.perform_later`). Until it is scheduled, nothing breaks; rows only accumulate.
 
-Host seams: `Jwt::LoginCreate.call` takes an optional `device_session:`; `Jwt::AuthenticateUser` returns `AuthenticationOutcome` with `code` and `device_session`. Hosts that wrap either must pass these through ([upgrade guide](upgrades/0.24.0.md)).
+Host seams: `Jwt::LoginCreate.call` takes an optional `device_session:`; `Jwt::AuthenticateUser` returns `AuthenticationOutcome` with `code` and `device_session`. Hosts that wrap either must pass these through ([upgrade guide](upgrades/0.25.0.md)).
 
 ## Rate limits and soft lockout
 

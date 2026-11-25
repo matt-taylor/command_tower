@@ -11,6 +11,7 @@ require "command_tower/configuration/base"
 require "command_tower/configuration/credentials/config"
 require "command_tower/configuration/email/config"
 require "command_tower/configuration/email_theme/config"
+require "command_tower/configuration/home_notices/config"
 require "command_tower/configuration/identity/config"
 require "command_tower/configuration/impersonation/config"
 require "command_tower/configuration/jwt/config"
@@ -104,6 +105,11 @@ module CommandTower
         desc: "Messaging delivery configuration (notification SMS, etc.). Separate from Identity OTP.",
         allowed: Configuration::Messaging::Config,
         default: Configuration::Messaging::Config.new
+
+      add_composer :home_notices,
+        desc: "Home Notices: host-registered campaigns and deliveries shown on Home, with blocking cadence limits",
+        allowed: Configuration::HomeNotices::Config,
+        default: Configuration::HomeNotices::Config.new
 
       add_composer :account_deletion,
         desc: "Account self-service deletion host hooks",

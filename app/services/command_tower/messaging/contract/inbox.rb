@@ -31,7 +31,36 @@ module CommandTower
             end
           end
 
+          # Read-only, no audit. Returns Results::InboxDocument carrying the catalog 2
+          # UI::Document, or nil when the communication is missing, not the recipient's,
+          # deleted or archived, not inbox-backed, or its type has no MessageDefinition.
+          def document_for_communication(request)
+            guarded("inbox.document_for_communication", request, Requests::DocumentForCommunication) do
+              item = CommandTower::Messaging::Inbox::Scope.find_for_recipient_communication(
+                recipient_id: request.recipient_id,
+                communication_id: request.communication_id
+              )
+              item && inbox_document(item, request)
+            end
+          end
+
           private
+
+          def inbox_document(item, request)
+            return nil if item.deleted? || item.archived?
+
+            communication = item.communication
+            return nil unless communication.message_definition_backed?
+
+            document = CommandTower::Messaging::Rendering::InboxDocumentRenderer.render(
+              communication:, recipient_id: request.recipient_id, ui_catalog: 2, impersonating: request.impersonating
+            )
+            return nil unless document.is_a?(CommandTower::UI::Document)
+
+            Results::InboxDocument.new(
+              communication_id: communication.id, inbox_item_id: item.id, document:
+            ).freeze
+          end
 
           def guarded(operation, request, expected_class, &)
             ensure_request!(request, expected_class)

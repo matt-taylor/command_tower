@@ -10,10 +10,16 @@ module CommandTower
           purge_user_secrets!
           purge_messaging_inbox!
           purge_messaging_endpoints!
+          purge_home_notices!
           revoke_impersonation_sessions!
         end
 
         private
+
+        # Per-user notice state only. Audit events (home_notice_acknowledged) are a separate record and stay.
+        def purge_home_notices!
+          CommandTower::HomeNotice.where(user_id: user.id).delete_all
+        end
 
         def purge_user_secrets!
           UserSecret.where(user_id: user.id).delete_all

@@ -1,0 +1,122 @@
+{
+  "blocking": {
+    "document": {
+      "catalog": 2,
+      "root": {
+        "children": [
+          {
+            "spans": [
+              {
+                "text": "Studio terms updated",
+                "type": "text"
+              }
+            ],
+            "textTone": "primary",
+            "type": "text",
+            "variant": "heading_m"
+          },
+          {
+            "spans": [
+              {
+                "text": "We changed how cancellations work. Read our ",
+                "type": "text"
+              },
+              {
+                "action": {
+                  "destination": {
+                    "href": "https://studio.example.com/policy",
+                    "kind": "external"
+                  },
+                  "type": "navigate"
+                },
+                "text": "cancellation policy",
+                "type": "link"
+              },
+              {
+                "text": " before you book again.",
+                "type": "text"
+              }
+            ],
+            "textTone": "primary",
+            "type": "text",
+            "variant": "body"
+          },
+          {
+            "action": {
+              "destination": {
+                "href": "https://studio.example.com/terms",
+                "kind": "external"
+              },
+              "type": "navigate"
+            },
+            "label": "Read the full terms",
+            "type": "button",
+            "variant": "secondary"
+          }
+        ],
+        "padding": "md",
+        "surface": "raised",
+        "type": "card"
+      },
+      "schema": "ui_document",
+      "textFallback": "Studio terms updated\nWe changed how cancellations work. Read our cancellation policy before you book again.\nRead the full terms"
+    },
+    "endsAt": "2026-12-31T23:59:59Z",
+    "id": "campaign:studio.terms_update",
+    "key": "studio.terms_update",
+    "severity": "blocking"
+  },
+  "dismissible": {
+    "document": {
+      "catalog": 2,
+      "root": {
+        "children": [
+          {
+            "spans": [
+              {
+                "text": "Tell us how you like to train",
+                "type": "text"
+              }
+            ],
+            "textTone": "primary",
+            "type": "text",
+            "variant": "heading_m"
+          },
+          {
+            "spans": [
+              {
+                "text": "Pick your favourite class types and we will suggest the right sessions.",
+                "type": "text"
+              }
+            ],
+            "textTone": "primary",
+            "type": "text",
+            "variant": "body"
+          },
+          {
+            "action": {
+              "destination": {
+                "kind": "internal",
+                "path": "/preferences"
+              },
+              "type": "navigate"
+            },
+            "label": "Set preferences",
+            "type": "button",
+            "variant": "primary"
+          }
+        ],
+        "padding": "md",
+        "surface": "raised",
+        "type": "card"
+      },
+      "schema": "ui_document",
+      "textFallback": "Tell us how you like to train\nPick your favourite class types and we will suggest the right sessions.\nSet preferences"
+    },
+    "endsAt": "2026-12-15T23:59:59Z",
+    "id": "campaign:studio.preferences",
+    "key": "studio.preferences",
+    "severity": "dismissible"
+  },
+  "readOnly": false
+}

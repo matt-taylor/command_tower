@@ -87,8 +87,20 @@ CommandTower.config.registry.audit.set_enabled!(:login_failed, true)
 | `session_cleared` | no | yes |
 | `login_failed` | no | yes |
 | `messaging_inbox_item_viewed` | yes | yes |
+| `home_notice_impression` | yes | no |
+| `home_notice_acknowledged` | yes | no |
+| `home_notice_dismissed` | yes | no |
+| `home_notice_control_changed` | yes | no |
 
 `messaging_inbox_item_viewed` is emitted by `Workflows::Messaging::Inbox::OpenWorkflow` once per first view of an inbox item, for every notification type (metadata: `inbox_item_id`, `communication_id`; retention `ninety_days`, not in account history). A repeat open, bulk read/unread, `Show`, and `Contract::Inbox` emit nothing. An impersonated open returns the detail but neither marks the item viewed nor audits.
+
+`home_notice_impression` is emitted by `Services::HomeNotices::RecordImpression` (via `POST /me/home-notices/:id/impression`) once per first impression of a campaign period or of a delivery (affected user: the viewer; metadata `notice_id`, `key`, `kind`, `severity`; no changes; retention `ninety_days`; not in account history). The decision is an atomic write, so concurrent requests audit exactly once. A repeat impression, one inside the 60 s idempotency window, and an impersonated request emit nothing; a new campaign period audits again. See [home_notices.md](home_notices.md).
+
+`home_notice_acknowledged` is emitted by `Services::HomeNotices::Acknowledge` (via `POST /me/home-notices/:id/acknowledge`) when the request itself changes the row (subject and affected user: the user; metadata `notice_id`, `key`, `kind`, `severity`; no changes; retention `one_year`; in account history). Metadata is ids only: the content hash of a blocking acknowledgement stays on the notice row. The decision is an atomic write in the same transaction as the audit, so concurrent requests audit exactly once. A repeat acknowledge and an impersonated request (refused with 403) emit nothing.
+
+`home_notice_dismissed` is emitted by `Services::HomeNotices::Dismiss` (via `POST /me/home-notices/:id/dismiss`) when the request itself changes the row (affected user: the user; metadata `notice_id`, `key`, `kind`, `severity`; no changes; retention `ninety_days`; not in account history). Only dismissible notices can be dismissed. A repeat dismiss while already dismissed, a blocking dismiss (422) and an impersonated request (403) emit nothing.
+
+`home_notice_control_changed` is emitted by `Workflows::Admin::HomeNotices::UpdateControlWorkflow` (via `PATCH /admin/home-notices/:key`) in the same transaction as the write, only when the request changes the effective state (admin attribution `admin_direct`; no affected user; metadata `key`; change `enabled` from/to; retention `permanent`; not in account history). A no-op, an unknown key (404) and an impersonated request (403) emit nothing. See [home_notices.md](home_notices.md#kill-switch-runbook).
 
 `messaging_unsubscribed` is emitted by the one-click unsubscribe workflow when a token turns email off for a type (affected user: the token's user; change key `email_enabled`; `user_history`; retention `permanent`). See [messaging_integration_guide.md](messaging_integration_guide.md#email-compliance-defined-types).
 

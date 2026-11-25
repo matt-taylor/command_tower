@@ -89,6 +89,21 @@ config.application.url = "http://localhost:8081"
 
 `8081` is one product’s Expo port. Use the port this host’s web app actually publishes, and put that same origin in `CORS_ALLOWED_ORIGINS` (step 01). Production SMTP is out of this manual’s deployment scope.
 
+### Home Notices (optional)
+
+Off by default. Authoring and boot checks: [`../home_notices.md`](../home_notices.md).
+
+| Option | Default | Meaning |
+|---|---|---|
+| `config.home_notices.enabled` | `false` | Loads the catalog and checks it at boot |
+| `config.home_notices.notices` | `[]` | Class names (Strings) of `Campaign` and `Delivery` subclasses |
+| `config.home_notices.global_cooldown` | `8.hours` | Minimum time between blocking notices per user; at least 1 hour |
+| `config.home_notices.blocking_daily_cap` | `2` | Blocking notices started per user per day |
+| `config.home_notices.max_open_deliveries` | `20` | Open Delivery notices per user |
+| `config.home_notices.rate_limit_per_minute` | `30` | `GET /me/home-notices` requests per user per minute |
+| `config.home_notices.mutation_rate_limit_per_minute` | `120` | Shared bucket for impression, acknowledge and dismiss requests |
+| `config.home_notices.update_app_campaign` | `true` | Whether the built-in `ct.update_app` campaign is active |
+
 ### What not to do
 
 - Do not duplicate CommandTower default hashes “for completeness”

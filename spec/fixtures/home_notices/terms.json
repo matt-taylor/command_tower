@@ -1,0 +1,71 @@
+{
+  "blocking": {
+    "document": {
+      "catalog": 2,
+      "root": {
+        "children": [
+          {
+            "spans": [
+              {
+                "text": "Studio terms updated",
+                "type": "text"
+              }
+            ],
+            "textTone": "primary",
+            "type": "text",
+            "variant": "heading_m"
+          },
+          {
+            "spans": [
+              {
+                "text": "We changed how cancellations work. Read our ",
+                "type": "text"
+              },
+              {
+                "action": {
+                  "destination": {
+                    "href": "https://studio.example.com/policy",
+                    "kind": "external"
+                  },
+                  "type": "navigate"
+                },
+                "text": "cancellation policy",
+                "type": "link"
+              },
+              {
+                "text": " before you book again.",
+                "type": "text"
+              }
+            ],
+            "textTone": "primary",
+            "type": "text",
+            "variant": "body"
+          },
+          {
+            "action": {
+              "destination": {
+                "href": "https://studio.example.com/terms",
+                "kind": "external"
+              },
+              "type": "navigate"
+            },
+            "label": "Read the full terms",
+            "type": "button",
+            "variant": "secondary"
+          }
+        ],
+        "padding": "md",
+        "surface": "raised",
+        "type": "card"
+      },
+      "schema": "ui_document",
+      "textFallback": "Studio terms updated\nWe changed how cancellations work. Read our cancellation policy before you book again.\nRead the full terms"
+    },
+    "endsAt": "2026-12-31T23:59:59Z",
+    "id": "campaign:studio.terms_update",
+    "key": "studio.terms_update",
+    "severity": "blocking"
+  },
+  "dismissible": null,
+  "readOnly": false
+}

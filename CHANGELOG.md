@@ -13,7 +13,7 @@
 
 ### Added
 
-- Device sessions: table `command_tower_device_sessions` (additive migration), `config.session.*` (`idle_timeout`, `absolute_timeout`, `last_seen_write_interval`, `enforce`, `upgrade_legacy_tokens`), `sid` claim on login tokens, and `401` codes `session_expired` / `session_revoked` in the client error envelope. Sid-less tokens keep the old rule. A cookie-sourced refresh no longer sends the `X-Authorization-With-Reset` header. See [authentication](docs/authentication.md#device-sessions) and the [upgrade guide](docs/upgrades/0.24.0.md).
+- Device sessions: table `command_tower_device_sessions` (additive migration), `config.session.*` (`idle_timeout`, `absolute_timeout`, `last_seen_write_interval`, `enforce`, `upgrade_legacy_tokens`), `sid` claim on login tokens, and `401` codes `session_expired` / `session_revoked` in the client error envelope. Sid-less tokens keep the old rule. A cookie-sourced refresh no longer sends the `X-Authorization-With-Reset` header. See [authentication](docs/authentication.md#device-sessions) and the [upgrade guide](docs/upgrades/0.25.0.md).
 - Device session lifecycle: logout revokes only the current device; password change, password reset, admin verifier mutation and tombstone revoke all of a user's sessions (`Services::Auth::DeviceSessions::RevokeAll`). Impersonation start/stop keep the actor's `sid`. The auth cookie now expires at the session's absolute expiry while `X-Authorization-Expire` stays the sliding signal.
 - `CommandTower::Auth::DeviceSessions::PurgeEndedJob` (deletes sessions ended more than 30 days ago, in batches of 1,000). Hosts must schedule it; see [authentication](docs/authentication.md#purging-ended-sessions).
 - Installation id: the HTTP boundary reads `X-Installation-Id` (then the `ct_installation` cookie, UUID v4 only). A cookie-mode login without one plants an HttpOnly `ct_installation` cookie; a new session replaces the same installation's earlier one and records `X-Client-Platform` / `X-App-Version`. Hosts that list CORS `headers:` explicitly must add `X-Installation-Id`, `X-Client-Platform` and `X-App-Version`.
@@ -29,7 +29,7 @@
 - `passwordConfirmation` is optional on `POST /auth/password-reset/reset` and `PATCH /me/password`; when sent it must match.
 - `command_tower.auth.legacy_contract_used` event on deprecated endpoints, authorization schemes, the old register shape and valid sid-less tokens. `auth.device_session` is seeded in the client-compatibility registry (observe).
 - Self-service username: `PATCH /me/username` and `GET /me/username/availability` (authenticated, bypass the email-verification `412` gate), gated by `config.username.self_service` / `self_change`. Errors `username_taken` (422) and `username_change_not_allowed` (403); 10 changes per hour per user; audit event `username_set`. `GET /me` `capabilities.editUsername` is now backed by the same eligibility, and `POST /auth/register` with `start_session` returns `capabilities.editUsername`. New RBAC entities `me_username` and `me_username_availability`; hosts must grant them.
-- Rake tasks `command_tower:users:email_duplicates`, `add_email_unique_index` and `normalize_emails`. See the [upgrade guide](docs/upgrades/0.24.0.md).
+- Rake tasks `command_tower:users:email_duplicates`, `add_email_unique_index` and `normalize_emails`. See the [upgrade guide](docs/upgrades/0.25.0.md).
 
 ### Deprecated
 

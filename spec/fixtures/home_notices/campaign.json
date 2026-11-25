@@ -1,0 +1,56 @@
+{
+  "blocking": null,
+  "dismissible": {
+    "document": {
+      "catalog": 2,
+      "root": {
+        "children": [
+          {
+            "spans": [
+              {
+                "text": "Tell us how you like to train",
+                "type": "text"
+              }
+            ],
+            "textTone": "primary",
+            "type": "text",
+            "variant": "heading_m"
+          },
+          {
+            "spans": [
+              {
+                "text": "Pick your favourite class types and we will suggest the right sessions.",
+                "type": "text"
+              }
+            ],
+            "textTone": "primary",
+            "type": "text",
+            "variant": "body"
+          },
+          {
+            "action": {
+              "destination": {
+                "kind": "internal",
+                "path": "/preferences"
+              },
+              "type": "navigate"
+            },
+            "label": "Set preferences",
+            "type": "button",
+            "variant": "primary"
+          }
+        ],
+        "padding": "md",
+        "surface": "raised",
+        "type": "card"
+      },
+      "schema": "ui_document",
+      "textFallback": "Tell us how you like to train\nPick your favourite class types and we will suggest the right sessions.\nSet preferences"
+    },
+    "endsAt": "2026-12-15T23:59:59Z",
+    "id": "campaign:studio.preferences",
+    "key": "studio.preferences",
+    "severity": "dismissible"
+  },
+  "readOnly": false
+}
