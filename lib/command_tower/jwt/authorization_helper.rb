@@ -47,9 +47,13 @@ module CommandTower
       # @param response [ActionDispatch::Response] The response object
       # @param token [String] The JWT token to set
       # @param expires_at [String, nil] Optional expiration time string
-      def set_token(response, token, expires_at: nil)
-        # Always set headers
-        response.set_header(AUTHENTICATION_WITH_RESET, token)
+      # @param header [Boolean] Emit the token header. Pass false for cookie-sourced
+      #   requests: the token travels only in the cookie. The header is written at
+      #   most once per response.
+      def set_token(response, token, expires_at: nil, header: true)
+        if header && response.get_header(AUTHENTICATION_WITH_RESET).nil?
+          response.set_header(AUTHENTICATION_WITH_RESET, token)
+        end
         response.set_header(AUTHENTICATION_EXPIRE_HEADER, expires_at) if expires_at && !expires_at.to_s.strip.empty?
 
         # Set cookie if enabled

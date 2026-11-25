@@ -11,6 +11,8 @@ RSpec.describe CommandTower::Workflows::Auth::SessionErrorStatus do
       CommandTower::Errors::Auth::CsrfMismatchError => :forbidden,
       CommandTower::Errors::ForbiddenError => :forbidden,
       CommandTower::Errors::Auth::InvalidCredentialsError => :unauthorized,
+      CommandTower::Errors::Auth::SessionExpiredError => :unauthorized,
+      CommandTower::Errors::Auth::SessionRevokedError => :unauthorized,
       CommandTower::Errors::UnauthorizedError => :unauthorized,
       CommandTower::Errors::InternalError => :internal_server_error
     }.each do |error_class, expected|

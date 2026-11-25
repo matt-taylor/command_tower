@@ -38,6 +38,53 @@ Impersonation is a **CommandTower session primitive**, not a User mutation. The 
 
 See [API reference](api_reference.md#impersonation) and [Authorization](authorization.md).
 
+## Device sessions
+
+Each login starts a **device session**: one row in `command_tower_device_sessions` per signed-in device. The JWT carries its `public_id` as the `sid` claim. For a token with `sid`, the row (not `jwt.ttl`) decides how long the session lives.
+
+Table `command_tower_device_sessions`:
+
+| Column | Purpose |
+|--------|---------|
+| `public_id` (string 36, unique) | The `sid` claim |
+| `user_id` (FK `users`) | Owner |
+| `installation_id`, `platform`, `app_version` | Optional device metadata; `installation_id` is indexed |
+| `last_seen_at` | Last authenticated request (write-throttled) |
+| `absolute_expires_at` | Hard end of the session |
+| `revoked_at`, `revoked_reason` | Set when the session is ended or replaced |
+| `legacy_generated_at` | Reserved for upgrading legacy tokens; unique with `user_id` |
+
+Starting a session (`Services::Auth::DeviceSessions::Start`, used by `Services::Auth::IssueSession` for login) always creates a new row. If the caller supplies an `installation_id`, that user's active session on the same installation is revoked with reason `replaced`.
+
+### Configuration
+
+`config.session`:
+
+| Key | Default | Meaning |
+|-----|---------|---------|
+| `idle_timeout` | 30 days | No authenticated request for this long expires the session |
+| `absolute_timeout` | 90 days | Maximum lifetime from creation |
+| `last_seen_write_interval` | 5 minutes | `last_seen_at` is written at most once per interval, so idle expiry is accurate to about this interval |
+| `enforce` | `true` (ENV `COMMAND_TOWER_SESSION_ENFORCE`, `false` disables) | Kill switch. When false the revoked and idle checks are skipped; the absolute check still applies |
+| `upgrade_legacy_tokens` | `true` (ENV `COMMAND_TOWER_SESSION_UPGRADE_LEGACY_TOKENS`, `false` disables) | Reserved for upgrading sid-less tokens on `GET /auth/session`. Not yet acted on |
+
+### Session checks and 401 codes
+
+`AuthenticateUser` looks up the row by `sid` and fails the request when:
+
+| Condition | HTTP | Code |
+|-----------|------|------|
+| Row missing, belongs to another user, or revoked (with `enforce`) | 401 | `session_revoked` |
+| Past `absolute_expires_at`, or idle longer than `idle_timeout` (idle with `enforce`) | 401 | `session_expired` |
+
+These two answer with the client envelope `{ "data": null, "errors": [{ "code": "...", "message": "..." }] }` so clients can tell them from a bad token. All other 401 and 412 bodies are unchanged. The auth cookie is cleared as before.
+
+Tokens without `sid` (issued before device sessions) keep the old rule: `generated_at + jwt.ttl`. `AuthContext#legacy_token` is true for them and `AuthContext#device_session` is nil.
+
+A refreshed token (`GET /auth/session` with reset) keeps the same `sid`; its reported expiry is the earlier of idle expiry and absolute expiry. A cookie-sourced refresh sets the cookie only; the `X-Authorization-With-Reset` header is written only for bearer-sourced requests, at most once per response.
+
+Host seams: `Jwt::LoginCreate.call` takes an optional `device_session:`; `Jwt::AuthenticateUser` returns `AuthenticationOutcome` with `code` and `device_session`. Hosts that wrap either must pass these through ([upgrade guide](upgrades/0.24.0.md)).
+
 ## Rate limits and soft lockout
 
 Password login, password-reset token use, and email-verification endpoints are limited by `config.login.rate_limits`. A limit set to `0` disables that bucket. A rejected request returns `429` `auth_rate_limited` with `details.retry_after_seconds` and a `Retry-After` header. See [API reference](api_reference.md#post-authplain-textlogin).

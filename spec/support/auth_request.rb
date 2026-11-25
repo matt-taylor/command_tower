@@ -17,7 +17,8 @@ module AuthRequestSpecHelpers
   end
 
   def login_token_for(user, impersonation_session_id: nil)
-    CommandTower::Jwt::LoginCreate.call(user:, impersonation_session_id:).token
+    device_session = CommandTower::Services::Auth::DeviceSessions::Start.call(user:).data[:device_session]
+    CommandTower::Jwt::LoginCreate.call(user:, impersonation_session_id:, device_session:).token
   end
 
   def impersonation_token_for(actor, session)

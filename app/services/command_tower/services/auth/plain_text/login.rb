@@ -20,6 +20,11 @@ module CommandTower
           # client_ip is optional so callers without a request (console, tests) skip the IP bucket.
           validate :client_ip, is_a: String
 
+          # Optional device attributes recorded on the device session.
+          validate :installation_id, is_a: String
+          validate :platform, is_a: String
+          validate :app_version, is_a: String
+
           def call
             enforce_ip_limit!
 
@@ -53,8 +58,12 @@ module CommandTower
             end
 
             context.user = user
-            context.token = CommandTower::Jwt::LoginCreate.(user:).token
-            context.expires_at = token_expires_at_from_ttl
+            issued = IssueSession.call(user:, installation_id:, platform:, app_version:)
+            context.fail!(application_error: issued.errors.first) if issued.failure?
+
+            context.device_session = issued.data[:device_session]
+            context.token = issued.data[:token]
+            context.expires_at = issued.data[:expires_at]
           end
 
           private
@@ -90,10 +99,6 @@ module CommandTower
 
           def audit_login_failed(affected_user:, outcome:)
             audit(:login_failed, affected_user:, changes: {}, metadata: { outcome: })
-          end
-
-          def token_expires_at_from_ttl
-            CommandTower.config.jwt.ttl.from_now.to_time.to_s
           end
         end
       end

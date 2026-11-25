@@ -13,6 +13,7 @@
 
 ### Added
 
+- Device sessions: table `command_tower_device_sessions` (additive migration), `config.session.*` (`idle_timeout`, `absolute_timeout`, `last_seen_write_interval`, `enforce`, `upgrade_legacy_tokens`), `sid` claim on login tokens, and `401` codes `session_expired` / `session_revoked` in the client error envelope. Sid-less tokens keep the old rule. A cookie-sourced refresh no longer sends the `X-Authorization-With-Reset` header. See [authentication](docs/authentication.md#device-sessions) and the [upgrade guide](docs/upgrades/0.24.0.md).
 - `config.login.mail_delivery` (`:later` default, `:inline`).
 - `config.login.rate_limits.*` (see [authentication](docs/authentication.md#rate-limits-and-soft-lockout)). A second verification-code request within 60 s sends nothing and answers `200` with `resendAvailableAt`.
 

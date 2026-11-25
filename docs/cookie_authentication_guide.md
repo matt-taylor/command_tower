@@ -53,6 +53,12 @@ config.jwt.cookie.csrf.cookie_name = "other_csrf"
 1. `Authorization: Bearer <token>` header (wins when present)
 2. HttpOnly JWT cookie when cookie mode is enabled
 
+## Sessions and the cookie
+
+Login starts a device session and the JWT carries its `sid`. The session's idle and absolute timeouts (`config.session`) decide when it ends; see [Authentication](authentication.md#device-sessions). When a session has ended, the API answers `401` with code `session_expired` or `session_revoked` in the envelope `{ "data": null, "errors": [{ "code", "message" }] }`, and clears the cookie.
+
+On a cookie-sourced `GET /auth/session` refresh the new token is set in the cookie only. The `X-Authorization-With-Reset` response header is sent only when the request used a bearer token.
+
 ## Login / logout examples
 
 Paths are engine-relative. Prefix with your mount (generator often mounts at `/`; hosts may use `/api`).

@@ -11,6 +11,8 @@ RSpec.describe CommandTower::Services::Auth::PlainText::Login do
     before { user }
 
     context "with valid credentials" do
+      let(:token_sid) { CommandTower::Jwt::Decode.call(token: result.data[:token]).payload[:sid] }
+
       it "returns a successful ServiceResult" do
         expect(result).to be_a(CommandTower::Services::ServiceResult)
         expect(result).to be_success
@@ -20,6 +22,11 @@ RSpec.describe CommandTower::Services::Auth::PlainText::Login do
         expect(result.data[:user]).to eq(user)
         expect(result.data[:token]).to be_present
         expect(result.data[:expires_at]).to be_present
+      end
+
+      it "starts a device session and puts its sid in the token" do
+        expect(token_sid).to eq(result.data[:device_session].public_id)
+        expect(result.data[:device_session].user_id).to eq(user.id)
       end
 
       it "records the successful login on the user" do

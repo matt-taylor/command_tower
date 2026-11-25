@@ -2,6 +2,8 @@
 
 module CommandTower
   module Auth
+    # `device_session` is the signed-in device the token belongs to; nil for a
+    # legacy (sid-less) token, in which case `legacy_token` is true.
     AuthContext = Data.define(
       :user,
       :token_expires_at,
@@ -10,9 +12,12 @@ module CommandTower
       :principal_type,
       :generated_token,
       :actor_user,
-      :impersonation_session_id
+      :impersonation_session_id,
+      :device_session,
+      :legacy_token
     ) do
-      def initialize(user:, token_expires_at:, token_source:, roles:, principal_type:, generated_token: nil, actor_user: nil, impersonation_session_id: nil)
+      # rubocop:disable Metrics/MethodLength
+      def initialize(user:, token_expires_at:, token_source:, roles:, principal_type:, generated_token: nil, actor_user: nil, impersonation_session_id: nil, device_session: nil, legacy_token: false)
         super(
           user:,
           token_expires_at:,
@@ -21,7 +26,9 @@ module CommandTower
           principal_type:,
           generated_token:,
           actor_user: actor_user || user,
-          impersonation_session_id:
+          impersonation_session_id:,
+          device_session:,
+          legacy_token:
         )
       end
 
@@ -34,9 +41,12 @@ module CommandTower
           principal_type: :user,
           generated_token: data[:generated_token],
           actor_user: data[:actor_user] || data[:user],
-          impersonation_session_id: data[:impersonation_session_id]
+          impersonation_session_id: data[:impersonation_session_id],
+          device_session: data[:device_session],
+          legacy_token: data[:legacy_token] || false
         )
       end
+      # rubocop:enable Metrics/MethodLength
     end
   end
 end

@@ -136,6 +136,174 @@ RSpec.describe CommandTower::Jwt::AuthenticateUser do
       end
     end
 
+    context "with a legacy (sid-less) token" do
+      it "succeeds without a device session" do
+        expect(call.success?).to be(true)
+        expect(call.device_session).to be_nil
+        expect(call.legacy_token?).to be(true)
+      end
+
+      it "expires at generated_at + jwt.ttl" do
+        expect(call.expires_at).to eq((Time.zone.at(Time.current.to_i) + CommandTower.config.jwt.ttl).to_time.to_s)
+      end
+
+      it "sets the invalid_token code when past jwt.ttl" do
+        token
+        Timecop.freeze(Time.current + CommandTower.config.jwt.ttl + 1.minute) do
+          expect(call.failure?).to be(true)
+          expect(call.code).to eq("invalid_token")
+        end
+      end
+    end
+
+    context "with a device session token" do
+      let(:session_attrs) { {} }
+      let(:device_session) { create(:device_session, user:, **session_attrs) }
+      let(:token) { CommandTower::Jwt::LoginCreate.(user:, device_session:).token }
+      let(:idle_expires_at) { device_session.last_seen_at + CommandTower.config.session.idle_timeout }
+
+      it "succeeds and carries the device session" do
+        expect(call.success?).to be(true)
+        expect(call.device_session).to eq(device_session)
+        expect(call.legacy_token?).to be(false)
+        expect(call.user).to eq(user)
+      end
+
+      it "expires at the earlier of idle and absolute expiry" do
+        expect(call.expires_at).to eq([idle_expires_at, device_session.absolute_expires_at].min.to_time.to_s)
+      end
+
+      context "when the token is older than jwt.ttl but the session is live" do
+        let(:session_attrs) { { absolute_expires_at: 60.days.from_now } }
+
+        it "still succeeds (jwt.ttl does not apply to session tokens)" do
+          token
+          Timecop.freeze(Time.current + CommandTower.config.jwt.ttl + 1.day) do
+            expect(call.success?).to be(true)
+          end
+        end
+      end
+
+      context "when the session is revoked" do
+        let(:session_attrs) { { revoked_at: 1.minute.ago, revoked_reason: "logout" } }
+
+        it "fails with session_revoked" do
+          expect(call.failure?).to be(true)
+          expect(call.code).to eq("session_revoked")
+          expect(call.session_failure?).to be(true)
+        end
+      end
+
+      context "when the session row is missing" do
+        before do
+          token
+          device_session.destroy!
+        end
+
+        it { expect(call.code).to eq("session_revoked") }
+      end
+
+      context "when the session belongs to another user" do
+        let(:device_session) { create(:device_session, user: create(:user)) }
+
+        it { expect(call.code).to eq("session_revoked") }
+      end
+
+      context "when the sid is unknown" do
+        let(:token) { CommandTower::Jwt::Encode.(payload: payload.merge(sid: SecureRandom.uuid)) }
+
+        it { expect(call.code).to eq("session_revoked") }
+      end
+
+      context "when idle longer than idle_timeout" do
+        let(:session_attrs) { { last_seen_at: CommandTower.config.session.idle_timeout.ago - 1.minute } }
+
+        it "fails with session_expired" do
+          expect(call.failure?).to be(true)
+          expect(call.code).to eq("session_expired")
+        end
+      end
+
+      context "when past the absolute expiry" do
+        let(:session_attrs) { { absolute_expires_at: 1.minute.ago } }
+
+        it { expect(call.code).to eq("session_expired") }
+      end
+
+      context "when the verifier token was rotated" do
+        before do
+          token
+          user.reset_verifier_token!
+        end
+
+        it "keeps today's stale-token failure" do
+          expect(call.code).to eq("stale_token")
+          expect(call.msg).to eq("Unauthorized Access. Token is no longer valid")
+        end
+      end
+
+      context "with the kill switch off" do
+        before { CommandTower.config.session.enforce = false }
+
+        after { CommandTower.config.session.enforce = true }
+
+        context "when revoked" do
+          let(:session_attrs) { { revoked_at: 1.minute.ago, revoked_reason: "logout" } }
+
+          it { expect(call.success?).to be(true) }
+        end
+
+        context "when idle" do
+          let(:session_attrs) { { last_seen_at: CommandTower.config.session.idle_timeout.ago - 1.minute } }
+
+          it { expect(call.success?).to be(true) }
+        end
+
+        context "when past the absolute expiry" do
+          let(:session_attrs) { { absolute_expires_at: 1.minute.ago } }
+
+          it { expect(call.code).to eq("session_expired") }
+        end
+      end
+
+      describe "last-seen write" do
+        context "when last seen within the write interval" do
+          let(:session_attrs) { { last_seen_at: 1.minute.ago } }
+
+          it "does not write" do
+            expect { call }.not_to(change { device_session.reload.last_seen_at })
+          end
+        end
+
+        context "when last seen before the write interval" do
+          let(:session_attrs) { { last_seen_at: 10.minutes.ago } }
+
+          it "writes last_seen_at" do
+            call
+            expect(device_session.reload.last_seen_at.to_i).to eq(Time.current.to_i)
+          end
+        end
+
+        context "when the check fails" do
+          let(:session_attrs) { { last_seen_at: 10.minutes.ago, revoked_at: 1.minute.ago, revoked_reason: "logout" } }
+
+          it "does not write" do
+            expect { call }.not_to(change { device_session.reload.last_seen_at })
+          end
+        end
+      end
+
+      context "with reset" do
+        let(:with_reset) { true }
+
+        let(:reset_payload) { CommandTower::Jwt::Decode.call(token: call.generated_token).payload }
+
+        it "re-mints with the same sid" do
+          expect(reset_payload[:sid]).to eq(device_session.public_id)
+        end
+      end
+    end
+
     context "with email_verify" do
       before { CommandTower.config.login.plain_text.email_verify.enable = email_verify }
 

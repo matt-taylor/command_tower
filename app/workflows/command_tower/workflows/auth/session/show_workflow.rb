@@ -17,7 +17,9 @@ module CommandTower
             if auth_context.generated_token.present?
               response_effects[:set_token] = {
                 token: auth_context.generated_token,
-                expires_at: auth_context.token_expires_at
+                expires_at: auth_context.token_expires_at,
+                # Cookie-sourced refresh rides the cookie only; bearer clients read the header.
+                header: auth_context.token_source != :cookie
               }
               response_effects[:ensure_csrf_cookie] = { rotate: csrf_rotate_on_reset? }
             end

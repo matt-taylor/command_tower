@@ -57,7 +57,8 @@ module CommandTower
           CommandTower::Jwt::AuthorizationHelper.set_token(
             response,
             effects[:set_token][:token],
-            expires_at: effects[:set_token][:expires_at]
+            expires_at: effects[:set_token][:expires_at],
+            header: effects[:set_token].fetch(:header, true)
           )
         end
 

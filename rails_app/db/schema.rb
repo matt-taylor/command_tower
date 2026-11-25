@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_24_000002) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_24_000003) do
   create_table "command_tower_audit_events", charset: "utf8mb3", force: :cascade do |t|
     t.string "action", null: false
     t.bigint "actor_user_id"
@@ -48,6 +48,27 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_24_000002) do
     t.index ["host_context_type", "host_context_identifier", "occurred_at"], name: "index_ct_audit_events_on_host_context_occurred"
     t.index ["originating_administrator_id", "occurred_at"], name: "index_ct_audit_events_on_originating_admin_occurred"
     t.index ["scope_class", "occurred_at"], name: "index_ct_audit_events_on_scope_class_occurred"
+  end
+
+  create_table "command_tower_device_sessions", charset: "utf8mb3", force: :cascade do |t|
+    t.datetime "absolute_expires_at", null: false
+    t.string "app_version", limit: 32
+    t.datetime "created_at", null: false
+    t.string "installation_id", limit: 36
+    t.datetime "last_seen_at", null: false
+    t.datetime "legacy_generated_at"
+    t.string "platform", limit: 16
+    t.string "public_id", limit: 36, null: false
+    t.datetime "revoked_at"
+    t.string "revoked_reason", limit: 32
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["absolute_expires_at"], name: "index_command_tower_device_sessions_on_absolute_expires_at"
+    t.index ["installation_id"], name: "index_command_tower_device_sessions_on_installation_id"
+    t.index ["public_id"], name: "index_command_tower_device_sessions_on_public_id", unique: true
+    t.index ["revoked_at"], name: "index_command_tower_device_sessions_on_revoked_at"
+    t.index ["user_id", "legacy_generated_at"], name: "index_ct_device_sessions_on_user_legacy_generated_at", unique: true
+    t.index ["user_id", "revoked_at"], name: "index_command_tower_device_sessions_on_user_id_and_revoked_at"
   end
 
   create_table "command_tower_impersonation_sessions", id: { type: :string, limit: 36 }, charset: "utf8mb3", force: :cascade do |t|
@@ -261,6 +282,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_24_000002) do
     t.index ["username"], name: "index_users_on_username", unique: true
   end
 
+  add_foreign_key "command_tower_device_sessions", "users"
   add_foreign_key "command_tower_impersonation_sessions", "users", column: "actor_user_id"
   add_foreign_key "command_tower_impersonation_sessions", "users", column: "target_user_id"
   add_foreign_key "messaging_channel_deliveries", "messaging_communications", column: "communication_id", on_delete: :cascade
