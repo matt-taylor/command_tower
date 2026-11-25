@@ -15,11 +15,14 @@ module CommandTower
         validate :user, is_a: User, required: true
         validate :current_password, is_a: String, required: true, sensitive: true
         validate :password, is_a: String, required: true, sensitive: true
-        validate :password_confirmation, is_a: String, required: true, sensitive: true
+        validate :password_confirmation, is_a: String, required: false, sensitive: true
 
         def call
           reject!(current_password: "Incorrect current password") unless user.authenticate(current_password)
-          reject!(password_confirmation: "Password and confirmation do not match") unless password == password_confirmation
+          # Confirmation is optional; it is only compared when the caller sent one.
+          if password_confirmation.present? && password != password_confirmation
+            reject!(password_confirmation: "Password and confirmation do not match")
+          end
 
           check = CommandTower::Services::Auth::PasswordPolicy::Check.call(password:)
           unless check.data[:valid]
@@ -31,7 +34,7 @@ module CommandTower
 
           ActiveRecord::Base.transaction do
             user.password = password
-            user.password_confirmation = password_confirmation
+            user.password_confirmation = password
 
             unless user.save
               persistence_errors = user.errors.to_hash.transform_values { Array(_1).join(", ") }

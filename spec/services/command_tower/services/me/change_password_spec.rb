@@ -22,6 +22,24 @@ RSpec.describe CommandTower::Services::Me::ChangePassword do
       expect(user.reload.authenticate(password)).to be_truthy
     end
 
+    context "when the confirmation is absent" do
+      let(:password_confirmation) { nil }
+
+      it "changes the password" do
+        expect(result).to be_success
+        expect(user.reload.authenticate(password)).to be_truthy
+      end
+    end
+
+    context "when the confirmation is mismatched" do
+      let(:password_confirmation) { "different-password-1" }
+
+      it "rejects the change" do
+        expect(result).to be_failure
+        expect(result.errors.first.details).to eq(passwordConfirmation: "Password and confirmation do not match")
+      end
+    end
+
     context "when the user has active device sessions" do
       let!(:sessions) { create_list(:device_session, 2, user:) }
 

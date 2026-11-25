@@ -100,10 +100,12 @@ Default JWT TTL is **7 days** (`config.jwt.ttl`).
 |--|--|
 | **Auth** | Public |
 | **Gate** | Always drawn |
-| **Body** | `first_name`, `last_name`, `username`, `email`, `password`, `password_confirmation` (snake_case) |
-| **Success** | **201** — `data`: `{ user, message }` where `message` is `"Account created successfully"`. No token. |
-| **Errors** | `422` `validation_failed` (password length 8–64 inclusive, common-password blocklist; email 3–254 inclusive) / `email_already_registered`; `429` `signup_ip_rate_limited` |
+| **Body** | `email`, `password` required; optional `start_session` (boolean). **Deprecated** (still accepted): `first_name`, `last_name`, `username`, `password_confirmation` (snake_case) |
+| **Success** | **201** — `data`: `{ user, message }` where `message` is `"Account created successfully"`. With `start_session: true` the body also carries `tokenExpiresAt` and, unless the cookie-mode web rule omits it (same rule as login), `token`; the response sets the session cookie/headers like login and a device session exists. Without `start_session` there is no token. |
+| **Errors** | `422` `validation_failed` (password length 8–64 inclusive, common-password blocklist; email 3–254 inclusive; a policy failure adds `passwordRulesFailed`, a list of rule ids `min_length`, `max_length`, `not_common`) / `email_already_registered` (message: "You already have an account with this email. Sign in or reset your password."); `429` `signup_ip_rate_limited` (per IP) or the per-email bucket, with `details.retry_after_seconds` |
 | **Spec** | `spec/requests/command_tower/auth/register_spec.rb` |
+
+The six-field body is the old shape. It keeps working; each use emits `auth.legacy_contract_used` (`endpoint: register_old_shape`). Names default to empty strings and `username` is optional. The per-email bucket is `config.login.rate_limits.register_attempts_per_email` (default 5 per hour, `0` disables).
 
 `user` fields: `id`, `email`, `username`, `firstName`, `lastName`, `emailValidated`, `roles`.
 
@@ -171,6 +173,8 @@ Does **not** authorize `admin_impersonation` on the effective user. Shared front
 
 ### `POST /auth/signup-session`
 
+**Deprecated.** New clients register without a signup session. Each call emits `auth.legacy_contract_used` (`endpoint: signup_session`); so does any use of the `Signup` authorization scheme (`authorization_scheme.signup`).
+
 | | |
 |--|--|
 | **Auth** | Public |
@@ -215,6 +219,8 @@ Projection is effective entity grants ∩ curated `config.registry.principal_cap
 
 ### `GET /auth/email/availability`
 
+**Deprecated** (emits `auth.legacy_contract_used`, `endpoint: email_availability`).
+
 | | |
 |--|--|
 | **Auth** | Signup session (`Authorization: Signup …`) |
@@ -225,6 +231,8 @@ Projection is effective entity grants ∩ curated `config.registry.principal_cap
 | **Spec** | `spec/requests/command_tower/auth/email_availability_spec.rb` |
 
 ### `GET /auth/username/availability`
+
+**Deprecated** (emits `auth.legacy_contract_used`, `endpoint: username_availability`).
 
 | | |
 |--|--|
@@ -261,6 +269,8 @@ Workflow detail: [email_verification_workflow.md](email_verification_workflow.md
 
 ### `POST /auth/password-recovery-session`
 
+**Deprecated** (emits `auth.legacy_contract_used`, `endpoint: password_recovery_session`; the `Recovery` authorization scheme emits `authorization_scheme.recovery`).
+
 | | |
 |--|--|
 | **Auth** | Public (always drawn; not gated by password_reset) |
@@ -296,7 +306,7 @@ Workflow detail: [email_verification_workflow.md](email_verification_workflow.md
 |--|--|
 | **Auth** | Public |
 | **Gate** | `password_reset?` |
-| **Body** | `token`, `password`, `passwordConfirmation` or `password_confirmation`; optional `email` |
+| **Body** | `token`, `password`; optional `email`; optional `passwordConfirmation` or `password_confirmation` (when sent it must match, else `422`) |
 | **Success** | **200** — `data`: `{ message: "Password has been successfully reset" }` |
 | **Errors** | `401` `password_reset_invalid_token`; `422`; `429` `auth_rate_limited` |
 | **Spec** | `spec/requests/command_tower/auth/password_reset_validate_and_reset_spec.rb` |
@@ -342,7 +352,7 @@ Name-only. There is no engine HTTP for email/username self-modify or verifier ro
 | | |
 |--|--|
 | **Auth** | authenticate + authorize |
-| **Body** | `currentPassword`/`current_password`, `password`, `passwordConfirmation`/`password_confirmation` |
+| **Body** | `currentPassword`/`current_password`, `password`; optional `passwordConfirmation`/`password_confirmation` (when sent it must match, else `422`) |
 | **Success** | **200** — `data`: `{ message: "Password updated successfully." }` |
 | **Errors** | `422` validation / wrong current password |
 | **Spec** | `spec/requests/command_tower/me/password_spec.rb` |

@@ -102,9 +102,34 @@ RSpec.describe "POST /auth/password-reset/validate and /auth/password-reset/rese
         "details" => {
           "token" => "Token is required",
           "password" => "Password is required",
-          "passwordConfirmation" => "Password confirmation is required",
         },
       )
+    end
+  end
+
+  context "when the confirmation is absent" do
+    let(:token) { reset_token_for.call(user) }
+
+    before do
+      post "/auth/password-reset/reset", params: { token: token, password: "anotherpassword99" }, as: :json
+    end
+
+    it "resets the password" do
+      expect(response).to have_http_status(:ok)
+    end
+  end
+
+  context "when the confirmation is mismatched" do
+    let(:token) { reset_token_for.call(user) }
+
+    before do
+      post "/auth/password-reset/reset",
+        params: { token: token, password: "anotherpassword99", passwordConfirmation: "different-password-1" },
+        as: :json
+    end
+
+    it "rejects the request" do
+      expect(response).to have_http_status(:unprocessable_entity)
     end
   end
 end

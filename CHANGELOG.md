@@ -25,8 +25,14 @@
 - `config.login.mail_delivery` (`:later` default, `:inline`).
 - `config.login.rate_limits.*` (see [authentication](docs/authentication.md#rate-limits-and-soft-lockout)). A second verification-code request within 60 s sends nothing and answers `200` with `resendAvailableAt`.
 
+- `POST /auth/register` takes `email` + `password` and optional `start_session` (login-shaped session in the response); adds `passwordRulesFailed`, a friendly existing-email message, a per-email rate limit (`config.login.rate_limits.register_attempts_per_email`) and `retry_after_seconds` on `signup_ip_rate_limited`. The six-field body is still accepted.
+- `passwordConfirmation` is optional on `POST /auth/password-reset/reset` and `PATCH /me/password`; when sent it must match.
+- `command_tower.auth.legacy_contract_used` event on deprecated endpoints, authorization schemes, the old register shape and valid sid-less tokens. `auth.device_session` is seeded in the client-compatibility registry (observe).
+- Rake tasks `command_tower:users:email_duplicates`, `add_email_unique_index` and `normalize_emails`. See the [upgrade guide](docs/upgrades/0.24.0.md).
+
 ### Deprecated
 
+- `POST /auth/signup-session`, `POST /auth/password-recovery-session`, `GET /auth/email/availability`, `GET /auth/username/availability`, the `Signup` / `Recovery` authorization schemes, and the register fields `first_name`, `last_name`, `username`, `password_confirmation`.
 - `config.login.plain_text.lockable` is a no-op; use `config.login.rate_limits`.
 
 See [password reset](docs/password_reset_workflow.md), [email verification](docs/email_verification_workflow.md), [bootstrap 08](docs/bootstrap/08-initializer.md).

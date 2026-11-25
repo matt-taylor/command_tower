@@ -130,6 +130,15 @@ RSpec.describe CommandTower::Services::Auth::PasswordReset::Reset do
       end
     end
 
+    context "with an absent confirmation" do
+      let(:password_confirmation) { nil }
+
+      it "resets the password" do
+        expect(result).to be_success
+        expect(user.reload.authenticate(password)).to be_truthy
+      end
+    end
+
     context "with mismatched confirmation" do
       let(:password_confirmation) { "somethingelse99" }
 

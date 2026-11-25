@@ -59,11 +59,44 @@ RSpec.describe CommandTower::Services::Auth::Register do
     end
 
     context "when a required argument is missing" do
-      let(:first_name) { nil }
+      let(:email) { nil }
 
       it "returns a ValidationError" do
         expect(result).to be_failure
         expect(result.errors).to contain_exactly(an_instance_of(CommandTower::Errors::ValidationError))
+      end
+    end
+
+    context "with only email and password" do
+      let(:first_name) { nil }
+      let(:last_name) { nil }
+      let(:username) { nil }
+      let(:password_confirmation) { nil }
+
+      it "creates a user without a username" do
+        expect(result).to be_success
+        expect(result.data[:user].username).to be_nil
+        expect(result.data[:user].first_name).to eq("")
+      end
+    end
+
+    context "with a duplicate email and the friendly message" do
+      let!(:existing_user) { create(:user, email: "svc-register-friendly@example.com", username: "svcfriendly") }
+      let(:email) { "svc-register-friendly@example.com" }
+
+      it "uses the friendly message" do
+        expect(result.errors.first.details[:email]).to eq(described_class::EMAIL_TAKEN_MESSAGE)
+      end
+    end
+
+    context "with a common password" do
+      let(:password) { "password123" }
+      let(:password_confirmation) { password }
+
+      it "lists the failed rule ids beside the message" do
+        expect(result).to be_failure
+        expect(result.errors.first.details).to include(passwordRulesFailed: ["not_common"])
+        expect(result.errors.first.details[:password]).to be_present
       end
     end
   end

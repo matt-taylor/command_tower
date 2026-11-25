@@ -77,6 +77,13 @@ module CommandTower
                      validator: ->(val) { val.positive? },
                      invalid_message: ->(val) { "Provided #{val.inspect}. Value must be > 0" }
 
+        add_composer :register_attempts_per_email,
+                     desc: "POST /auth/register attempts per normalized email per hour. 0 disables the bucket",
+                     allowed: Integer,
+                     default: 5,
+                     validator: ->(val) { val >= 0 },
+                     invalid_message: ->(val) { "Provided #{val.inspect}. Value must be >= 0" }
+
         add_composer :verify_attempts,
                      desc: "Email verification code attempts per user within verify_window_seconds. " \
                            "0 disables the bucket",

@@ -25,9 +25,11 @@ This is distinct from [password recovery](password_reset_workflow.md), which is 
 {
   "current_password": "string",
   "password": "string",
-  "password_confirmation": "string"
+  "password_confirmation": "string (optional)"
 }
 ```
+
+`password_confirmation` (or `passwordConfirmation`) is optional. When sent and different from `password` the request fails; when absent no comparison is made.
 
 ## Success (200)
 
@@ -36,7 +38,7 @@ Serialized success payload (message only). Response effects include `clear_token
 ## Service flow (under the workflow)
 
 1. Authenticate `current_password`
-2. Confirm `password` matches `password_confirmation`
+2. If `password_confirmation` was sent, confirm it matches `password`
 3. Enforce configured password length bounds
 4. In one DB transaction: persist new password digest → `reset_verifier_token!` → revoke all device sessions (`RevokeAll`, reason `password_change`), including the caller's
 5. On failure: typed application errors → workflow HTTP mapping

@@ -72,6 +72,9 @@ module CommandTower::Jwt
 
       return session_revoked if upgraded_row_revoked?(user, payload[:generated_at])
 
+      # Only a valid sid-less token reaches here (expired and rejected ones do not count).
+      CommandTower::Services::Auth::RecordLegacyContractUse.call(endpoint: "sidless_token")
+
       generated_token = nil
       impersonation_session_id = payload[:impersonation_session_id].presence
       if with_reset

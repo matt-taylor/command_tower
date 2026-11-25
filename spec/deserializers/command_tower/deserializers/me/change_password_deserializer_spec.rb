@@ -19,6 +19,15 @@ RSpec.describe CommandTower::Deserializers::Me::ChangePasswordDeserializer do
       end
     end
 
+    context "with the confirmation absent" do
+      let(:params) { { currentPassword: "old", password: "newpassword1234" } }
+
+      it "succeeds with a nil confirmation" do
+        expect(result).to be_success
+        expect(result.input.password_confirmation).to be_nil
+      end
+    end
+
     context "with missing fields" do
       let(:params) { { currentPassword: "old" } }
 

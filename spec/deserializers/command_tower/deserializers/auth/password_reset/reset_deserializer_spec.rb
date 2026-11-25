@@ -37,11 +37,17 @@ RSpec.describe CommandTower::Deserializers::Auth::PasswordReset::ResetDeserializ
         expect(deserialized.errors).to eq(
           [{
             token: "Token is required",
-            password: "Password is required",
-            passwordConfirmation: "Password confirmation is required"
+            password: "Password is required"
           }]
         )
       end
+    end
+
+    context "with the confirmation absent" do
+      let(:params) { { token: "abc123", password: "newpassword5678" } }
+
+      it { expect(deserialized).to be_success }
+      it { expect(deserialized.input.password_confirmation).to be_nil }
     end
   end
 end
