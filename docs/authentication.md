@@ -68,6 +68,19 @@ Starting a session (`Services::Auth::DeviceSessions::Start`, used by `Services::
 | `enforce` | `true` (ENV `COMMAND_TOWER_SESSION_ENFORCE`, `false` disables) | Kill switch. When false the revoked and idle checks are skipped; the absolute check still applies |
 | `upgrade_legacy_tokens` | `true` (ENV `COMMAND_TOWER_SESSION_UPGRADE_LEGACY_TOKENS`, `false` disables) | Reserved for upgrading sid-less tokens on `GET /auth/session`. Not yet acted on |
 
+### Body token omission (host obligation)
+
+In cookie mode, login and `start_session` register leave `token` out of the response body for `web` clients whose `X-App-Version` is at or above `config.session.omit_body_token_min_app_version`.
+
+| Key | Default | Meaning |
+|-----|---------|---------|
+| `omit_body_token` | `true` (ENV `COMMAND_TOWER_SESSION_OMIT_BODY_TOKEN`, `false` disables) | Switch for the omission |
+| `omit_body_token_min_app_version` | `"0.4.0"` (ENV `COMMAND_TOWER_SESSION_OMIT_BODY_TOKEN_MIN_APP_VERSION`) | Minimum `X-App-Version` that gets no body token |
+
+The default `0.4.0` is a gem-wide placeholder, not a value any host chose. It is compared with the **host app's** `X-App-Version`, not the `@commandtower/frontend` package version. A host app already above `0.4.0` (for example DoubleFloor Me at `1.0.0`) therefore has the body token omitted for every web client as soon as it upgrades, including web builds that still read `token` from the body.
+
+Each host must decide this before upgrading: set `config.session.omit_body_token_min_app_version` to the first host app version whose web client works from the cookie alone, or leave omission off with `COMMAND_TOWER_SESSION_OMIT_BODY_TOKEN=false`. Native clients and requests without the headers always keep the body token.
+
 ### Session checks and 401 codes
 
 `AuthenticateUser` looks up the row by `sid` and fails the request when:
