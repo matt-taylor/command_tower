@@ -83,6 +83,28 @@ Tokens without `sid` (issued before device sessions) keep the old rule: `generat
 
 A refreshed token (`GET /auth/session` with reset) keeps the same `sid`; its reported expiry is the earlier of idle expiry and absolute expiry. A cookie-sourced refresh sets the cookie only; the `X-Authorization-With-Reset` header is written only for bearer-sourced requests, at most once per response.
 
+### Session lifecycle
+
+| Event | Effect on device sessions |
+|-------|---------------------------|
+| `POST /auth/logout` | Revokes only the signing-out device (`revoked_reason: logout`). Other devices stay signed in |
+| Authenticated password change, password reset, admin `verifier_token` mutation, account tombstone | Revokes **all** the user's active sessions, including the caller's (`Services::Auth::DeviceSessions::RevokeAll`; reasons `password_change`, `password_reset`, `admin_mutation`, `tombstone`). Idempotent: already-revoked rows keep their original `revoked_at` and reason |
+| Login on an installation that already has a session | Old session revoked as `replaced` |
+| Impersonation start / stop | The overlay and restored tokens keep the actor's `sid`, so the overlay shares the actor device's lifecycle |
+
+Revoked sessions answer `401` `session_revoked` on the next request.
+
+### Expiry signals
+
+- `X-Authorization-Expire` is the **sliding** (idle) expiry: the earlier of idle expiry and absolute expiry.
+- The auth cookie, when cookie auth is enabled, expires at the device session's **absolute** expiry (`absolute_expires_at`). Without a device session it uses `jwt.cookie.ttl` as before.
+
+### Purging ended sessions
+
+Ended rows accumulate (one per login) until purged. `CommandTower::Auth::DeviceSessions::PurgeEndedJob` (no arguments) runs `Workflows::Auth::DeviceSessions::PurgeEndedWorkflow`, which deletes sessions revoked or past `absolute_expires_at` more than 7 days ago (`retain_for`, default `7.days`). It works in batches of 1,000 ids over the indexed `revoked_at` and `absolute_expires_at` columns and writes only CommandTower-owned rows. Sessions that are only idle-expired are not purged; they reach absolute expiry and are purged then.
+
+**The host schedules the job.** CommandTower does not schedule it. Run it daily with the host's scheduler (for example a recurring job or cron calling `CommandTower::Auth::DeviceSessions::PurgeEndedJob.perform_later`). Until it is scheduled, nothing breaks; rows only accumulate.
+
 Host seams: `Jwt::LoginCreate.call` takes an optional `device_session:`; `Jwt::AuthenticateUser` returns `AuthenticationOutcome` with `code` and `device_session`. Hosts that wrap either must pass these through ([upgrade guide](upgrades/0.24.0.md)).
 
 ## Rate limits and soft lockout

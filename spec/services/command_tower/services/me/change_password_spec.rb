@@ -22,6 +22,15 @@ RSpec.describe CommandTower::Services::Me::ChangePassword do
       expect(user.reload.authenticate(password)).to be_truthy
     end
 
+    context "when the user has active device sessions" do
+      let!(:sessions) { create_list(:device_session, 2, user:) }
+
+      it "revokes every session, including the current one" do
+        result
+        expect(sessions.map { it.reload.revoked_reason }).to eq(%w[password_change password_change])
+      end
+    end
+
     context "when persisting the audit fact" do
       before do
         CommandTower.with_execution(source: :http, user_id: user.id, effective_user_id: user.id) do

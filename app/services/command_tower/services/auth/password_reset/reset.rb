@@ -38,6 +38,8 @@ module CommandTower
                 reject!(user.errors.to_hash.transform_values { Array(_1).join(", ") })
               end
 
+              CommandTower::Services::Auth::DeviceSessions::RevokeAll.call(user:, reason: "password_reset")
+
               audit(
                 :password_changed,
                 subject: user,

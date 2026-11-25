@@ -95,6 +95,7 @@ module CommandTower::UserAttributes
 
       if attribute == :verifier_token
         user.reset_verifier_token!
+        CommandTower::Services::Auth::DeviceSessions::RevokeAll.call(user:, reason: "admin_mutation")
       else
         user.update!(attribute => value)
       end

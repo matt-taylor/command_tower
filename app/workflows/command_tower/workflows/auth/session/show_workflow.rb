@@ -15,12 +15,7 @@ module CommandTower
             }
 
             if auth_context.generated_token.present?
-              response_effects[:set_token] = {
-                token: auth_context.generated_token,
-                expires_at: auth_context.token_expires_at,
-                # Cookie-sourced refresh rides the cookie only; bearer clients read the header.
-                header: auth_context.token_source != :cookie
-              }
+              response_effects[:set_token] = token_effect(auth_context)
               response_effects[:ensure_csrf_cookie] = { rotate: csrf_rotate_on_reset? }
             end
 
@@ -40,6 +35,16 @@ module CommandTower
           end
 
           private
+
+          def token_effect(auth_context)
+            CommandTower::Workflows::Auth::AuthenticationResponseEffects.for_set_token(
+              token: auth_context.generated_token,
+              expires_at: auth_context.token_expires_at,
+              device_session: auth_context.device_session,
+              # Cookie-sourced refresh rides the cookie only; bearer clients read the header.
+              header: auth_context.token_source != :cookie
+            )
+          end
 
           def csrf_rotate_on_reset?
             return false unless CommandTower::Jwt::CsrfHelper.csrf_enabled?

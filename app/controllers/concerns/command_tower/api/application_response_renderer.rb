@@ -58,7 +58,8 @@ module CommandTower
             response,
             effects[:set_token][:token],
             expires_at: effects[:set_token][:expires_at],
-            header: effects[:set_token].fetch(:header, true)
+            header: effects[:set_token].fetch(:header, true),
+            cookie_expires_at: effects[:set_token][:cookie_expires_at]
           )
         end
 

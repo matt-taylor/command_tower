@@ -42,6 +42,7 @@ module CommandTower
 
             begin
               user.reset_verifier_token!
+              CommandTower::Services::Auth::DeviceSessions::RevokeAll.call(user:, reason: "password_change")
               CommandTower::Services::Impersonation::TerminateOpenSessions.call(
                 actor_user_id: user.id,
                 reason: "revoked"

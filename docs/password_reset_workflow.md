@@ -62,6 +62,8 @@ Establishes the recovery session used by subsequent reset calls. See request spe
 
 **Workflow:** `ResetWorkflow`
 
+On success the reset also revokes all of the user's device sessions (`RevokeAll`, reason `password_reset`), so every signed-in device must sign in again. See [Authentication](authentication.md#session-lifecycle).
+
 Success behavior and verifier rotation differ from authenticated [change password](change_password_workflow.md) — treat recovery success per product policy (often force Sign In).
 
 ## Delivery and token storage

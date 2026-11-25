@@ -50,14 +50,17 @@ module CommandTower
       # @param header [Boolean] Emit the token header. Pass false for cookie-sourced
       #   requests: the token travels only in the cookie. The header is written at
       #   most once per response.
-      def set_token(response, token, expires_at: nil, header: true)
+      # @param cookie_expires_at [Time, nil] Absolute cookie expiry (a device session's
+      #   absolute_expires_at). Defaults to `jwt.cookie.ttl` from now when nil. The
+      #   X-Authorization-Expire header stays the sliding (idle) signal.
+      def set_token(response, token, expires_at: nil, header: true, cookie_expires_at: nil)
         if header && response.get_header(AUTHENTICATION_WITH_RESET).nil?
           response.set_header(AUTHENTICATION_WITH_RESET, token)
         end
         response.set_header(AUTHENTICATION_EXPIRE_HEADER, expires_at) if expires_at && !expires_at.to_s.strip.empty?
 
         # Set cookie if enabled
-        set_cookie(response, token) if cookie_enabled?
+        set_cookie(response, token, expires_at: cookie_expires_at) if cookie_enabled?
       end
 
       # Clears token from response (cookie only, headers are response-only)
@@ -98,11 +101,12 @@ module CommandTower
       # Sets cookie with configured options
       # @param response [ActionDispatch::Response] The response object
       # @param token [String] The JWT token to set
-      def set_cookie(response, token)
+      # @param expires_at [Time, nil] Absolute expiry; defaults to `jwt.cookie.ttl` from now
+      def set_cookie(response, token, expires_at: nil)
         return unless cookie_enabled?
 
         config = CommandTower.config.jwt.cookie
-        options = cookie_options(expires_at: config.ttl.from_now)
+        options = cookie_options(expires_at: expires_at || config.ttl.from_now)
         options[:value] = token
 
         response.set_cookie(config.name, options)

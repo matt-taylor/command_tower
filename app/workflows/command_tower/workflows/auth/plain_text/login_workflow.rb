@@ -29,7 +29,11 @@ module CommandTower
                 http_status: :created,
                 meta: client_compatibility_meta,
                 response_effects: {
-                  set_token: { token: data[:token], expires_at: data[:expires_at] },
+                  set_token: CommandTower::Workflows::Auth::AuthenticationResponseEffects.for_set_token(
+                    token: data[:token],
+                    expires_at: data[:expires_at],
+                    device_session: data[:device_session]
+                  ),
                   ensure_csrf_cookie: { rotate: csrf_rotate_on_login? }
                 }
               )

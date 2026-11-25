@@ -12,7 +12,8 @@ module CommandTower
         result = CommandTower::Workflows::Impersonation::StopWorkflow.call(
           actor: current_auth_context.actor_user,
           impersonation_session_id: current_auth_context.impersonation_session_id,
-          token_expires_at: current_auth_context.token_expires_at
+          token_expires_at: current_auth_context.token_expires_at,
+          device_session: current_auth_context.device_session
         )
         render_application_result(result)
       end

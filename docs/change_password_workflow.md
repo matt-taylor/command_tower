@@ -1,6 +1,6 @@
 # Authenticated Password Change Workflow
 
-Authenticated password change lets a signed-in user replace their password by proving knowledge of the current password. On success, CommandTower rotates `verifier_token` in the same transaction as the password digest update, invalidating **all** existing JWT sessions (including the caller’s). The API does **not** re-issue a JWT; hosts must clear local auth and send the user through Sign In again.
+Authenticated password change lets a signed-in user replace their password by proving knowledge of the current password. On success, CommandTower rotates `verifier_token` in the same transaction as the password digest update, invalidating **all** existing JWT sessions (including the caller’s) and ending every device session (see [Authentication](authentication.md#session-lifecycle)); old tokens then answer `401` `session_revoked`. The API does **not** re-issue a JWT; hosts must clear local auth and send the user through Sign In again.
 
 This is distinct from [password recovery](password_reset_workflow.md), which is public and recovery-session/token-based.
 
@@ -38,7 +38,7 @@ Serialized success payload (message only). Response effects include `clear_token
 1. Authenticate `current_password`
 2. Confirm `password` matches `password_confirmation`
 3. Enforce configured password length bounds
-4. In one DB transaction: persist new password digest → `reset_verifier_token!`
+4. In one DB transaction: persist new password digest → `reset_verifier_token!` → revoke all device sessions (`RevokeAll`, reason `password_change`), including the caller's
 5. On failure: typed application errors → workflow HTTP mapping
 
 ## Failures

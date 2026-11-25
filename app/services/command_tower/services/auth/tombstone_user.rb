@@ -37,6 +37,7 @@ module CommandTower
           end
 
           user.reset_verifier_token!
+          CommandTower::Services::Auth::DeviceSessions::RevokeAll.call(user:, reason: "tombstone")
 
           context.user = user.reload
           context.changed = true

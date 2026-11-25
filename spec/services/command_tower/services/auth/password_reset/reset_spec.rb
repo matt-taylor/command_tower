@@ -31,6 +31,15 @@ RSpec.describe CommandTower::Services::Auth::PasswordReset::Reset do
       end
     end
 
+    context "when the user has an active device session" do
+      let!(:device_session) { create(:device_session, user:) }
+
+      it "revokes it as password_reset" do
+        expect(result).to be_success
+        expect(device_session.reload.revoked_reason).to eq("password_reset")
+      end
+    end
+
     context "when the account is soft locked" do
       let(:lockout) do
         CommandTower::Services::Auth::LoginRateLimits::Lockout.new(

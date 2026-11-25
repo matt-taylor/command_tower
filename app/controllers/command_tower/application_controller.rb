@@ -70,7 +70,8 @@ module CommandTower
             response,
             result.generated_token,
             expires_at: result.expires_at,
-            header: token_source != :cookie
+            header: token_source != :cookie,
+            cookie_expires_at: result.device_session&.absolute_expires_at
           )
 
           # Handle CSRF cookie issuance/rotation for token reset path

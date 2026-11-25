@@ -127,6 +127,8 @@ RSpec.describe "GET /auth/session", :with_rbac_setup, type: :request do
 
     context "when refreshing over cookie" do
       let(:cookie_name) { CommandTower.config.jwt.cookie.name }
+      let(:set_cookie) { Array(response.headers["Set-Cookie"]).join("\n")[/#{Regexp.escape(cookie_name)}=[^\n]*/i] }
+      let(:expires) { Time.zone.parse(set_cookie[/expires=([^;]+)/i, 1]) }
 
       before do
         CommandTower.configure { |config| config.jwt.cookie.enabled = true }
@@ -142,6 +144,10 @@ RSpec.describe "GET /auth/session", :with_rbac_setup, type: :request do
         expect(response).to have_http_status(:ok)
         expect(response.headers["X-Authorization-Reset"]).to be_nil
         expect(Array(response.headers["Set-Cookie"]).join).to include("#{cookie_name}=")
+      end
+
+      it "expires the cookie at the session's absolute expiry" do
+        expect(expires).to be_within(5.seconds).of(device_session.reload.absolute_expires_at)
       end
     end
 
