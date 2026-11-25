@@ -11,7 +11,7 @@ module CommandTower
         # which is unindexed, and they reach absolute expiry in time.
         class PurgeEndedWorkflow < CommandTower::Workflows::ApplicationWorkflow
           BATCH_SIZE = 1_000
-          DEFAULT_RETAIN_FOR = 7.days
+          DEFAULT_RETAIN_FOR = 30.days
 
           retry_strategy :none
 

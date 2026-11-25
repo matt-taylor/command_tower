@@ -5,7 +5,7 @@ RSpec.describe CommandTower::Workflows::Auth::DeviceSessions::PurgeEndedWorkflow
   let(:ids_remaining) { CommandTower::Auth::DeviceSession.pluck(:id) }
 
   context "with a session revoked longer ago than the retention window" do
-    let!(:old) { create(:device_session, :revoked, user:, revoked_at: 8.days.ago) }
+    let!(:old) { create(:device_session, :revoked, user:, revoked_at: 31.days.ago) }
 
     it "deletes it" do
       described_class.call
@@ -15,7 +15,7 @@ RSpec.describe CommandTower::Workflows::Auth::DeviceSessions::PurgeEndedWorkflow
   end
 
   context "with a recently revoked session" do
-    let!(:recent) { create(:device_session, :revoked, user:, revoked_at: 1.day.ago) }
+    let!(:recent) { create(:device_session, :revoked, user:, revoked_at: 29.days.ago) }
 
     it "keeps it" do
       described_class.call
@@ -25,7 +25,7 @@ RSpec.describe CommandTower::Workflows::Auth::DeviceSessions::PurgeEndedWorkflow
   end
 
   context "with a session past absolute expiry beyond the retention window" do
-    let!(:expired) { create(:device_session, user:, absolute_expires_at: 8.days.ago) }
+    let!(:expired) { create(:device_session, user:, absolute_expires_at: 31.days.ago) }
 
     it "deletes it" do
       described_class.call
@@ -46,8 +46,8 @@ RSpec.describe CommandTower::Workflows::Auth::DeviceSessions::PurgeEndedWorkflow
 
   context "with one revoked and one expired session" do
     before do
-      create(:device_session, :revoked, user:, revoked_at: 8.days.ago)
-      create(:device_session, user:, absolute_expires_at: 9.days.ago)
+      create(:device_session, :revoked, user:, revoked_at: 31.days.ago)
+      create(:device_session, user:, absolute_expires_at: 32.days.ago)
     end
 
     it "reports the purged count" do
@@ -58,7 +58,7 @@ RSpec.describe CommandTower::Workflows::Auth::DeviceSessions::PurgeEndedWorkflow
   context "with more rows than one batch" do
     before do
       stub_const("#{described_class}::BATCH_SIZE", 2)
-      create_list(:device_session, 5, :revoked, user:, revoked_at: 8.days.ago)
+      create_list(:device_session, 5, :revoked, user:, revoked_at: 31.days.ago)
     end
 
     it "works through all of them" do

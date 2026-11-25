@@ -21,7 +21,7 @@ module CommandTower
           def call
             enforce_attempt_limit!
             reject!(password_confirmation: CONFIRMATION_MISMATCH) unless password == password_confirmation
-            reject!(password: password_length_message) unless password_length_valid?
+            enforce_password_policy!
 
             require_email!
 
@@ -60,19 +60,11 @@ module CommandTower
 
           private
 
-          def plain_text_configuration
-            CommandTower.config.login.plain_text
-          end
+          def enforce_password_policy!
+            check = CommandTower::Services::Auth::PasswordPolicy::Check.call(password:)
+            return if check.data[:valid]
 
-          def password_length_valid?
-            length = password.length
-            length >= plain_text_configuration.password_length_min &&
-              length <= plain_text_configuration.password_length_max
-          end
-
-          def password_length_message
-            "Password length must be between #{plain_text_configuration.password_length_min} " \
-              "and #{plain_text_configuration.password_length_max} characters"
+            reject!(password: CommandTower::Services::Auth::PasswordPolicy::Check.message_for(check.data[:failures]))
           end
 
           def reject!(details)

@@ -13,8 +13,8 @@ RSpec.describe CommandTower::Workflows::Auth::RegisterWorkflow, :messaging_accep
         last_name: "Member",
         username: username,
         email: email,
-        password: "password1234",
-        password_confirmation: "password1234"
+        password: "correct-horse-9f3Qz!battery",
+        password_confirmation: "correct-horse-9f3Qz!battery"
       )
     end
 

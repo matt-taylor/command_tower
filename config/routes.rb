@@ -23,6 +23,7 @@ CommandTower::Engine.routes.draw do
     post "register", to: "register#create"
     post "signup-session", to: "signup_session/create#create"
     get "identity-policy", to: "identity_policy#show"
+    post "password-check", to: "password_check#create"
 
     constraints(->(_req) { CommandTower.config.signup_session.email_availability? }) do
       namespace :email do

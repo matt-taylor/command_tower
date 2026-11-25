@@ -102,7 +102,7 @@ Default JWT TTL is **7 days** (`config.jwt.ttl`).
 | **Gate** | Always drawn |
 | **Body** | `first_name`, `last_name`, `username`, `email`, `password`, `password_confirmation` (snake_case) |
 | **Success** | **201** — `data`: `{ user, message }` where `message` is `"Account created successfully"`. No token. |
-| **Errors** | `422` `validation_failed` / `email_already_registered`; `429` `signup_ip_rate_limited` |
+| **Errors** | `422` `validation_failed` (password length 8–64 inclusive, common-password blocklist; email 3–254 inclusive) / `email_already_registered`; `429` `signup_ip_rate_limited` |
 | **Spec** | `spec/requests/command_tower/auth/register_spec.rb` |
 
 `user` fields: `id`, `email`, `username`, `firstName`, `lastName`, `emailValidated`, `roles`.
@@ -186,6 +186,21 @@ Does **not** authorize `admin_impersonation` on the effective user. Shared front
 | **Auth** | Public |
 | **Success** | **200** — `data`: password / email / username / verificationCode / phoneVerificationCode policy objects (`minLength`, `maxLength`, `pattern`, …) |
 | **Spec** | `spec/requests/command_tower/auth/identity_policy_spec.rb` |
+
+Length bounds are inclusive and are the configured values as-is (no `+1`/`-1` adjustment). `password` also has `maxBytes` (72, the bcrypt limit; a password must satisfy both the character and byte limits), `passwordRules` (a `passwordrules` attribute string such as `minlength: 8; maxlength: 64;`) and `rules`. `email` and `username` have `rules`. Each rule is `{ id, label, check }` where `check` is `client` (the client can evaluate it) or `server` (needs the server, for example `not_common` via `POST /auth/password-check`). `username` also carries `selfService`, `selfChange` and `prompt` (`after_signup` or `off`) from `config.username`.
+
+### `POST /auth/password-check`
+
+| | |
+|--|--|
+| **Auth** | Public |
+| **Gate** | Always drawn |
+| **Body** | `password` (string, not stripped) |
+| **Success** | **200** — `data`: `{ valid, failures, message }`. `failures` is a list of `too_short`, `too_long`, `blocklisted`; `message` is `null` when valid. |
+| **Errors** | `422` missing or non-string `password`; `429` `auth_rate_limited` (60 per minute per IP, fails open on a Redis outage) |
+| **Spec** | `spec/requests/command_tower/auth/password_check_spec.rb` |
+
+Live feedback for signup, reset and change-password screens. The password is evaluated in memory only; it is never stored, logged or echoed. Register, password reset and `PATCH /me/password` apply the same check, so a password that passes here is not rejected for policy on submit.
 
 ### `GET /auth/principal-capabilities`
 

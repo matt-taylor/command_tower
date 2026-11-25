@@ -101,7 +101,7 @@ Revoked sessions answer `401` `session_revoked` on the next request.
 
 ### Purging ended sessions
 
-Ended rows accumulate (one per login) until purged. `CommandTower::Auth::DeviceSessions::PurgeEndedJob` (no arguments) runs `Workflows::Auth::DeviceSessions::PurgeEndedWorkflow`, which deletes sessions revoked or past `absolute_expires_at` more than 7 days ago (`retain_for`, default `7.days`). It works in batches of 1,000 ids over the indexed `revoked_at` and `absolute_expires_at` columns and writes only CommandTower-owned rows. Sessions that are only idle-expired are not purged; they reach absolute expiry and are purged then.
+Ended rows accumulate (one per login) until purged. `CommandTower::Auth::DeviceSessions::PurgeEndedJob` (no arguments) runs `Workflows::Auth::DeviceSessions::PurgeEndedWorkflow`, which deletes sessions revoked or past `absolute_expires_at` more than 30 days ago (`retain_for`, default `30.days`). It works in batches of 1,000 ids over the indexed `revoked_at` and `absolute_expires_at` columns and writes only CommandTower-owned rows. Sessions that are only idle-expired are not purged; they reach absolute expiry and are purged then.
 
 **The host schedules the job.** CommandTower does not schedule it. Run it daily with the host's scheduler (for example a recurring job or cron calling `CommandTower::Auth::DeviceSessions::PurgeEndedJob.perform_later`). Until it is scheduled, nothing breaks; rows only accumulate.
 

@@ -39,8 +39,17 @@ class User < CommandTower::ApplicationRecord
 
   scope :not_deleted, -> { where(deleted_at: nil) }
 
+  normalizes :email, with: ->(email) { email.strip.downcase }
+
   validates :username, uniqueness: { conditions: -> { not_deleted } }
   validates :email, uniqueness: { conditions: -> { not_deleted } }
+  validates :email,
+            format: { with: URI::MailTo::EMAIL_REGEXP },
+            length: {
+              minimum: ->(_user) { CommandTower.config.login.plain_text.email_length_min },
+              maximum: ->(_user) { CommandTower.config.login.plain_text.email_length_max }
+            },
+            if: :will_save_change_to_email?
 
   ###
   # Serialize the roles column to check for inclusion easily

@@ -21,11 +21,9 @@ module CommandTower
           reject!(current_password: "Incorrect current password") unless user.authenticate(current_password)
           reject!(password_confirmation: "Password and confirmation do not match") unless password == password_confirmation
 
-          config = CommandTower.config.login.plain_text
-          if password.length < config.password_length_min || password.length > config.password_length_max
-            reject!(
-              password: "Password length must be between #{config.password_length_min} and #{config.password_length_max} characters"
-            )
+          check = CommandTower::Services::Auth::PasswordPolicy::Check.call(password:)
+          unless check.data[:valid]
+            reject!(password: CommandTower::Services::Auth::PasswordPolicy::Check.message_for(check.data[:failures]))
           end
 
           persistence_errors = nil

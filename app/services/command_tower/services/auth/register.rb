@@ -41,12 +41,13 @@ module CommandTower
           config = plain_text_config
           errors = {}
 
-          unless email.length > config.email_length_min && email.length < config.email_length_max
-            errors[:email] = "Email length must be between #{config.email_length_min + 1} and #{config.email_length_max - 1} characters"
+          unless email.length.between?(config.email_length_min, config.email_length_max)
+            errors[:email] = "Email length must be between #{config.email_length_min} and #{config.email_length_max} characters"
           end
 
-          unless password.length > config.password_length_min && password.length < config.password_length_max
-            errors[:password] = "Password length must be between #{config.password_length_min + 1} and #{config.password_length_max - 1} characters"
+          check = CommandTower::Services::Auth::PasswordPolicy::Check.call(password:)
+          unless check.data[:valid]
+            errors[:password] = CommandTower::Services::Auth::PasswordPolicy::Check.message_for(check.data[:failures])
           end
 
           errors[:email] ||= "Invalid email address" unless email =~ URI::MailTo::EMAIL_REGEXP

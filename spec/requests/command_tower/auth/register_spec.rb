@@ -4,7 +4,7 @@ RSpec.describe "POST /auth/register", type: :request do
   subject(:make_request) { post path, params: params, as: :json }
 
   let(:path) { "/auth/register" }
-  let(:password) { "password1234" }
+  let(:password) { "correct-horse-9f3Qz!battery" }
   let(:params) do
     {
       first_name: "Jane",

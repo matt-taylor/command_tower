@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 RSpec.describe CommandTower::Auth::DeviceSessions::PurgeEndedJob do
-  let!(:ended) { create(:device_session, :revoked, revoked_at: 8.days.ago) }
+  let!(:ended) { create(:device_session, :revoked, revoked_at: 31.days.ago) }
 
   it "purges ended device sessions" do
     described_class.perform_now

@@ -17,7 +17,7 @@ RSpec.describe CommandTower::Services::Auth::Register do
     let(:last_name) { "Member" }
     let(:username) { "svcregister#{SecureRandom.hex(4)}" }
     let(:email) { "svc-register-#{SecureRandom.hex(4)}@example.com" }
-    let(:password) { "password1234" }
+    let(:password) { "correct-horse-9f3Qz!battery" }
     let(:password_confirmation) { password }
 
     it "returns the created user" do

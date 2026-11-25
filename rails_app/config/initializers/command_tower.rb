@@ -165,10 +165,13 @@ CommandTower.configure do |config|
     # plain_text_config.password_length_min = 8
 
     # Max Length for Email: [Integer]
-    # plain_text_config.email_length_max = 64
+    # plain_text_config.email_length_max = 254
 
     # Min Length for Email: [Integer]
-    # plain_text_config.email_length_min = 8
+    # plain_text_config.email_length_min = 3
+
+    # Files of common passwords to reject, one per line (.gz files are gunzipped): [Array]
+    # plain_text_config.password_blocklist_paths = [CommandTower::PasswordPolicy::Blocklist::DEFAULT_PATH]
   # end
 
   # ################################
@@ -264,6 +267,15 @@ CommandTower.configure do |config|
 
   # Max Length for Username: [String]
   # config.username.username_failure_message = "Username length must be between 4 and 32. Must contain only letters and/or numbers"
+
+  # Host flag: users may set their own username. Served by the identity policy as username.selfService: [FalseClass, TrueClass]
+  # config.username.self_service = false
+
+  # Allow a user who already has a username to change it. Served as username.selfChange: [FalseClass, TrueClass]
+  # config.username.self_change = false
+
+  # Post-signup username step: `after_signup` or `off`. Served as username.prompt: [String]
+  # config.username.prompt = "after_signup"
 
   # #################################
   # #                               #
