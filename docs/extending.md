@@ -86,6 +86,8 @@ Product business events own **host** workflows that call:
 
 `CommandTower::Messaging::Contract::Inbox` mutation (`mark_viewed_for_communication`) emits no audit and is called only from a workflow that owns the audit decision.
 
+A host workflow may also call `CommandTower::Services::HomeNotices::Deliver` after `Produce` to push a Home Notice (a `Delivery` subclass) to the same user, passing the `communication_id` for a linked delivery. It is idempotent on `(user, identity)`. See [home_notices.md](home_notices.md#deliver).
+
 Do not create one Messaging workflow per message type. Do not call the messaging handoff/execution pipeline directly. Summary: [messaging_integration_guide.md](messaging_integration_guide.md).
 
 ## Blank-host checklist

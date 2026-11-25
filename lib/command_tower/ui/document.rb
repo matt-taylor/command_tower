@@ -9,10 +9,11 @@ module CommandTower
     # (a `code` value, spans and times must not reach logs or exceptions).
     #
     # `validate!(profile:)` is the seam for rule sets. :default is the base rule
-    # set. :message adds "exactly one `facts` node" (message definitions). The
-    # blocking-notice profile in Set 3 will add external-links-only.
+    # set. :message adds "exactly one `facts` node" (message definitions).
+    # :blocking_notice adds "https external links only, no primary button":
+    # internal navigation, mailto and tel hrefs, and primary buttons are rejected.
     class Document
-      PROFILES = %i[default message].freeze
+      PROFILES = %i[default message blocking_notice].freeze
       MESSAGE_ERROR_LIMIT = 10
 
       attr_reader :root, :text_fallback
@@ -39,7 +40,7 @@ module CommandTower
       def validation_errors(profile: :default)
         raise ArgumentError, "unknown validation profile" unless PROFILES.include?(profile)
 
-        walker = Walker.new
+        walker = Walker.new(profile)
         walker.check_envelope(self)
         walker.walk(root, "root", 1) if root.is_a?(Nodes::Node)
         walker.check_facts_block if profile == :message
@@ -72,7 +73,8 @@ module CommandTower
       class Walker
         attr_reader :details
 
-        def initialize
+        def initialize(profile = :default)
+          @blocking_notice = profile == :blocking_notice
           @details = []
           @nodes = 0
           @components = 0
@@ -106,6 +108,7 @@ module CommandTower
           return if object.node? && reject_node?(object, path, depth)
 
           collect_errors(object, path)
+          check_blocking_notice(object, path) if @blocking_notice
           object.each_child { |relative, child| walk(child, "#{path}.#{relative}", depth + (child.node? ? 1 : 0)) }
           leave_node(object, path)
         end
@@ -160,6 +163,24 @@ module CommandTower
           elsif node.is_a?(Nodes::Button) && node.primary?
             @primary_buttons += 1
             add(path, :multiple_primary_buttons) if @primary_buttons > 1
+          end
+        end
+
+        # :blocking_notice profile. Codes only; hrefs are never echoed. A plain
+        # http href is already rejected by the base rules (unsafe_scheme).
+        def check_blocking_notice(object, path)
+          if object.is_a?(Nodes::Button) && object.primary?
+            add(path, :primary_button_not_allowed)
+          elsif object.is_a?(Nodes::Action::Navigate)
+            check_blocking_destination(object, path)
+          end
+        end
+
+        def check_blocking_destination(action, path)
+          if action.path
+            add(path, :internal_navigation_not_allowed)
+          elsif action.href.to_s.start_with?("mailto:", "tel:")
+            add(path, :external_scheme_not_allowed)
           end
         end
 

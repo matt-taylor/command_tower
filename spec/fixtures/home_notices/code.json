@@ -1,0 +1,44 @@
+{
+  "blocking": {
+    "document": {
+      "catalog": 2,
+      "root": {
+        "children": [
+          {
+            "spans": [
+              {
+                "text": "Check in for Arms & Abs",
+                "type": "text"
+              }
+            ],
+            "textTone": "primary",
+            "type": "text",
+            "variant": "heading_m"
+          },
+          {
+            "spans": [
+              {
+                "text": "Open the app to check in",
+                "type": "text"
+              }
+            ],
+            "textTone": "secondary",
+            "type": "text",
+            "variant": "body"
+          }
+        ],
+        "padding": "md",
+        "surface": "raised",
+        "type": "card"
+      },
+      "schema": "ui_document",
+      "textFallback": "Check in for Arms & Abs"
+    },
+    "endsAt": null,
+    "id": "campaign:studio.check_in",
+    "key": "studio.check_in",
+    "severity": "blocking"
+  },
+  "dismissible": null,
+  "readOnly": true
+}

@@ -190,7 +190,7 @@ Does **not** authorize `admin_impersonation` on the effective user. Shared front
 | **Errors** | `401`; `403`; `412` `email_verification_required` when email verification gate applies |
 | **Spec** | `spec/requests/command_tower/auth/principal_capabilities_spec.rb` |
 
-Projection is effective entity grants ∩ curated `config.registry.principal_capabilities` (never role/group names). CommandTower seeds `admin_workspace`, `admin_users`, `admin_users_update`, `admin_rbac_assignments`, `admin_audit_events`, `admin_messaging_announcements`, `admin_messaging_gallery`, `admin_messaging_gallery_test_send`, `admin_impersonation`, `me_audit_events`. Hosts may register additive host-owned ids. Distinct from `/me` capabilities and from `GET /admin/workspace` (tool manifest). See [Principal capabilities](principal_capabilities.md).
+Projection is effective entity grants ∩ curated `config.registry.principal_capabilities` (never role/group names). CommandTower seeds `admin_workspace`, `admin_users`, `admin_users_update`, `admin_rbac_assignments`, `admin_audit_events`, `admin_messaging_announcements`, `admin_messaging_gallery`, `admin_messaging_gallery_test_send`, `admin_impersonation`, `me_audit_events`, `me_home_notices`. Hosts may register additive host-owned ids. Distinct from `/me` capabilities and from `GET /admin/workspace` (tool manifest). See [Principal capabilities](principal_capabilities.md).
 
 ### `GET /auth/email/availability`
 
@@ -505,6 +505,113 @@ Durable completion facts for host-composed experiences. CommandTower stores opaq
 **Audit:** first durable creation emits `experience_state_completed` (opaque `host_context` type/identifier). Idempotent replay does not emit again.
 
 **Spec:** `spec/requests/command_tower/me/experience_states_spec.rb`.
+
+---
+
+## Home notices
+
+### `GET /me/home-notices`
+
+Returns at most one blocking and one dismissible notice for the signed-in user. Off by default: **404** unless `config.home_notices.enabled`. Selection, pacing and authoring: [Home Notices](home_notices.md).
+
+| Header | Use |
+|--------|-----|
+| `X-UI-Catalog` | Below `2` returns both notices `null` |
+| `X-App-Version`, `X-Client-Platform` | Passed to notices as context |
+
+`data`: `{ blocking, dismissible, readOnly }`. Each notice is `null` or a document. `readOnly` is `true` while impersonating (documents are redacted) or when impersonation state is unknown. The response always carries `Cache-Control: no-store`.
+
+| Status | When |
+|--------|------|
+| 200 | Success |
+| 401 / 403 | Unauthenticated / no `me_home_notices` grant |
+| 404 | `config.home_notices.enabled` is false |
+| 429 | `home_notices_rate_limited`: over `config.home_notices.rate_limit_per_minute` (30 per user per minute). A limiter failure fails open |
+
+**RBAC:** `me_home_notices`. Not in the dummy `member`; granted by the dummy `home_notices_reader` role and by `owner`. Also a principal capability.
+
+**Spec:** `spec/requests/command_tower/me/home_notices_spec.rb`.
+
+### `POST /me/home-notices/:id/impression`
+
+Records that the signed-in user was shown a notice. `:id` is a notice `public_id` or `campaign:<key>` (a campaign with no row yet in the current period). The notice is looked up for the current user only. Routed only when `config.home_notices.enabled`; otherwise **404**. No request body.
+
+`data`: `{ recorded }`. `recorded` is `true` when the impression was counted, `false` when nothing was written: the user is impersonating (or impersonation state is unknown), or a repeat impression arrived within 60 seconds of the last one.
+
+| Status | When |
+|--------|------|
+| 200 | Success, including `recorded: false` |
+| 401 / 403 | Unauthenticated / no `me_home_notices` grant |
+| 404 | Feature disabled; unknown, foreign or killed notice; or the notice is outside its window, acknowledged or dismissed |
+| 429 | `home_notices_rate_limited`: over `config.home_notices.mutation_rate_limit_per_minute` (120 per user per minute, shared with acknowledge and dismiss). A limiter failure fails open |
+| 503 | `home_notices_unavailable`: the kill switch could not be read, or a database failure |
+
+**Audit:** the first impression of a campaign period, or of a delivery, emits `home_notice_impression` (affected user: the current user; metadata `notice_id`, `key`, `kind`, `severity`). Later impressions only increment the row's count and emit nothing. A new campaign period audits again.
+
+**RBAC:** `me_home_notices`.
+
+**Spec:** `spec/requests/command_tower/me/home_notices_impression_spec.rb`.
+
+### `POST /me/home-notices/:id/acknowledge`
+
+Acknowledges a notice for the signed-in user. `:id` is a notice `public_id` or `campaign:<key>` (a campaign with no row yet in the current period). Works for blocking and dismissible notices. It never runs the notice's `show?`: a user who saw a notice can always clear it, even if `show?` is now false or raises. Routed only when `config.home_notices.enabled`; otherwise **404**. No request body.
+
+`data`: `{ acknowledged, recorded, public_id }`. `acknowledged` is always `true` on success. `recorded` is `true` only when this request made the change; a repeat acknowledge is an idempotent success with `recorded: false`. A blocking acknowledgement stores the content hash of the shown document on the row (for blocking only); the hash is never returned and never audited.
+
+| Status | When |
+|--------|------|
+| 200 | Success, including `recorded: false` |
+| 401 / 403 | Unauthenticated / no `me_home_notices` grant. Also **403** while impersonating (or impersonation state is unknown); nothing is written |
+| 404 | Feature disabled; unknown, foreign or killed notice |
+| 429 | `home_notices_rate_limited`: over `config.home_notices.mutation_rate_limit_per_minute` (120 per user per minute, shared with impression and dismiss). A limiter failure fails open |
+| 503 | `home_notices_unavailable`: the kill switch could not be read, or a database failure |
+
+**Audit:** when this request changes the row, it emits `home_notice_acknowledged` (subject and affected user: the current user; metadata `notice_id`, `key`, `kind`, `severity`; never the content hash). A repeat acknowledge emits nothing.
+
+**RBAC:** `me_home_notices`.
+
+**Spec:** `spec/requests/command_tower/me/home_notices_clear_spec.rb`.
+
+### `POST /me/home-notices/:id/dismiss`
+
+Dismisses a dismissible notice for the signed-in user for 7 days (`dismissed_until`); the notice's window, kill switch and pacing still apply afterward. `:id` is as for acknowledge. It never runs `show?`. Routed only when `config.home_notices.enabled`; otherwise **404**. No request body.
+
+`data`: `{ dismissed, recorded, public_id, dismissed_until }`. `dismissed` is always `true` on success. `recorded` is `true` only when this request made the change; a repeat dismiss while already dismissed into the future is an idempotent success with `recorded: false`.
+
+| Status | When |
+|--------|------|
+| 200 | Success, including `recorded: false` |
+| 401 / 403 | Unauthenticated / no `me_home_notices` grant. Also **403** while impersonating (or impersonation state is unknown); nothing is written |
+| 404 | Feature disabled; unknown, foreign or killed notice |
+| 422 | The notice is blocking: only dismissible notices can be dismissed; nothing is written |
+| 429 | `home_notices_rate_limited`: over `config.home_notices.mutation_rate_limit_per_minute` (shared with impression and acknowledge). A limiter failure fails open |
+| 503 | `home_notices_unavailable`: the kill switch could not be read, or a database failure |
+
+**Audit:** when this request changes the row, it emits `home_notice_dismissed` (affected user: the current user; metadata `notice_id`, `key`, `kind`, `severity`). A repeat dismiss emits nothing.
+
+**RBAC:** `me_home_notices`.
+
+**Spec:** `spec/requests/command_tower/me/home_notices_clear_spec.rb`.
+
+### `PATCH /admin/home-notices/:key`
+
+The home-notice kill switch: turns one registered notice key on or off. Body `{ "enabled": boolean }` (strict boolean, required). `:key` is `[a-z0-9_]` segments joined by dots, at most 128 characters. Always sends `Cache-Control: no-store`. Runbook: [Home Notices](home_notices.md#kill-switch-runbook).
+
+| Status | Meaning |
+|---|---|
+| 200 | `data: { key, enabled }`. Setting the state a key already has is a 200 no-op |
+| 401 / 403 | Unauthenticated / no `admin_home_notices_kill` grant. Also **403** while impersonating |
+| 404 | The key is not a registered notice |
+| 422 | Malformed key, or `enabled` missing or not a boolean |
+| 503 | `home_notices_unavailable`: a database failure |
+
+**Audit:** a request that changes the effective state emits `home_notice_control_changed` (admin attribution; changes `enabled` from/to; metadata `key`). A no-op emits nothing.
+
+**RBAC:** `admin_home_notices_kill`. Not in the principal-capabilities catalog and not in any default role except `owner` (`entities: true`).
+
+**Spec:** `spec/requests/command_tower/admin/home_notices_spec.rb`.
+
+**Fixtures.** Example `GET /me/home-notices` response bodies for every client seam (terms, long terms, campaign, update app with and without a URL, linked, redacted code with `readOnly: true`, both, none) are committed under `spec/fixtures/home_notices/`. Regenerate them from the dummy app with `make rake TASK=app:command_tower:home_notices:fixtures`. Files are sorted, pretty-printed JSON, so consumers can copy them byte for byte.
 
 ---
 

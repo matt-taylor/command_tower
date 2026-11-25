@@ -74,6 +74,7 @@ module CommandTower
         CommandTower.config.registry.principal_capabilities.validate_required_entities!(entities)
         CommandTower.config.registry.client_compatibility.validate!(entities)
         CommandTower.config.admin_scope.validate_scoped_tools!
+        CommandTower::HomeNotices::Catalog.load! if CommandTower.config.home_notices.enabled
       end
       CommandTower::Logging::Subscriber.attach!
       CommandTower::Audit::Persistence::Subscriber.attach! unless skip_composition_validation

@@ -315,6 +315,67 @@ module CommandTower
               retention: :permanent,
               subject_required: false,
               affected_user_required: true
+            },
+            # The first impression of a home notice per period (campaign) or per delivery. Later
+            # impressions only increment the row's impression_count.
+            home_notice_impression: {
+              label: "Home notice first shown",
+              tags: %w[home_notices engagement],
+              enabled: true,
+              enablement_configurable: false,
+              user_history: false,
+              sensitive_fields: [],
+              allowed_changes: [],
+              retention: :ninety_days,
+              subject_required: false,
+              subject_type: "",
+              affected_user_required: true,
+              global_visible_in_host_scope: false
+            },
+            # A user acknowledged a home notice. Metadata is ids only; the content hash of a
+            # blocking acknowledgement stays on the notice row.
+            home_notice_acknowledged: {
+              label: "Home notice acknowledged",
+              tags: %w[home_notices engagement],
+              enabled: true,
+              enablement_configurable: false,
+              user_history: true,
+              sensitive_fields: [],
+              allowed_changes: [],
+              retention: :one_year,
+              subject_required: true,
+              subject_type: "User",
+              affected_user_required: true,
+              global_visible_in_host_scope: true
+            },
+            # A user dismissed a dismissible home notice. Metadata is ids only.
+            home_notice_dismissed: {
+              label: "Home notice dismissed",
+              tags: %w[home_notices engagement],
+              enabled: true,
+              enablement_configurable: false,
+              user_history: false,
+              sensitive_fields: [],
+              allowed_changes: [],
+              retention: :ninety_days,
+              subject_required: false,
+              subject_type: "",
+              affected_user_required: true,
+              global_visible_in_host_scope: false
+            },
+            # An admin switched a home notice key on or off (the kill switch). No affected user;
+            # metadata carries the key only.
+            home_notice_control_changed: {
+              label: "Home notice kill switch changed",
+              tags: %w[home_notices admin],
+              enabled: true,
+              enablement_configurable: false,
+              user_history: false,
+              sensitive_fields: [],
+              allowed_changes: %i[enabled],
+              retention: :permanent,
+              subject_required: false,
+              affected_user_required: false
             }
           }.freeze
 

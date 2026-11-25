@@ -13,14 +13,22 @@ RSpec.describe CommandTower::Current do
 
   context "when scanning for readers of ui_catalog" do
     let(:root) { Pathname.new(File.expand_path("../../..", __dir__)) }
-    let(:allowed_readers) { %w[app/workflows/command_tower/workflows/messaging/inbox.rb] }
+    let(:allowed_readers) do
+      %w[
+        app/workflows/command_tower/workflows/messaging/inbox.rb
+        app/workflows/command_tower/workflows/home_notices/show_workflow.rb
+        app/workflows/command_tower/workflows/home_notices/record_impression_workflow.rb
+        app/workflows/command_tower/workflows/home_notices/acknowledge_workflow.rb
+        app/workflows/command_tower/workflows/home_notices/dismiss_workflow.rb
+      ]
+    end
     let(:readers) do
       paths = Dir[root.join("{app,lib}/**/*.rb")].grep_v(/\.keep\z/)
       matching = paths.select { |path| File.read(path).match?(/Current\.ui_catalog\b(?!\s*=)/) }
       matching.map { |path| Pathname.new(path).relative_path_from(root).to_s }
     end
 
-    it "has none beyond the inbox workflow that hands it to the renderer (not used for authorization or branching)" do
+    it "has none beyond the inbox and home notices workflows (never used for authorization)" do
       expect(readers - allowed_readers).to eq([])
     end
   end

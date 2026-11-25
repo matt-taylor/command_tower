@@ -45,6 +45,7 @@ Lookup: `CommandTower.config.registry.principal_capabilities.fetch(:admin_worksp
 | `admin_messaging_gallery_test_send` | Gate the gallery test send. Only `owner` holds it by default; hosts grant it explicitly. |
 | `admin_impersonation` | Gate Impersonate affordances (5.6 composition). Possession does not start a session by itself. |
 | `me_audit_events` | Gate Account **Activity** / self-audit Explorer presentation (4.7.1). Hosts own who receives the entity. |
+| `me_home_notices` | Gate Home Notices presentation (`GET /me/home-notices`). Not in `member`; hosts grant it explicitly. |
 
 Me/Auth route gates (`session`, `me`, …) and unimplemented Admin entities are **not** seeded. Adding a new CT RBAC entity later requires an explicit slice decision to also register a principal capability.
 

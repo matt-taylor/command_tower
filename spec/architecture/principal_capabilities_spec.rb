@@ -82,7 +82,8 @@ RSpec.describe "CommandTower principal capabilities architecture" do
       :admin_users_update,
       :admin_rbac_assignments,
       :admin_impersonation,
-      :me_audit_events
+      :me_audit_events,
+      :me_home_notices
     )
     expect(platform_capabilities.inspect).not_to include("session")
     expect(platform_capabilities.inspect).not_to include("me_inbox")
