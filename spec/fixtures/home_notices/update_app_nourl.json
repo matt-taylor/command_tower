@@ -1,0 +1,70 @@
+{
+  "blocking": null,
+  "dismissible": {
+    "document": {
+      "catalog": 2,
+      "root": {
+        "children": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "spans": [
+                      {
+                        "text": "A new version is ready",
+                        "type": "text"
+                      }
+                    ],
+                    "textTone": "primary",
+                    "type": "text",
+                    "variant": "heading_m"
+                  },
+                  {
+                    "spans": [
+                      {
+                        "text": "Update from your device's app store to get the latest fixes and improvements.",
+                        "type": "text"
+                      }
+                    ],
+                    "textTone": "primary",
+                    "type": "text",
+                    "variant": "body"
+                  }
+                ],
+                "gap": "sm",
+                "type": "stack"
+              }
+            ],
+            "padding": "lg",
+            "surface": "tinted",
+            "tone": "neutral",
+            "type": "card"
+          },
+          {
+            "items": [
+              {
+                "label": "Your version",
+                "value": "1.2.0"
+              },
+              {
+                "label": "Latest",
+                "value": "1.4.0"
+              }
+            ],
+            "type": "key_value"
+          }
+        ],
+        "gap": "md",
+        "type": "stack"
+      },
+      "schema": "ui_document",
+      "textFallback": "A new version is ready\nUpdate from your device's app store to get the latest fixes and improvements.\nYour version: 1.2.0\nLatest: 1.4.0"
+    },
+    "endsAt": null,
+    "id": "campaign:ct.update_app",
+    "key": "ct.update_app",
+    "severity": "dismissible"
+  },
+  "readOnly": false
+}

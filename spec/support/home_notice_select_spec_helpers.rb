@@ -79,6 +79,18 @@ module HomeNoticeSelectSpecHelpers
     CommandTower::HomeNotice.create!(user:, kind: "delivery", key:, identity:, **attributes)
   end
 
+  # Backdates a row's timestamps (for the prune specs).
+  def aged(row, created_at)
+    row.update_columns(created_at:, updated_at: created_at) # rubocop:disable Rails/SkipsModelValidations
+    row
+  end
+
+  # Runs the prune and reports whether the row is gone.
+  def pruned?(row)
+    CommandTower::Services::HomeNotices::PruneEnded.call
+    !CommandTower::HomeNotice.exists?(row.id)
+  end
+
   def request_context(now: Time.current, platform: "web", ui_catalog: 2)
     CommandTower::HomeNotices::Context.new(
       now:, time_zone: "UTC", app_version: nil, platform:,

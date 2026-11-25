@@ -19,6 +19,18 @@ When the host **emits** notifications or uses phone/Pushover:
 
 Complete steps 00–12 first. This bootstrap tree does not duplicate the messaging guide.
 
+## Home notices prune
+
+When the host enables `config.home_notices`, schedule the prune daily. CommandTower ships no scheduler.
+
+```bash
+make rake TASK=command_tower:home_notices:prune
+```
+
+(Inside this gem's dummy app the task is `app:command_tower:home_notices:prune`.)
+
+Or enqueue `CommandTower::HomeNotices::PruneEndedJob` from the host scheduler. It deletes ended notice rows idle for 180 days, in batches. Contract: [`../home_notices.md`](../home_notices.md).
+
 ## Host tests
 
 Shared FactoryBot definitions ship with the gem. In the host test boot path:

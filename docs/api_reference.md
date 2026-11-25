@@ -611,6 +611,8 @@ The home-notice kill switch: turns one registered notice key on or off. Body `{ 
 
 **Spec:** `spec/requests/command_tower/admin/home_notices_spec.rb`.
 
+**Fixtures.** Example `GET /me/home-notices` response bodies for every client seam (terms, long terms, campaign, update app with and without a URL, linked, redacted code with `readOnly: true`, both, none) are committed under `spec/fixtures/home_notices/`. Regenerate them from the dummy app with `make rake TASK=app:command_tower:home_notices:fixtures`. Files are sorted, pretty-printed JSON, so consumers can copy them byte for byte.
+
 ---
 
 ## Admin Workspace

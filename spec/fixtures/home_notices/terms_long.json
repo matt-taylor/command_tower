@@ -1,0 +1,353 @@
+{
+  "blocking": {
+    "document": {
+      "catalog": 2,
+      "root": {
+        "children": [
+          {
+            "spans": [
+              {
+                "text": "Studio terms updated",
+                "type": "text"
+              }
+            ],
+            "textTone": "primary",
+            "type": "text",
+            "variant": "heading_m"
+          },
+          {
+            "spans": [
+              {
+                "text": "Section 1",
+                "type": "text"
+              }
+            ],
+            "textTone": "primary",
+            "type": "text",
+            "variant": "title"
+          },
+          {
+            "spans": [
+              {
+                "text": "Members agree to the studio rules in section 1. Late cancellations within twelve hours of a class may use a class credit. Credits expire sixty days after purchase.",
+                "type": "text"
+              }
+            ],
+            "textTone": "primary",
+            "type": "text",
+            "variant": "body"
+          },
+          {
+            "spans": [
+              {
+                "text": "Section 2",
+                "type": "text"
+              }
+            ],
+            "textTone": "primary",
+            "type": "text",
+            "variant": "title"
+          },
+          {
+            "spans": [
+              {
+                "text": "Members agree to the studio rules in section 2. Late cancellations within twelve hours of a class may use a class credit. Credits expire sixty days after purchase.",
+                "type": "text"
+              }
+            ],
+            "textTone": "primary",
+            "type": "text",
+            "variant": "body"
+          },
+          {
+            "spans": [
+              {
+                "text": "Section 3",
+                "type": "text"
+              }
+            ],
+            "textTone": "primary",
+            "type": "text",
+            "variant": "title"
+          },
+          {
+            "spans": [
+              {
+                "text": "Members agree to the studio rules in section 3. Late cancellations within twelve hours of a class may use a class credit. Credits expire sixty days after purchase.",
+                "type": "text"
+              }
+            ],
+            "textTone": "primary",
+            "type": "text",
+            "variant": "body"
+          },
+          {
+            "spans": [
+              {
+                "text": "Section 4",
+                "type": "text"
+              }
+            ],
+            "textTone": "primary",
+            "type": "text",
+            "variant": "title"
+          },
+          {
+            "spans": [
+              {
+                "text": "Members agree to the studio rules in section 4. Late cancellations within twelve hours of a class may use a class credit. Credits expire sixty days after purchase.",
+                "type": "text"
+              }
+            ],
+            "textTone": "primary",
+            "type": "text",
+            "variant": "body"
+          },
+          {
+            "spans": [
+              {
+                "text": "Section 5",
+                "type": "text"
+              }
+            ],
+            "textTone": "primary",
+            "type": "text",
+            "variant": "title"
+          },
+          {
+            "spans": [
+              {
+                "text": "Members agree to the studio rules in section 5. Late cancellations within twelve hours of a class may use a class credit. Credits expire sixty days after purchase.",
+                "type": "text"
+              }
+            ],
+            "textTone": "primary",
+            "type": "text",
+            "variant": "body"
+          },
+          {
+            "spans": [
+              {
+                "text": "Section 6",
+                "type": "text"
+              }
+            ],
+            "textTone": "primary",
+            "type": "text",
+            "variant": "title"
+          },
+          {
+            "spans": [
+              {
+                "text": "Members agree to the studio rules in section 6. Late cancellations within twelve hours of a class may use a class credit. Credits expire sixty days after purchase.",
+                "type": "text"
+              }
+            ],
+            "textTone": "primary",
+            "type": "text",
+            "variant": "body"
+          },
+          {
+            "spans": [
+              {
+                "text": "Section 7",
+                "type": "text"
+              }
+            ],
+            "textTone": "primary",
+            "type": "text",
+            "variant": "title"
+          },
+          {
+            "spans": [
+              {
+                "text": "Members agree to the studio rules in section 7. Late cancellations within twelve hours of a class may use a class credit. Credits expire sixty days after purchase.",
+                "type": "text"
+              }
+            ],
+            "textTone": "primary",
+            "type": "text",
+            "variant": "body"
+          },
+          {
+            "spans": [
+              {
+                "text": "Section 8",
+                "type": "text"
+              }
+            ],
+            "textTone": "primary",
+            "type": "text",
+            "variant": "title"
+          },
+          {
+            "spans": [
+              {
+                "text": "Members agree to the studio rules in section 8. Late cancellations within twelve hours of a class may use a class credit. Credits expire sixty days after purchase.",
+                "type": "text"
+              }
+            ],
+            "textTone": "primary",
+            "type": "text",
+            "variant": "body"
+          },
+          {
+            "spans": [
+              {
+                "text": "Section 9",
+                "type": "text"
+              }
+            ],
+            "textTone": "primary",
+            "type": "text",
+            "variant": "title"
+          },
+          {
+            "spans": [
+              {
+                "text": "Members agree to the studio rules in section 9. Late cancellations within twelve hours of a class may use a class credit. Credits expire sixty days after purchase.",
+                "type": "text"
+              }
+            ],
+            "textTone": "primary",
+            "type": "text",
+            "variant": "body"
+          },
+          {
+            "spans": [
+              {
+                "text": "Section 10",
+                "type": "text"
+              }
+            ],
+            "textTone": "primary",
+            "type": "text",
+            "variant": "title"
+          },
+          {
+            "spans": [
+              {
+                "text": "Members agree to the studio rules in section 10. Late cancellations within twelve hours of a class may use a class credit. Credits expire sixty days after purchase.",
+                "type": "text"
+              }
+            ],
+            "textTone": "primary",
+            "type": "text",
+            "variant": "body"
+          },
+          {
+            "spans": [
+              {
+                "text": "Section 11",
+                "type": "text"
+              }
+            ],
+            "textTone": "primary",
+            "type": "text",
+            "variant": "title"
+          },
+          {
+            "spans": [
+              {
+                "text": "Members agree to the studio rules in section 11. Late cancellations within twelve hours of a class may use a class credit. Credits expire sixty days after purchase.",
+                "type": "text"
+              }
+            ],
+            "textTone": "primary",
+            "type": "text",
+            "variant": "body"
+          },
+          {
+            "spans": [
+              {
+                "text": "Section 12",
+                "type": "text"
+              }
+            ],
+            "textTone": "primary",
+            "type": "text",
+            "variant": "title"
+          },
+          {
+            "spans": [
+              {
+                "text": "Members agree to the studio rules in section 12. Late cancellations within twelve hours of a class may use a class credit. Credits expire sixty days after purchase.",
+                "type": "text"
+              }
+            ],
+            "textTone": "primary",
+            "type": "text",
+            "variant": "body"
+          },
+          {
+            "spans": [
+              {
+                "text": "Section 13",
+                "type": "text"
+              }
+            ],
+            "textTone": "primary",
+            "type": "text",
+            "variant": "title"
+          },
+          {
+            "spans": [
+              {
+                "text": "Members agree to the studio rules in section 13. Late cancellations within twelve hours of a class may use a class credit. Credits expire sixty days after purchase.",
+                "type": "text"
+              }
+            ],
+            "textTone": "primary",
+            "type": "text",
+            "variant": "body"
+          },
+          {
+            "spans": [
+              {
+                "text": "Section 14",
+                "type": "text"
+              }
+            ],
+            "textTone": "primary",
+            "type": "text",
+            "variant": "title"
+          },
+          {
+            "spans": [
+              {
+                "text": "Members agree to the studio rules in section 14. Late cancellations within twelve hours of a class may use a class credit. Credits expire sixty days after purchase.",
+                "type": "text"
+              }
+            ],
+            "textTone": "primary",
+            "type": "text",
+            "variant": "body"
+          },
+          {
+            "action": {
+              "destination": {
+                "href": "https://studio.example.com/terms",
+                "kind": "external"
+              },
+              "type": "navigate"
+            },
+            "label": "Read the full terms",
+            "type": "button",
+            "variant": "secondary"
+          }
+        ],
+        "padding": "md",
+        "surface": "raised",
+        "type": "card"
+      },
+      "schema": "ui_document",
+      "textFallback": "Studio terms updated\nSection 1\nMembers agree to the studio rules in section 1. Late cancellations within twelve hours of a class may use a class credit. Credits expire sixty days after purchase.\nSection 2\nMembers agree to the studio rules in section 2. Late cancellations within twelve hours of a class may use a class credit. Credits expire sixty days after purchase.\nSection 3\nMembers agree to the studio rules in section 3. Late cancellations within twelve hours of a class may use a class credit. Credits expire sixty days after purchase.\nSection 4\nMembers agree to the studio rules in section 4. Late cancellations within twelve hours of a class may use a class credit. Credits expire sixty days after purchase.\nSection 5\nMembers agree to the studio rules in section 5. Late cancellations within twelve hours of a class may use a class credit. Credits expire sixty days after purchase.\nSection 6\nMembers agree to the studio rules in section 6. Late cancellations within twelve hours of a class may use a class credit. Credits expire sixty days after purchase.\nSection 7\nMembers agree to the studio rules in section 7. Late cancellations within twelve hours of a class may use a class credit. Credits expire sixty days after purchase.\nSection 8\nMembers agree to the studio rules in section 8. Late cancellations within twelve hours of a class may use a class credit. Credits expire sixty days after purchase.\nSection 9\nMembers agree to the studio rules in section 9. Late cancellations within twelve hours of a class may use a class credit. Credits expire sixty days after purchase.\nSection 10\nMembers agree to the studio rules in section 10. Late cancellations within twelve hours of a class may use a class credit. Credits expire sixty days after purchase.\nSection 11\nMembers agree to the studio rules in section 11. Late cancellations within twelve hours of a class may use a class credit. Credits expire sixty days after purchase.\nSection 12\nMembers agree to the studio rules in section 12. Late cancellations within twelve hours of a class may use a class credit. Credits expire sixty days after purchase.\nSection 13\nMembers agree to the studio rules in section 13. Late cancellations within twelve hours of a class may use a class credit. Credits expire sixty days after purchase.\nSection 14\nMembers agree to the studio rules in section 14. Late cancellations within twelve hours of a class may use a class credit. Credits expire sixty days after purchase.\nRead the full terms"
+    },
+    "endsAt": "2026-12-31T23:59:59Z",
+    "id": "campaign:studio.terms_update_long",
+    "key": "studio.terms_update_long",
+    "severity": "blocking"
+  },
+  "dismissible": null,
+  "readOnly": false
+}
