@@ -232,6 +232,10 @@ CommandTower.configure do |config|
   # Host push sounds (System Default, id "default", is built in and needs no asset):
   # config.messaging.sounds = [{ id: "chime", label: "Chime", asset: "chime.wav" }]
 
+  # Home notices sample: enabled for the dummy host with three fictional notices (app/messages).
+  config.home_notices.enabled = true
+  config.home_notices.notices = %w[StudioTipsNotice ClassCanceledNotice TermsUpdateNotice]
+
   # ##############################
   # #                            #
   # #########  Username  #########

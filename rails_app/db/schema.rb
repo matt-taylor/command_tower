@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_11_24_000001) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_24_200002) do
   create_table "command_tower_audit_events", charset: "utf8mb3", force: :cascade do |t|
     t.string "action", null: false
     t.bigint "actor_user_id"
@@ -48,6 +48,42 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_24_000001) do
     t.index ["host_context_type", "host_context_identifier", "occurred_at"], name: "index_ct_audit_events_on_host_context_occurred"
     t.index ["originating_administrator_id", "occurred_at"], name: "index_ct_audit_events_on_originating_admin_occurred"
     t.index ["scope_class", "occurred_at"], name: "index_ct_audit_events_on_scope_class_occurred"
+  end
+
+  create_table "command_tower_home_notice_controls", primary_key: "key", id: { type: :string, limit: 128 }, charset: "utf8mb3", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.boolean "enabled", default: true, null: false
+    t.datetime "updated_at", null: false
+    t.bigint "updated_by_user_id"
+  end
+
+  create_table "command_tower_home_notices", charset: "utf8mb3", force: :cascade do |t|
+    t.datetime "acknowledged_at"
+    t.string "acknowledged_content_hash", limit: 64
+    t.string "campaign_key", limit: 128
+    t.bigint "communication_id"
+    t.datetime "created_at", null: false
+    t.datetime "dismissed_until"
+    t.datetime "ends_at"
+    t.datetime "first_shown_at"
+    t.string "identity", limit: 191
+    t.integer "impression_count", default: 0, null: false
+    t.string "key", limit: 128, null: false
+    t.string "kind", limit: 16, null: false
+    t.datetime "last_shown_at"
+    t.json "metadata"
+    t.string "period_key", limit: 191, default: "", null: false
+    t.string "public_id", limit: 32, null: false
+    t.datetime "starts_at"
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["public_id"], name: "index_command_tower_home_notices_on_public_id", unique: true
+    t.index ["updated_at"], name: "index_command_tower_home_notices_on_updated_at"
+    t.index ["user_id", "campaign_key", "period_key"], name: "index_ct_home_notices_on_user_campaign_period", unique: true
+    t.index ["user_id", "identity"], name: "index_ct_home_notices_on_user_identity", unique: true
+    t.index ["user_id", "kind", "acknowledged_at"], name: "index_ct_home_notices_on_user_kind_acknowledged"
+    t.index ["user_id", "last_shown_at"], name: "index_ct_home_notices_on_user_last_shown"
+    t.index ["user_id"], name: "index_command_tower_home_notices_on_user_id"
   end
 
   create_table "command_tower_impersonation_sessions", id: { type: :string, limit: 36 }, charset: "utf8mb3", force: :cascade do |t|
@@ -259,6 +295,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_24_000001) do
     t.index ["username"], name: "index_users_on_username", unique: true
   end
 
+  add_foreign_key "command_tower_home_notices", "users"
   add_foreign_key "command_tower_impersonation_sessions", "users", column: "actor_user_id"
   add_foreign_key "command_tower_impersonation_sessions", "users", column: "target_user_id"
   add_foreign_key "messaging_channel_deliveries", "messaging_communications", column: "communication_id", on_delete: :cascade
