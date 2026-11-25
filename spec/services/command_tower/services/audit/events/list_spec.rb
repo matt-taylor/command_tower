@@ -1,8 +1,11 @@
 # frozen_string_literal: true
 
 RSpec.describe CommandTower::Services::Audit::Events::List do
-  let(:owner_id) { 101 }
-  let(:other_id) { 202 }
+  # Far above any auto-increment id the test DB reaches. The sequence is not rolled back between
+  # examples, so small literals (101, 202) collide with real users created elsewhere in the suite
+  # and make scoped-admin examples include events they should exclude.
+  let(:owner_id) { 900_000_101 }
+  let(:other_id) { 900_000_202 }
 
   describe ".call" do
     let!(:visible) do
