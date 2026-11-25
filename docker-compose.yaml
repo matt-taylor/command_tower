@@ -69,3 +69,10 @@ services:
     links:
       - mysql
       - redis
+    # `docker compose run engine ...` starts linked services without waiting for them;
+    # depends_on makes it wait for the MySQL healthcheck above.
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
