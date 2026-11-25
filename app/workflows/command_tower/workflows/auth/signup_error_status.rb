@@ -16,7 +16,8 @@ module CommandTower
                CommandTower::Errors::Auth::SignupSessionExpiredError
             :unauthorized
           when CommandTower::Errors::Auth::SignupSessionRateLimitError,
-               CommandTower::Errors::Auth::SignupIpRateLimitError
+               CommandTower::Errors::Auth::SignupIpRateLimitError,
+               CommandTower::Errors::Auth::AuthRateLimitedError
             :too_many_requests
           when CommandTower::Errors::Auth::EmailAlreadyRegisteredError,
                CommandTower::Errors::ValidationError

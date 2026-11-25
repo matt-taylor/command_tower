@@ -43,6 +43,37 @@ RSpec.describe CommandTower::Services::Auth::EmailVerification::Send do
       end
     end
 
+    context "when requested again inside the quiet window" do
+      let(:user) { create(:user, :unvalidated_email) }
+
+      before { described_class.call(user: user) }
+
+      it "enqueues nothing more" do
+        expect { result }.not_to have_enqueued_job(CommandTower::Auth::EmailVerification::IssueJob)
+      end
+
+      it "succeeds quietly with resend_available_at" do
+        expect(result).to be_success
+        expect(result.data[:quiet]).to be(true)
+        expect(result.data[:resend_available_at]).to be_present
+      end
+    end
+
+    context "when the hourly cap is exceeded" do
+      let(:user) { create(:user, :unvalidated_email) }
+
+      before do
+        allow(CommandTower.config.login.rate_limits)
+          .to receive_messages(verify_send_quiet_seconds: 0, verify_send_per_hour: 1)
+        described_class.call(user: user)
+      end
+
+      it "fails with AuthRateLimitedError and enqueues nothing" do
+        expect { result }.not_to have_enqueued_job(CommandTower::Auth::EmailVerification::IssueJob)
+        expect(result.errors.first).to be_a(CommandTower::Errors::Auth::AuthRateLimitedError)
+      end
+    end
+
     context "when the user is already verified" do
       let(:user) { create(:user) }
 

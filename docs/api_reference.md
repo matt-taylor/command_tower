@@ -115,8 +115,10 @@ Default JWT TTL is **7 days** (`config.jwt.ttl`).
 | **Gate** | `config.login.plain_text.enable?` (else route absent → **404**) |
 | **Body** | `identifier`, `password` (snake_case) |
 | **Success** | **201** — `data`: `{ user, token, tokenExpiresAt }` |
-| **Errors** | `401` `invalid_credentials` |
+| **Errors** | `401` `invalid_credentials`; `429` `auth_rate_limited` (per-IP ceiling or soft account lockout) |
 | **Spec** | `spec/requests/command_tower/auth/plain_text/login_spec.rb` |
+
+`429` `auth_rate_limited` carries `details.retry_after_seconds` and a `Retry-After` header. The same error is returned by the email-verification and password-reset validate/reset endpoints when their limits trip. Limits: [Authentication](authentication.md#rate-limits-and-soft-lockout).
 
 ### `POST /auth/logout`
 
@@ -221,8 +223,8 @@ Projection is effective entity grants ∩ curated `config.registry.principal_cap
 | **Auth** | `authenticate_request!(bypass_email_validation: true)` + authorize |
 | **Gate** | `config.login.plain_text.email_verify?` |
 | **Body** | none |
-| **Success** | **201** when sent / **200** when already verified — `data`: `{ message }` |
-| **Errors** | `401`/`403`; `502` `verification_send_failed` |
+| **Success** | **201** when sent / **200** when already verified, or when a code was sent inside the quiet window (nothing sent) — `data`: `{ message, resendAvailableAt? }` |
+| **Errors** | `401`/`403`; `429` `auth_rate_limited` (hourly cap); `502` `verification_send_failed` |
 | **Spec** | `spec/requests/command_tower/auth/email_verification_spec.rb` |
 
 ### `POST /auth/email-verification/verify`
@@ -233,7 +235,7 @@ Projection is effective entity grants ∩ curated `config.registry.principal_cap
 | **Gate** | Same |
 | **Body** | `code` |
 | **Success** | **201** `"Successfully verified email"` / **200** already verified — `data`: `{ message }` |
-| **Errors** | `422` `verification_code_invalid` |
+| **Errors** | `422` `verification_code_invalid`; `429` `auth_rate_limited` |
 | **Spec** | `spec/requests/command_tower/auth/email_verification_spec.rb` |
 
 Workflow detail: [email_verification_workflow.md](email_verification_workflow.md).
@@ -266,7 +268,7 @@ Workflow detail: [email_verification_workflow.md](email_verification_workflow.md
 | **Gate** | `password_reset?` |
 | **Body** | `token` (required); `email` optional unless config requires it |
 | **Success** | **200** — `data`: `{ valid: true, expiresAt? }` |
-| **Errors** | `401` `password_reset_invalid_token`; `422` |
+| **Errors** | `401` `password_reset_invalid_token`; `422`; `429` `auth_rate_limited` |
 | **Spec** | `spec/requests/command_tower/auth/password_reset_validate_and_reset_spec.rb` |
 
 ### `POST /auth/password-reset/reset`
@@ -277,7 +279,7 @@ Workflow detail: [email_verification_workflow.md](email_verification_workflow.md
 | **Gate** | `password_reset?` |
 | **Body** | `token`, `password`, `passwordConfirmation` or `password_confirmation`; optional `email` |
 | **Success** | **200** — `data`: `{ message: "Password has been successfully reset" }` |
-| **Errors** | `401` `password_reset_invalid_token`; `422` |
+| **Errors** | `401` `password_reset_invalid_token`; `422`; `429` `auth_rate_limited` |
 | **Spec** | `spec/requests/command_tower/auth/password_reset_validate_and_reset_spec.rb` |
 
 Workflow detail: [password_reset_workflow.md](password_reset_workflow.md).

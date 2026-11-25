@@ -75,12 +75,20 @@ module CommandTower
           )
         end
 
+        apply_retry_after_effect(effects[:retry_after])
+
         return unless effects[:set_expire_header]
 
         response.set_header(
           CommandTower::Jwt::AuthorizationHelper::AUTHENTICATION_EXPIRE_HEADER,
           effects[:set_expire_header]
         )
+      end
+
+      def apply_retry_after_effect(seconds)
+        return unless seconds
+
+        response.set_header("Retry-After", seconds.to_i.to_s)
       end
     end
   end

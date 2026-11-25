@@ -31,6 +31,46 @@ RSpec.describe CommandTower::Services::Auth::PasswordReset::Reset do
       end
     end
 
+    context "when the account is soft locked" do
+      let(:lockout) do
+        CommandTower::Services::Auth::LoginRateLimits::Lockout.new(
+          subject: CommandTower::Services::Auth::LoginRateLimits::Lockout.subject_for(user: user, identifier: nil)
+        )
+      end
+
+      before do
+        CommandTower.config.login.rate_limits.account_failures.times { lockout.record_failure }
+      end
+
+      it "starts locked" do
+        expect(lockout.status).to be_locked
+      end
+
+      it "clears the lock when the password is reset" do
+        result
+
+        expect(lockout.status).not_to be_locked
+      end
+    end
+
+    context "when the client IP is over the reset ceiling" do
+      subject(:result) do
+        described_class.call(
+          token: token, password: password, password_confirmation: password, client_ip: "203.0.113.9"
+        )
+      end
+
+      before do
+        allow(CommandTower.config.login.rate_limits).to receive(:reset_attempts_per_ip).and_return(1)
+        CommandTower::Services::Auth::IdentityRateLimits::CheckResetAttempt.call(client_ip: "203.0.113.9")
+      end
+
+      it "fails with AuthRateLimitedError and leaves the password alone" do
+        expect(result.errors.first).to be_a(CommandTower::Errors::Auth::AuthRateLimitedError)
+        expect(user.reload.authenticate("password1234")).to be_truthy
+      end
+    end
+
     context "with a live token" do
       it { expect(result).to be_success }
 

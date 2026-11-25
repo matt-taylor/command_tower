@@ -22,7 +22,7 @@ module CommandTower
 
           context.count = count.to_i
           context.ttl = ttl.to_i
-        rescue Redis::BaseError => e
+        rescue Redis::BaseError, Timeout::Error => e
           context.fail!(application_error: CommandTower::Errors::InternalError.new(cause: e))
         end
       end

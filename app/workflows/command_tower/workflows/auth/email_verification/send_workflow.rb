@@ -18,11 +18,13 @@ module CommandTower
             end
 
             message = send_result.data[:message]
+            resend_available_at = send_result.data[:resend_available_at]
             success(
               payload: CommandTower::Serializers::Auth::EmailVerification::MessageResponseSerializer.serialize(
-                message: message
+                message: message,
+                resend_available_at: resend_available_at
               ),
-              http_status: message.include?("already verified") ? :ok : :created
+              http_status: message.include?("already verified") || send_result.data[:quiet] ? :ok : :created
             )
           end
         end

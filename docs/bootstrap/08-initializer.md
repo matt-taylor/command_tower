@@ -45,6 +45,8 @@ Boot guard: outside development/test (`Rails.env.local?`), the app raises `Comma
 
 Auth mail delivery: `config.login.mail_delivery = :later` (default) sends password-reset and email-verification mail from ActiveJob so requests never wait on mail; hosts need a working ActiveJob queue adapter. `:inline` performs the job in the request (useful for tests and hosts without a worker).
 
+Rate limits: `config.login.rate_limits.*` ships with safe defaults (soft per-account lockout, per-IP ceilings, verification send caps); set a value to `0` to disable one bucket. Hosts behind a load balancer must configure `trusted_proxies` or all clients share one IP bucket. `config.login.plain_text.lockable` is a deprecated no-op. Settings and defaults: [Authentication](../authentication.md#rate-limits-and-soft-lockout).
+
 Existing deployments: run `command_tower:user_secrets:clear_plaintext` once after migrating to digest and blank legacy plaintext secrets.
 
 Exact setter names are in the generated initializer comments and [`../initializing.md`](../initializing.md). Match those names; do not invent parallel keys.

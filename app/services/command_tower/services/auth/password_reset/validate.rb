@@ -11,7 +11,10 @@ module CommandTower
           validate :token, is_a: String, required: true, sensitive: true
           validate :email, is_a: String, required: false, sensitive: true
 
+          validate :client_ip, is_a: String
+
           def call
+            enforce_attempt_limit!
             require_email!
 
             redemption = redeem_token!(access_count: false)

@@ -6,6 +6,7 @@ RSpec.describe CommandTower::Workflows::Auth::SessionErrorStatus do
 
     {
       CommandTower::Errors::Auth::EmailVerificationRequiredError => :precondition_failed,
+      CommandTower::Errors::Auth::AuthRateLimitedError => :too_many_requests,
       CommandTower::Errors::Auth::CsrfMissingError => :forbidden,
       CommandTower::Errors::Auth::CsrfMismatchError => :forbidden,
       CommandTower::Errors::ForbiddenError => :forbidden,

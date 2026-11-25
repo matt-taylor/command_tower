@@ -17,7 +17,8 @@ module CommandTower
                CommandTower::Errors::Auth::PasswordResetInvalidTokenError
             :unauthorized
           when CommandTower::Errors::Auth::PasswordRecoverySessionRateLimitError,
-               CommandTower::Errors::Auth::PasswordRecoveryIpRateLimitError
+               CommandTower::Errors::Auth::PasswordRecoveryIpRateLimitError,
+               CommandTower::Errors::Auth::AuthRateLimitedError
             :too_many_requests
           when CommandTower::Errors::Auth::VerificationCodeInvalidError,
                CommandTower::Errors::ValidationError

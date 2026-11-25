@@ -9,10 +9,11 @@ module CommandTower
 
           retry_strategy :none
 
-          def call(input:, request_context: nil)
+          def call(input:, request_context: nil, client_ip: nil)
             login_result = CommandTower::Services::Auth::PlainText::Login.call(
               identifier: input.identifier,
-              password: input.password
+              password: input.password,
+              client_ip: client_ip
             )
 
             if login_result.success?
@@ -34,10 +35,17 @@ module CommandTower
               )
             end
 
-            failure(errors: login_result.errors, http_status: :unauthorized)
+            failure(errors: login_result.errors, http_status: failure_http_status(login_result.errors.first))
           end
 
           private
+
+          # Every login failure stays 401 except a rate limit, which is 429.
+          def failure_http_status(error)
+            return :unauthorized unless error.is_a?(CommandTower::Errors::Auth::AuthRateLimitedError)
+
+            CommandTower::Workflows::Auth::SessionErrorStatus.http_status_for(error)
+          end
 
           def csrf_rotate_on_login?
             return false unless CommandTower::Jwt::CsrfHelper.csrf_enabled?

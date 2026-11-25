@@ -11,6 +11,7 @@ RSpec.describe CommandTower::Workflows::Auth::IdentityErrorStatus do
       CommandTower::Errors::Auth::PasswordResetInvalidTokenError => :unauthorized,
       CommandTower::Errors::Auth::PasswordRecoverySessionRateLimitError => :too_many_requests,
       CommandTower::Errors::Auth::PasswordRecoveryIpRateLimitError => :too_many_requests,
+      CommandTower::Errors::Auth::AuthRateLimitedError => :too_many_requests,
       CommandTower::Errors::Auth::VerificationCodeInvalidError => :unprocessable_entity,
       CommandTower::Errors::ValidationError => :unprocessable_entity,
       CommandTower::Errors::Auth::PasswordResetUnavailableError => :service_unavailable,

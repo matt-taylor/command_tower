@@ -58,6 +58,27 @@ RSpec.describe CommandTower::Services::Auth::EmailVerification::Verify do
       end
     end
 
+    context "when attempts exceed the ceiling" do
+      let(:user) { create(:user, :unvalidated_email) }
+
+      let(:right_code) do
+        CommandTower::Secrets::Generate.call(
+          user: user, secret_length: 6, reason: CommandTower::Secrets::EMAIL_VERIFICIATION,
+          use_count_max: 1, death_time: 10.minutes, type: CommandTower::Secrets::NUMERIC, cleanse: true
+        ).secret
+      end
+
+      before do
+        allow(CommandTower.config.login.rate_limits).to receive(:verify_attempts).and_return(2)
+        2.times { described_class.call(user: user, code: "000000") }
+      end
+
+      it "returns AuthRateLimitedError even for the right code" do
+        expect(described_class.call(user: user, code: right_code).errors.first)
+          .to be_a(CommandTower::Errors::Auth::AuthRateLimitedError)
+      end
+    end
+
     context "when the user is already verified" do
       let(:user) { create(:user) }
 

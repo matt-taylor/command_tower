@@ -1,6 +1,17 @@
 # frozen_string_literal: true
 
 RSpec.describe CommandTower::Services::Auth::PasswordReset::Validate do
+  describe "attempt ceiling" do
+    before { allow(CommandTower.config.login.rate_limits).to receive(:reset_attempts_per_ip).and_return(1) }
+
+    it "fails with AuthRateLimitedError once the client IP is over the ceiling" do
+      described_class.call(token: "nope", client_ip: "203.0.113.9")
+
+      expect(described_class.call(token: "nope", client_ip: "203.0.113.9").errors.first)
+        .to be_a(CommandTower::Errors::Auth::AuthRateLimitedError)
+    end
+  end
+
   describe ".call" do
     subject(:result) { described_class.call(token: token, email: email) }
 

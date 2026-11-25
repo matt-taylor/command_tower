@@ -18,6 +18,9 @@ module CommandTower
               return
             end
 
+            gate = CommandTower::Services::Auth::IdentityRateLimits::CheckVerifyAttempt.call(user: user)
+            context.fail!(application_error: gate.errors.first) if gate.failure?
+
             result = CommandTower::Secrets::Verify.(
               secret: code,
               reason: CommandTower::Secrets::EMAIL_VERIFICIATION
@@ -30,6 +33,9 @@ module CommandTower
             end
 
             user.update(email_validated: true)
+            CommandTower::Services::RateLimits::Clear.call(
+              key: CommandTower::Services::Auth::IdentityRateLimits::CheckVerifyAttempt.key_for(user)
+            )
 
             audit(:email_verified, subject: user, affected_user: user, changes: {})
 

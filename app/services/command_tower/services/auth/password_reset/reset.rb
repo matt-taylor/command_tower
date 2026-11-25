@@ -16,7 +16,10 @@ module CommandTower
           validate :password_confirmation, is_a: String, required: true, sensitive: true
           validate :email, is_a: String, required: false, sensitive: true
 
+          validate :client_ip, is_a: String
+
           def call
+            enforce_attempt_limit!
             reject!(password_confirmation: CONFIRMATION_MISMATCH) unless password == password_confirmation
             reject!(password: password_length_message) unless password_length_valid?
 
@@ -43,6 +46,11 @@ module CommandTower
                 metadata: { mechanism: "reset" }
               )
             end
+
+            # Proving mailbox ownership ends any soft login lockout and its repeat-lock level.
+            CommandTower::Services::Auth::LoginRateLimits::Lockout
+              .new(subject: CommandTower::Services::Auth::LoginRateLimits::Lockout.subject_for(user:, identifier: nil))
+              .clear(lock_and_level: true)
 
             log_info("Password reset completed for user [#{user.id}]")
             context.message = RESET_MESSAGE

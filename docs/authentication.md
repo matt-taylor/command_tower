@@ -38,6 +38,27 @@ Impersonation is a **CommandTower session primitive**, not a User mutation. The 
 
 See [API reference](api_reference.md#impersonation) and [Authorization](authorization.md).
 
+## Rate limits and soft lockout
+
+Password login, password-reset token use, and email-verification endpoints are limited by `config.login.rate_limits`. A limit set to `0` disables that bucket. A rejected request returns `429` `auth_rate_limited` with `details.retry_after_seconds` and a `Retry-After` header. See [API reference](api_reference.md#post-authplain-textlogin).
+
+| Bucket | Applies to | Default | Setting |
+|--------|-----------|---------|---------|
+| Account lockout | Failed logins per account, or per unknown identifier (same behavior for both, so it does not reveal which accounts exist) | 10 failures in 15 min | `account_failures`, `account_window_seconds` |
+| Lock length | First soft lock, doubling on each repeat inside the level window, capped. Every lock expires; a failed attempt while locked never extends it | 15 min, max 60 min, levels remembered 24 h | `lock_base_seconds`, `lock_max_seconds`, `lock_level_window_seconds` |
+| Login per IP | `POST /auth/plain-text/login` | 100 in 15 min | `ip_attempts`, `ip_window_seconds` |
+| Reset per IP | `POST /auth/password-reset/validate` and `/reset` | 30 in 15 min | `reset_attempts_per_ip`, `reset_window_seconds` |
+| Verify attempts | `POST /auth/email-verification/verify`, per user | 10 in 15 min | `verify_attempts`, `verify_window_seconds` |
+| Verification send | `POST /auth/email-verification/send`, per user. A second request inside the quiet window sends nothing and answers `200` with `resendAvailableAt`; the hourly cap answers `429` | 60 s quiet, 20 per hour | `verify_send_quiet_seconds`, `verify_send_per_hour` |
+
+A successful login clears the account's failure count and lock. A successful password reset also clears the lock. Lockout subjects are HMAC'd, so no email or username is stored in Redis in plaintext.
+
+**Redis outage.** Limits fail open: login still works, `auth.rate_limit.fail_open` is published, and a per-process counter keeps a coarse ceiling. It is not shared across processes.
+
+**`trusted_proxies` is required behind a load balancer.** The per-IP buckets use `request.remote_ip`, which follows `X-Forwarded-For` only from the host's `trusted_proxies`. Without it every request shares the proxy's IP and one bucket.
+
+`login.plain_text.lockable` is a deprecated no-op; use `login.rate_limits`.
+
 ## Where to go next
 
 | Need | Guide |

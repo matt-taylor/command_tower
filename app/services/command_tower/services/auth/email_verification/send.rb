@@ -11,6 +11,7 @@ module CommandTower
         class Send < CommandTower::Services::ApplicationService
           ALREADY_VERIFIED_MESSAGE = "Email is already verified. No code required"
           SENT_MESSAGE = "Successfully sent email verification code"
+          QUIET_MESSAGE = "A verification code was sent recently. Check your email"
 
           validate :user, is_a: User, required: true
 
@@ -20,11 +21,20 @@ module CommandTower
               return
             end
 
-            enqueue
-            context.message = SENT_MESSAGE
+            record_send_gate
+            enqueue unless context.quiet
+            context.message = context.quiet ? QUIET_MESSAGE : SENT_MESSAGE
           end
 
           private
+
+          def record_send_gate
+            gate = CommandTower::Services::Auth::IdentityRateLimits::CheckVerificationSend.call(user: user)
+            context.fail!(application_error: gate.errors.first) if gate.failure?
+
+            context.quiet = gate.data[:quiet]
+            context.resend_available_at = gate.data[:resend_available_at]
+          end
 
           def enqueue
             job_class = CommandTower::Auth::EmailVerification::IssueJob
