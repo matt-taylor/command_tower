@@ -94,6 +94,10 @@ Notes:
 
 The Me Inbox detail `content` field (`inbox_document_v1`, see [api_reference.md](api_reference.md#me-inbox)) is built by `InboxDocumentRenderer`. An `inbox_document.json.erb` view is **not** read (the override was replaced). A notification type customizes the document through `declaration.inbox_document_composer`, a pure-Ruby class called with `communication:` that returns an `InboxDocument`. The generic document is built in Ruby from `communication.body` and `metadata`. A missing, raising, or invalid composer falls back silently to the generic document — the Inbox read path never surfaces a `RenderError` and never 500s.
 
+### Inbox contract reads for Home Notices
+
+`CommandTower::Messaging::Contract::Inbox.document_for_communication(request)` takes `Requests::DocumentForCommunication` (`communication_id:`, `recipient_id:`, `impersonating:`) and returns `Results::InboxDocument` (`communication_id`, `inbox_item_id`, `document`: the catalog 2 `UI::Document`). It returns `nil` when the communication is missing, not the recipient's, deleted or archived, not inbox-backed, or its type has no `MessageDefinition`. It is read-only and emits no audit. Home Notices use it to render a linked delivery ([home_notices.md](home_notices.md#deliver)); `viewed_for_communication?` and `mark_viewed_for_communication` are unchanged.
+
 ## Me Inbox HTTP (summary)
 
 | Concern | Contract |

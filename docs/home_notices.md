@@ -114,10 +114,38 @@ All are in category `home_notices`. Payloads carry ids, keys, counts and error c
 | `period_key_failed` | A campaign `period_key` block raised |
 | `show_if_slow` | `show?` took longer than 50 ms |
 | `show_if_failed` | `show?` raised |
+| `delivery_over_cap` | `Deliver` ignored a delivery over `max_open_deliveries` (key only) |
+| `linked_mark_failed` | Acknowledge could not mark the linked inbox item viewed (ids, error class) |
 
 ### Cap overshoot
 
 The blocking daily cap is not transactional. Selection counts rows before any impression is recorded, so concurrent requests can each start a different blocking notice before either impression lands. The cap can be exceeded by one per concurrent request. This is accepted (design D5): re-serving a started notice is always allowed, and the next request sees the new rows and holds the cap.
+
+## Deliver
+
+`CommandTower::Services::HomeNotices::Deliver` pushes one `Delivery` notice to one user. A host workflow calls it directly, usually right after `Produce`.
+
+| Input | Meaning |
+|---|---|
+| `user`, `notice` | The recipient and the `Delivery` subclass (anything else fails validation) |
+| `identity` | The caller's stable key for this occurrence |
+| `communication_id` | Required for a linked delivery (`composer :message`) |
+| `starts_at`, `ends_at`, `metadata` | Optional window and a Hash of ids and small values |
+
+- **Idempotent** on `(user, identity)`: a repeat returns the existing row and writes nothing.
+- **Cap.** Over `max_open_deliveries` open rows the delivery is ignored and `delivery_over_cap` is published (key only).
+- **Linked delivery.** The row is refused with `linked_message_unavailable` when the inbox item is missing, deleted, foreign or undefined, checked through `Messaging::Contract::Inbox.document_for_communication` ([Messaging guide](messaging_integration_guide.md)). No row is written.
+- Success data is `{ delivered:, public_id: }`. `delivered` is true only when this call wrote the row; `public_id` is nil when ignored over the cap.
+
+### Linked deliveries
+
+A delivery with `composer :message` needs no `show?` or `compose`:
+
+- **Document.** `Compose` takes the inbox item's own document from `document_for_communication` instead of calling `compose`. It is redacted and validated like any other notice. A missing, deleted, archived, foreign or undefined item yields no document, so the notice is not shown.
+- **Shown while unviewed.** The `Delivery#show?` default is true while `viewed_for_communication?` is false, and false when it is true (viewed) or nil (unavailable). Hosts may override `show?` and call `super`. An unlinked delivery must override `show?`.
+- **Acknowledge marks viewed.** After the acknowledge commits (also on an idempotent repeat), the workflow calls `mark_viewed_for_communication`. This is best effort: a failure publishes `linked_mark_failed` (ids and error class) and never fails the acknowledgement.
+
+Sample: `rails_app/app/messages/class_canceled_notice.rb`.
 
 ## HTTP
 

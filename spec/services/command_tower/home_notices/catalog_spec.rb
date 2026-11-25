@@ -172,11 +172,7 @@ RSpec.describe CommandTower::HomeNotices::Catalog do
       end
     end
 
-    context "when Delivery#show? is defined on the base" do
-      before { CommandTower::HomeNotices::Delivery.define_method(:show?) { |**| true } }
-
-      after { CommandTower::HomeNotices::Delivery.send(:remove_method, :show?) }
-
+    context "with the Delivery#show? default" do
       it "rejects an unlinked delivery that only inherits it" do
         expect(load_error.call(build_delivery.call { define_method(:compose) { |*, **| nil } }))
           .to include("show? must be")

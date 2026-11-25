@@ -6,12 +6,7 @@ class ClassCanceledNotice < CommandTower::HomeNotices::Delivery
   severity :blocking
   priority 80
   blocking_reason "A booked class was canceled and the member must acknowledge it."
-
-  def show?(user:, context:, notice:) # rubocop:disable Lint/UnusedMethodArgument
-    true
-  end
-
-  def compose(_builder, user:, context:, notice:) # rubocop:disable Lint/UnusedMethodArgument
-    nil
-  end
+  # Linked to the member's `class_canceled` inbox item: the document is that item's own, and the
+  # notice is shown until the item is viewed. Acknowledging marks the item viewed.
+  composer :message
 end

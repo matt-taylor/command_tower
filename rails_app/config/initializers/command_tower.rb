@@ -233,6 +233,7 @@ CommandTower.configure do |config|
   # config.messaging.sounds = [{ id: "chime", label: "Chime", asset: "chime.wav" }]
 
   # Home notices sample: enabled for the dummy host with three fictional notices (app/messages).
+  # ClassCanceledNotice is a linked delivery (`composer :message`) over the `class_canceled` type above.
   config.home_notices.enabled = true
   config.home_notices.notices = %w[StudioTipsNotice ClassCanceledNotice TermsUpdateNotice]
 

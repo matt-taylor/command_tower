@@ -56,7 +56,8 @@ module CommandTower
           )
           return rejected(acknowledged, user:) if acknowledged.failure?
 
-          after_commit(user:, notice_class: resolved.data[:notice_class], data: acknowledged.data)
+          after_commit(user:, notice_class: resolved.data[:notice_class], row: resolved.data[:row],
+                       data: acknowledged.data)
           respond(acknowledged.data[:recorded])
         rescue ActiveRecord::ActiveRecordError => e
           log_server_error(user:, error: e)
@@ -65,11 +66,35 @@ module CommandTower
 
         # Runs after the acknowledge transaction committed, for the first acknowledgement and for an
         # idempotent repeat alike. Logs ids only; further best-effort work hangs here.
-        def after_commit(user:, notice_class:, data:)
+        def after_commit(user:, notice_class:, row:, data:)
           CommandTower::Events.publish(
             category: :home_notices, name: "acknowledged",
             payload: { user_id: user.id, notice_key: notice_class.key, notice_id: data[:public_id],
                        recorded: data[:recorded] }
+          )
+          mark_linked_item_viewed(user:, notice_class:, row:)
+        end
+
+        # A linked delivery marks its inbox item viewed. Best effort: a failure is logged (ids and the
+        # error class only) and never fails the acknowledgement, which has already committed.
+        def mark_linked_item_viewed(user:, notice_class:, row:)
+          return unless notice_class < CommandTower::HomeNotices::Delivery && notice_class.composer == :message
+          return if row&.communication_id.nil?
+
+          CommandTower::Messaging::Contract::Inbox.mark_viewed_for_communication(
+            CommandTower::Messaging::Contract::Requests::MarkViewedForCommunication.build(
+              communication_id: row.communication_id, recipient_id: user.id
+            )
+          )
+        rescue StandardError => e
+          log_mark_failure(user:, notice_class:, row:, error: e)
+        end
+
+        def log_mark_failure(user:, notice_class:, row:, error:)
+          CommandTower::Events.publish(
+            category: :home_notices, name: "linked_mark_failed",
+            payload: { user_id: user.id, notice_key: notice_class.key, notice_id: row&.public_id,
+                       error_class: error.class.name, log_level: :warn }
           )
         end
 

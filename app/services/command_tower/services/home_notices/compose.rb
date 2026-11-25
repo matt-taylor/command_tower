@@ -16,6 +16,9 @@ module CommandTower
       # `:blocking_notice` profile, a dismissible one with the default profile. A blocking failure
       # publishes `command_tower.home_notices.blocking_invalid` (key and error class only).
       #
+      # A linked delivery (`composer :message`) takes its document from
+      # `Messaging::Contract::Inbox.document_for_communication` instead of `compose`.
+      #
       # The hash is an HMAC-SHA256 of the composed, redacted document JSON (D13). Rotating
       # `secret_key_base` makes stored hashes unverifiable.
       class Compose < CommandTower::Services::ApplicationService
@@ -39,13 +42,31 @@ module CommandTower
         def build_document
           return nil if request_context.ui_catalog.to_i < MIN_CATALOG
 
-          composed = compose_valid_document
+          composed = linked? ? linked_document : compose_valid_document
           return nil if composed.nil?
 
           CommandTower::UI::Redaction.call(composed, impersonating: request_context.impersonating)
         rescue StandardError => e
           log_failure(e)
           nil
+        end
+
+        def linked?
+          notice_class < CommandTower::HomeNotices::Delivery && notice_class.composer == :message
+        end
+
+        # A linked delivery shows the inbox item's own document, fetched through the Messaging
+        # contract (never the host `compose`). Nil when the item is missing, deleted, archived,
+        # foreign or undefined: the notice is then not shown.
+        def linked_document
+          return nil if record&.communication_id.nil?
+
+          request = CommandTower::Messaging::Contract::Requests::DocumentForCommunication.build(
+            communication_id: record.communication_id, recipient_id: user.id,
+            impersonating: request_context.impersonating
+          )
+          result = CommandTower::Messaging::Contract::Inbox.document_for_communication(request)
+          result&.document&.validate!(profile:)
         end
 
         def compose_valid_document
