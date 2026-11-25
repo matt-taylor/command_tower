@@ -1,6 +1,6 @@
 # Home Notices
 
-Home Notices let a host show a notice to a signed-in user on the home surface. The host declares each notice as a class. The platform owns pacing, windows, selection and audit. This page covers **authoring** and the boot checks. Later behavior (selection, endpoints, delivery, kill switch) is added here as it ships.
+Home Notices let a host show a notice to a signed-in user on the home surface. The host declares each notice as a class. The platform owns pacing, windows, selection and audit. This page covers **authoring** and the boot checks. Selection is covered below. Later behavior (endpoints, delivery, kill switch) is added here as it ships.
 
 Home Notices are off by default. With `config.home_notices.enabled = false` the catalog is not loaded.
 
@@ -86,6 +86,38 @@ When `enabled`, the engine's `to_prepare` runs `CommandTower::HomeNotices::Catal
 - `window` has `starts_at` before `ends_at`.
 
 `global_cooldown` below 1 hour also fails at boot.
+
+## Selection
+
+`CommandTower::Services::HomeNotices::Select` chooses at most one blocking and one dismissible notice for a user and request. Every time rule uses `context.now`. Success data is `{ candidates:, controls_available:, blocking:, dismissible: }`.
+
+1. **Load.** `LoadCandidates` gathers the user's open deliveries (unacknowledged, not ended, oldest first, at most `max_open_deliveries`, registered Delivery keys only) and every registered campaign with its current-period row, or no row yet. A campaign whose `period_key` block raises is skipped and `period_key_failed` is published.
+2. **Drop.** A candidate is dropped when it is killed, outside its window, acknowledged, dismissed into the future (`dismissed_until > now`), or (campaigns only) at its period impression `max` or inside its item `cooldown` (`last_shown_at + cooldown > now`). The kill switch reads `command_tower_home_notice_controls`; an absent row means enabled. Windows apply to the class `window` and to the row's own `starts_at` / `ends_at`; `starts_at` is inclusive and `ends_at` exclusive. Deliveries have no item pacing.
+3. **Order.** Highest `priority` first, ties to the oldest row (`created_at`). A campaign with no row counts as newest.
+4. **Pick.** `PickNotices` makes one pass per severity. Nothing is picked when `context.ui_catalog` is below 2. Otherwise the first candidate that passes its gate, then `show?`, then `compose` wins; a notice whose compose fails is skipped.
+   - **Blocking daily cap.** A notice already started (`first_shown_at` set) is always re-served until acknowledged. A new one needs fewer than `blocking_daily_cap` of the user's blocking rows first shown in the current UTC day.
+   - **Dismissible global cooldown.** Clear when the latest `last_shown_at` over the user's dismissible rows plus `global_cooldown` is at or before `now`. A delivery also passes when its `ends_at` is at or before the moment the cooldown clears. Blocking impressions do not start the cooldown.
+   - **`show?` budget.** `show?` has 50 ms. An overrun publishes `show_if_slow` and the answer is still used. An exception means "not shown" and publishes `show_if_failed`.
+
+### Failure behavior
+
+If the controls cannot be read, selection fails closed: no candidates, no picks, `controls_available: false`, and `controls_unavailable` is published (user id and error class).
+
+### Events
+
+All are in category `home_notices`. Payloads carry ids, keys, counts and error classes, never document content.
+
+| Event | When |
+|---|---|
+| `selected` | Selection finished: user id, candidate count, picked blocking and dismissible keys |
+| `controls_unavailable` | The controls read failed |
+| `period_key_failed` | A campaign `period_key` block raised |
+| `show_if_slow` | `show?` took longer than 50 ms |
+| `show_if_failed` | `show?` raised |
+
+### Cap overshoot
+
+The blocking daily cap is not transactional. Selection counts rows before any impression is recorded, so concurrent requests can each start a different blocking notice before either impression lands. The cap can be exceeded by one per concurrent request. This is accepted (design D5): re-serving a started notice is always allowed, and the next request sees the new rows and holds the cap.
 
 ## Persistence
 
