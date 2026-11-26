@@ -53,6 +53,18 @@ config.signup_session.jwt_secret = ENV.fetch("SIGNUP_SESSION_JWT_SECRET")
 config.password_recovery_session.jwt_secret = ENV.fetch("PASSWORD_RECOVERY_SESSION_JWT_SECRET")
 ```
 
+Boot guard: outside development/test (`Rails.env.local?`), the app raises `CommandTower::Errors::InsecureJwtSecretError` at `after_initialize` when `config.jwt.hmac_secret` is blank or the published default. Set a private secret. As a temporary escape hatch only, set `config.jwt.allow_insecure_default_secret = true` (or ENV `COMMAND_TOWER_ALLOW_INSECURE_JWT_SECRET=true`).
+
+Password and email policy: `config.login.plain_text.password_length_min` / `password_length_max` (defaults 8 / 64) and `email_length_min` / `email_length_max` (defaults 3 / 254) are **inclusive**; a value of 8 accepts 8 characters. Earlier releases treated them as exclusive and served `min + 1` / `max - 1`. Passwords are also checked against a bundled top-100k common-password list; `config.login.plain_text.password_blocklist_paths` replaces it (`.gz` files are gunzipped). Clients read the result from `GET /auth/identity-policy`.
+
+Auth mail delivery: `config.login.mail_delivery = :later` (default) sends password-reset and email-verification mail from ActiveJob so requests never wait on mail; hosts need a working ActiveJob queue adapter. `:inline` performs the job in the request (useful for tests and hosts without a worker).
+
+Self-service username: `config.username.self_service` (default `false`) lets a user set their own username through `PATCH /me/username`; `config.username.self_change` (default `false`) also lets a user who already has one change it; `config.username.prompt` (`after_signup` default, or `off`) tells clients whether to show the post-signup step. All three are served by `GET /auth/identity-policy`, and `self_service` / `self_change` drive the `editUsername` capability on `GET /me`. Grant `me_username` and `me_username_availability` to the roles that may use it ([09 RBAC](09-rbac.md)). Contract: [API reference](../api_reference.md#patch-meusername).
+
+Rate limits: `config.login.rate_limits.*` ships with safe defaults (soft per-account lockout, per-IP ceilings, verification send caps); set a value to `0` to disable one bucket. Hosts behind a load balancer must configure `trusted_proxies` or all clients share one IP bucket. `config.login.plain_text.lockable` is a deprecated no-op. Settings and defaults: [Authentication](../authentication.md#rate-limits-and-soft-lockout).
+
+Existing deployments: run `command_tower:user_secrets:clear_plaintext` once after migrating to digest and blank legacy plaintext secrets.
+
 Exact setter names are in the generated initializer comments and [`../initializing.md`](../initializing.md). Match those names; do not invent parallel keys.
 
 ### Cookies / CSRF (required for Command Tower frontend on web)

@@ -12,6 +12,8 @@ module CommandTower
             :forbidden
           when CommandTower::Errors::Auth::EmailVerificationRequiredError
             :precondition_failed
+          when CommandTower::Errors::Auth::AuthRateLimitedError
+            :too_many_requests
           when CommandTower::Errors::UnauthorizedError
             :unauthorized
           when CommandTower::Errors::ValidationError

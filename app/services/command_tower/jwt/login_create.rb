@@ -4,16 +4,17 @@ module CommandTower::Jwt
   class LoginCreate
     IssuedToken = Data.define(:token)
 
-    def self.call(user:, impersonation_session_id: nil)
-      IssuedToken.new(token: Encode.(payload: payload_for(user, impersonation_session_id:)))
+    def self.call(user:, impersonation_session_id: nil, device_session: nil)
+      IssuedToken.new(token: Encode.(payload: payload_for(user, impersonation_session_id:, device_session:)))
     end
 
-    def self.payload_for(user, impersonation_session_id: nil)
+    def self.payload_for(user, impersonation_session_id: nil, device_session: nil)
       payload = {
         generated_at: Time.now.to_i,
         user_id: user.id,
         verifier_token: user.retreive_verifier_token!,
       }
+      payload[:sid] = device_session.public_id if device_session
       token = impersonation_session_id.to_s.strip
       payload[:impersonation_session_id] = token unless token.empty?
       payload

@@ -32,6 +32,20 @@ RSpec.describe CommandTower::Workflows::Impersonation::StopWorkflow do
       end
     end
 
+    context "when the actor has a device session" do
+      subject(:payload) do
+        CommandTower::Jwt::Decode.call(token: result.response_effects[:set_token][:token]).payload
+      end
+
+      let(:device_session) { create(:device_session, user: actor) }
+      let(:result) { described_class.call(actor:, impersonation_session_id: session.id, device_session:) }
+
+      it "keeps the actor sid on the restored token" do
+        expect(payload[:sid]).to eq(device_session.public_id)
+        expect(payload[:impersonation_session_id]).to be_nil
+      end
+    end
+
     it "ends the session as manual" do
       result
       expect(session.reload.end_reason).to eq("manual")

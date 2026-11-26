@@ -12,7 +12,8 @@ module CommandTower
           return render_application_deserializer_errors(deserialized) unless deserialized.success?
 
           result = CommandTower::Workflows::Auth::PlainText::LoginWorkflow.call(
-            input: deserialized.input
+            input: deserialized.input,
+            client_ip: CommandTower::Services::Auth::ClientIpResolver.call(request: request)
           )
           render_application_result(result)
         end

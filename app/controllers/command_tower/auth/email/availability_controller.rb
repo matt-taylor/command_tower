@@ -6,6 +6,7 @@ module CommandTower
       class AvailabilityController < CommandTower::ApplicationController
         include CommandTower::Auth::SignupSessionBoundary
 
+        deprecated_auth_endpoint "email_availability"
         before_action :authenticate_signup_session!
 
         def show

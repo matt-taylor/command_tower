@@ -33,6 +33,7 @@ module CommandTower
         CommandTower.config.registry.experience_states.validate_registered!(
           host_key: CommandTower.config.application.host_key
         )
+        CommandTower.config.jwt.validate_secret!
 
         unless Rails.env.test?
           CommandTower.config.impersonation.validate!

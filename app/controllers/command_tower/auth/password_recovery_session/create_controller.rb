@@ -5,6 +5,9 @@ module CommandTower
     module PasswordRecoverySession
       class CreateController < CommandTower::ApplicationController
         include CommandTower::Api::ApplicationResponseRenderer
+        include CommandTower::Auth::LegacyContractBoundary
+
+        deprecated_auth_endpoint "password_recovery_session"
 
         def create
           client_ip = CommandTower::Services::Auth::ClientIpResolver.call(request: request)

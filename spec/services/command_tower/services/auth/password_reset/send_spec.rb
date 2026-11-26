@@ -8,6 +8,53 @@ RSpec.describe CommandTower::Services::Auth::PasswordReset::Send do
 
     before { ActionMailer::Base.deliveries.clear }
 
+    around do |example|
+      CommandTower.configure { |config| config.login.mail_delivery = :inline }
+      example.run
+    ensure
+      CommandTower.configure { |config| config.login.mail_delivery = :later }
+    end
+
+    context "with deferred delivery (the default)" do
+      before { CommandTower.configure { |config| config.login.mail_delivery = :later } }
+
+      let(:job_class) { CommandTower::Auth::PasswordReset::IssueJob }
+
+      context "with a known email" do
+        let(:email) { "Known-Reset@Example.com" }
+
+        it "enqueues one job carrying only the normalized email" do
+          expect { result }.to have_enqueued_job(job_class).with("known-reset@example.com").exactly(:once)
+        end
+
+        it "returns the non-enumerating message" do
+          expect(result.data[:message]).to eq(non_enumerating_message)
+        end
+
+        it "issues no token and sends no mail in the request" do
+          expect { result }.not_to change { UserSecret.count }
+          expect(ActionMailer::Base.deliveries).to be_empty
+        end
+      end
+
+      context "with an unknown email" do
+        let(:email) { "nobody@example.com" }
+
+        it "enqueues the same single job" do
+          expect { result }.to have_enqueued_job(job_class).with("nobody@example.com").exactly(:once)
+        end
+
+        it "returns the same message" do
+          expect(result.data[:message]).to eq(non_enumerating_message)
+        end
+      end
+
+      it "does not log job arguments" do
+        expect(job_class.log_arguments).to be(false)
+      end
+    end
+
+    # The remaining examples exercise inline delivery so the mail is observable.
     context "with a known email" do
       let!(:user) { create(:user, email: "known-reset@example.com") }
       let(:email) { user.email }
@@ -46,7 +93,7 @@ RSpec.describe CommandTower::Services::Auth::PasswordReset::Send do
         before { result }
 
         it "removes the stale token" do
-          expect(UserSecret.find_by(secret: stale)).to be_nil
+          expect(UserSecret.find_by(secret_digest: UserSecret.digest_for(stale))).to be_nil
         end
       end
 
@@ -107,8 +154,9 @@ RSpec.describe CommandTower::Services::Auth::PasswordReset::Send do
           result
 
           body = ActionMailer::Base.deliveries.last.body.to_s
-          token = UserSecret.where(reason: CommandTower::Secrets::PASSWORD_RESET).last.secret
-          expect(body).to include("token=#{token}")
+          token = body[/token=([A-Za-z0-9]+)/, 1]
+          expect(token).to be_present
+          expect(UserSecret.find_by(secret_digest: UserSecret.digest_for(token))).to be_present
           expect(body).not_to include("&email=")
         end
       end
@@ -122,8 +170,9 @@ RSpec.describe CommandTower::Services::Auth::PasswordReset::Send do
           result
 
           body = ActionMailer::Base.deliveries.last.body.to_s
-          token = UserSecret.where(reason: CommandTower::Secrets::PASSWORD_RESET).last.secret
-          expect(body).to include("token=#{token}")
+          token = body[/token=([A-Za-z0-9]+)/, 1]
+          expect(token).to be_present
+          expect(UserSecret.find_by(secret_digest: UserSecret.digest_for(token))).to be_present
           expect(body).to match(/&amp;email=|&email=/)
           expect(body).to include(CGI.escape(email))
         end

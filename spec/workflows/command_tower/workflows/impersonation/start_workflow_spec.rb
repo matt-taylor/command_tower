@@ -23,6 +23,18 @@ RSpec.describe CommandTower::Workflows::Impersonation::StartWorkflow, :with_rbac
       expect(result.response_effects[:set_token][:token]).to be_present
     end
 
+    context "when the actor has a device session" do
+      subject(:result) { described_class.call(id: target.id, actor:, device_session:) }
+
+      let(:device_session) { create(:device_session, user: actor) }
+      let(:payload) { CommandTower::Jwt::Decode.call(token: result.response_effects[:set_token][:token]).payload }
+
+      it "keeps the actor sid on the overlay token" do
+        expect(payload[:sid]).to eq(device_session.public_id)
+        expect(payload[:impersonation_session_id]).to eq(result.payload[:id])
+      end
+    end
+
     context "when inspecting impersonation_started" do
       before { result }
 

@@ -13,12 +13,16 @@ module CommandTower
           case error
           when CommandTower::Errors::Auth::EmailVerificationRequiredError
             :precondition_failed
+          when CommandTower::Errors::Auth::AuthRateLimitedError
+            :too_many_requests
           when CommandTower::Errors::Auth::CsrfMissingError,
                CommandTower::Errors::Auth::CsrfMismatchError,
                CommandTower::Errors::ForbiddenError
             :forbidden
           when CommandTower::Errors::Auth::InvalidCredentialsError,
                CommandTower::Errors::Auth::ImpersonationSessionExpiredError,
+               CommandTower::Errors::Auth::SessionExpiredError,
+               CommandTower::Errors::Auth::SessionRevokedError,
                CommandTower::Errors::UnauthorizedError
             :unauthorized
           else

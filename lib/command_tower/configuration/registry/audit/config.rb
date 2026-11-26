@@ -120,6 +120,20 @@ module CommandTower
               affected_user_required: true,
               global_visible_in_host_scope: true
             },
+            username_set: {
+              label: "Username set",
+              tags: %w[identity username profile],
+              enabled: true,
+              enablement_configurable: false,
+              user_history: true,
+              sensitive_fields: [],
+              allowed_changes: %i[username],
+              retention: :permanent,
+              subject_required: true,
+              subject_type: "User",
+              affected_user_required: true,
+              global_visible_in_host_scope: true
+            },
             admin_user_email_changed: {
               label: "Admin user email changed",
               tags: %w[identity admin users email],

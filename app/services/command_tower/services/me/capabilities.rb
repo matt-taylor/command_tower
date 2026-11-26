@@ -16,7 +16,7 @@ module CommandTower
         def project
           {
             editName: { enabled: !user.deleted? },
-            editUsername: { enabled: false },
+            editUsername: { enabled: UsernameChangeEligibility.eligible?(user) },
             changeEmail: { enabled: false },
             changePassword: { enabled: !user.deleted? },
             editPhone: { enabled: sms_enabled? && !user.deleted? },

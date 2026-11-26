@@ -15,6 +15,14 @@ module CommandTower
             CommandTower.config.login.plain_text.password_reset
           end
 
+          # client_ip is optional so callers without a request skip the IP bucket.
+          def enforce_attempt_limit!
+            return if client_ip.blank?
+
+            result = CommandTower::Services::Auth::IdentityRateLimits::CheckResetAttempt.call(client_ip: client_ip)
+            context.fail!(application_error: result.errors.first) if result.failure?
+          end
+
           def require_email!
             return unless password_reset_configuration.require_email
             return if email.to_s.strip.present?
@@ -45,7 +53,7 @@ module CommandTower
           end
 
           def token_expires_at
-            UserSecret.find_by(secret: token, reason: CommandTower::Secrets::PASSWORD_RESET)&.death_time
+            UserSecret.find_by(secret_digest: UserSecret.digest_for(token), reason: CommandTower::Secrets::PASSWORD_RESET)&.death_time
           end
 
           def invalid_token!

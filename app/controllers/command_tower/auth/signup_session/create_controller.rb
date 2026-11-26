@@ -5,6 +5,9 @@ module CommandTower
     module SignupSession
       class CreateController < CommandTower::ApplicationController
         include CommandTower::Api::ApplicationResponseRenderer
+        include CommandTower::Auth::LegacyContractBoundary
+
+        deprecated_auth_endpoint "signup_session"
 
         def create
           client_ip = CommandTower::Services::Auth::ClientIpResolver.call(request: request)

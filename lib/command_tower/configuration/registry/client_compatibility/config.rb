@@ -24,9 +24,11 @@ module CommandTower
           MODES = %i[observe enforce].freeze
           CONTRACT_ID = /\A[a-z][a-z0-9_]*(\.[a-z0-9][a-z0-9_]*)*\z/
 
-          # CommandTower-owned seed catalog. Deliberately empty for V1 — see
-          # authority §7.5. Do not seed placeholder/fictional contracts here.
-          PLATFORM_CONTRACTS = [].freeze
+          # CommandTower-owned seed catalog. `auth.device_session` is the contract
+          # for clients that understand device sessions (`sid`). It is observe-only
+          # and inert until a host binds per-platform minimums. Do not seed
+          # placeholder/fictional contracts here.
+          PLATFORM_CONTRACTS = %w[auth.device_session].freeze
           PLATFORM_ENTITY_REQUIREMENTS = {}.freeze
 
           attr_reader :mode

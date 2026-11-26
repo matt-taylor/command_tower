@@ -36,6 +36,62 @@ RSpec.describe CommandTower::Services::Auth::AuthenticateSession do
       end
     end
 
+    context "with a device session token" do
+      let!(:user) { create(:user) }
+      let(:request_context) do
+        auth_request_context(headers: { authorization: "Bearer #{login_token_for(user)}" })
+      end
+
+      it "carries the device session and marks it non-legacy" do
+        expect(result).to be_success
+        expect(result.data[:device_session]).to be_a(CommandTower::Auth::DeviceSession)
+        expect(result.data[:device_session].user_id).to eq(user.id)
+        expect(result.data[:legacy_token]).to be(false)
+      end
+    end
+
+    context "with a legacy (sid-less) token" do
+      let!(:user) { create(:user) }
+      let(:request_context) do
+        auth_request_context(headers: { authorization: "Bearer #{CommandTower::Jwt::LoginCreate.call(user:).token}" })
+      end
+
+      it "authenticates under the old rule and marks it legacy" do
+        expect(result).to be_success
+        expect(result.data[:device_session]).to be_nil
+        expect(result.data[:legacy_token]).to be(true)
+      end
+    end
+
+    context "with a revoked device session" do
+      let!(:user) { create(:user) }
+      let(:device_session) { create(:device_session, :revoked, user:) }
+      let(:request_context) do
+        token = CommandTower::Jwt::LoginCreate.call(user:, device_session:).token
+        auth_request_context(headers: { authorization: "Bearer #{token}" })
+      end
+
+      it "returns SessionRevokedError" do
+        expect(result).to be_failure
+        expect(result.errors).to contain_exactly(an_instance_of(CommandTower::Errors::Auth::SessionRevokedError))
+        expect(result.metadata[:authentication_failed]).to be(true)
+      end
+    end
+
+    context "with an expired device session" do
+      let!(:user) { create(:user) }
+      let(:device_session) { create(:device_session, user:, absolute_expires_at: 1.minute.ago) }
+      let(:request_context) do
+        token = CommandTower::Jwt::LoginCreate.call(user:, device_session:).token
+        auth_request_context(headers: { authorization: "Bearer #{token}" })
+      end
+
+      it "returns SessionExpiredError" do
+        expect(result).to be_failure
+        expect(result.errors).to contain_exactly(an_instance_of(CommandTower::Errors::Auth::SessionExpiredError))
+      end
+    end
+
     context "with a valid impersonation overlay" do
       let(:actor) { create(:user) }
       let(:target) { create(:user) }

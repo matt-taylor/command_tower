@@ -28,6 +28,20 @@ RSpec.describe CommandTower::Jwt::LoginCreate do
       end
     end
 
+    it "omits sid without a device session" do
+      expect(CommandTower::Jwt::Decode.(token: call.token).payload).not_to have_key(:sid)
+    end
+
+    context "when a device session is supplied" do
+      subject(:call) { described_class.call(user:, device_session:) }
+
+      let(:device_session) { create(:device_session, user:) }
+
+      it "embeds its public id as sid" do
+        expect(CommandTower::Jwt::Decode.(token: call.token).payload[:sid]).to eq(device_session.public_id)
+      end
+    end
+
     context "when an impersonation session id is supplied" do
       subject(:call) { described_class.call(user:, impersonation_session_id: session.id) }
 

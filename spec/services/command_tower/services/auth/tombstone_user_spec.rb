@@ -16,6 +16,13 @@ RSpec.describe CommandTower::Services::Auth::TombstoneUser do
     )
   end
 
+  let!(:device_session) { create(:device_session, user:) }
+
+  it "revokes active device sessions as tombstone" do
+    result
+    expect(device_session.reload.revoked_reason).to eq("tombstone")
+  end
+
   it "marks the user deleted and scrubs PII" do
     expect(result).to be_success
 

@@ -31,7 +31,9 @@ RSpec.describe CommandTower::Services::Account::PhoneVerification::Send do
 
       challenge = UserSecret.find_by!(user:, reason: CommandTower::Secrets::PHONE_VERIFICATION)
       expect(challenge.extra).to eq("+14155552671")
-      expect(challenge.secret).to match(/\A\d{6}\z/)
+      expect(challenge.secret).to be_nil
+      code = CommandTower::Identity::PhoneVerification::SmsTransport::Adapters::FakeAdapter.deliveries.last[:body][/\d{6}\z/]
+      expect(challenge.secret_digest).to eq(UserSecret.digest_for(code))
     end
 
     context "when a code was issued moments ago" do

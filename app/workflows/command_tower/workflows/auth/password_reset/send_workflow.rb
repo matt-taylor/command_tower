@@ -7,14 +7,15 @@ module CommandTower
         class SendWorkflow < CommandTower::Workflows::ApplicationWorkflow
           retry_strategy :none
 
-          def call(input:, password_recovery_session:)
+          def call(input:, password_recovery_session: nil, client_ip: nil)
             unless CommandTower.config.login.plain_text.password_reset.enabled
               error = CommandTower::Errors::Auth::PasswordResetUnavailableError.new
               return failure(errors: [error], http_status: IdentityErrorStatus.http_status_for(error))
             end
 
             rate_result = CommandTower::Services::Auth::PasswordRecovery::RateLimits::CheckSend.call(
-              password_recovery_session: password_recovery_session
+              password_recovery_session: password_recovery_session,
+              client_ip: client_ip
             )
             unless rate_result.success?
               return failure(

@@ -93,7 +93,11 @@ module CommandTower
       remote_ip: attrs[:remote_ip],
       user_agent: attrs[:user_agent],
       ui_catalog: attrs.fetch(:ui_catalog, 1),
-      client_time_zone: attrs[:client_time_zone]
+      client_time_zone: attrs[:client_time_zone],
+      installation_id: attrs[:installation_id],
+      installation_id_source: attrs[:installation_id_source],
+      client_platform: attrs[:client_platform],
+      client_app_version: attrs[:client_app_version]
     }
 
     run = -> { Current.set(assigned, &block) }

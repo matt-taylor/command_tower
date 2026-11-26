@@ -47,6 +47,15 @@ RSpec.describe CommandTower::Api::ApplicationResponseRenderer, type: :controller
       render_application_result(result)
     end
 
+    def rate_limited_action
+      result = CommandTower::Workflows::WorkflowResult.failure(
+        errors: [CommandTower::Errors::Auth::AuthRateLimitedError.new(retry_after_seconds: 42)],
+        http_status: :too_many_requests,
+        response_effects: { retry_after: 42 }
+      )
+      render_application_result(result)
+    end
+
     def deferred_action
       result = CommandTower::Workflows::WorkflowResult.deferred(
         reason: :provider_cooldown,
@@ -72,6 +81,7 @@ RSpec.describe CommandTower::Api::ApplicationResponseRenderer, type: :controller
       get "success_with_blank_effects_action" => "anonymous#success_with_blank_effects_action"
       get "success_with_unknown_effects_action" => "anonymous#success_with_unknown_effects_action"
       get "failure_action" => "anonymous#failure_action"
+      get "rate_limited_action" => "anonymous#rate_limited_action"
       get "deferred_action" => "anonymous#deferred_action"
       get "deser_failure_action" => "anonymous#deser_failure_action"
     end
@@ -136,6 +146,29 @@ RSpec.describe CommandTower::Api::ApplicationResponseRenderer, type: :controller
         expect(body["errors"]).to eq([])
         expect(body["meta"]).to include("reason" => "provider_cooldown", "retry_after" => 17)
       end
+    end
+
+    context "with a retry_after effect on a rate-limited failure" do
+      before { get :rate_limited_action }
+
+      let(:error) { response.parsed_body["errors"].first }
+
+      it { expect(response).to have_http_status(:too_many_requests) }
+
+      it "sets the Retry-After header" do
+        expect(response.headers["Retry-After"]).to eq("42")
+      end
+
+      it "renders auth_rate_limited with retry_after_seconds" do
+        expect(error["code"]).to eq("auth_rate_limited")
+        expect(error["details"]).to eq("retry_after_seconds" => 42)
+      end
+    end
+
+    context "without a retry_after effect" do
+      before { get :failure_action }
+
+      it { expect(response.headers["Retry-After"]).to be_nil }
     end
 
     context "with a failure result" do

@@ -18,5 +18,9 @@ module CommandTower
     attribute :client_compatibility_recommendation
     attribute :ui_catalog, default: 1
     attribute :client_time_zone
+    attribute :installation_id
+    attribute :installation_id_source
+    attribute :client_platform
+    attribute :client_app_version
   end
 end

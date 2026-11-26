@@ -14,53 +14,20 @@ module CommandTower
           def call
             malformed_email! unless email =~ URI::MailTo::EMAIL_REGEXP
 
-            user = User.find_by(email: email.downcase.strip)
+            # Always enqueue exactly one job, known account or not, so neither the
+            # response nor the request-side work reveals whether the account exists.
+            enqueue(email.downcase.strip)
             context.message = SENT_MESSAGE
-
-            if user.nil?
-              log_info("Password reset requested for an email with no account")
-              return
-            end
-
-            issued = issue_token(user)
-            return if issued.nil?
-
-            deliver(user, issued.secret)
           end
 
           private
 
-          def password_reset_configuration
-            CommandTower.config.login.plain_text.password_reset
-          end
-
-          def issue_token(user)
-            result = CommandTower::Secrets::Generate.(
-              user: user,
-              secret_length: password_reset_configuration.token_length,
-              reason: CommandTower::Secrets::PASSWORD_RESET,
-              use_count_max: 1,
-              death_time: password_reset_configuration.token_valid_for,
-              type: CommandTower::Secrets::ALPHANUMERIC,
-              cleanse: true
-            )
-            return result if result.success?
-
-            # Surfacing the failure would leak that the account exists.
-            log_error("Failed to generate a password reset token for user [#{user.id}]: #{result.msg}")
-            nil
-          end
-
-          def deliver(user, secret)
-            CommandTower::PasswordResetMailer.reset_password(
-              user.email,
-              user,
-              secret,
-              template_name: password_reset_configuration.custom_template_name
-            ).deliver
-          rescue StandardError => e
-            # Surfacing the failure would leak that the account exists.
-            log_error("Failed to send the password reset email to user [#{user.id}]: #{e.message}")
+          def enqueue(normalized_email)
+            if CommandTower.config.login.mail_delivery == :inline
+              CommandTower::Auth::PasswordReset::IssueJob.perform_now(normalized_email)
+            else
+              CommandTower::Auth::PasswordReset::IssueJob.perform_later(normalized_email)
+            end
           end
 
           def malformed_email!

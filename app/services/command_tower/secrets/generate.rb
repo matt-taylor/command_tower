@@ -13,8 +13,8 @@ module CommandTower::Secrets
     class Issued
       attr_reader :record, :secret, :msg
 
-      def self.success(record:)
-        new(success: true, record:, secret: record.secret)
+      def self.success(record:, secret:)
+        new(success: true, record:, secret:)
       end
 
       def self.failure(msg:)
@@ -56,7 +56,10 @@ module CommandTower::Secrets
 
       @attempts ||= 1
 
-      Issued.success(record: UserSecret.create!(**db_params))
+      plaintext = generate_secret
+      record = UserSecret.create!(**db_params(plaintext))
+      # Plaintext is returned from memory only; it is never persisted.
+      Issued.success(record:, secret: plaintext)
     rescue ActiveRecord::RecordNotUnique
       if @attempts < MAX_RETRY
         @attempts += 1
@@ -83,13 +86,13 @@ module CommandTower::Secrets
 
     attr_reader :user, :secret_length, :reason, :type, :extra, :cleanse, :death_time, :use_count_max
 
-    def db_params
+    def db_params(plaintext)
       {
         death_time: death_time&.from_now,
         use_count_max:,
         extra:,
         reason:,
-        secret: generate_secret,
+        secret_digest: UserSecret.digest_for(plaintext),
         user:,
       }.compact
     end

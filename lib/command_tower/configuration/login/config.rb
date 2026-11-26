@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "command_tower/configuration/login/rate_limits"
 require "command_tower/configuration/login/strategy/plain_text/config"
 
 module CommandTower
@@ -7,6 +8,19 @@ module CommandTower
     module Login
       class Config < ::CommandTower::Configuration::Base
         include ClassComposer::Generator
+
+        add_composer :mail_delivery,
+          desc: "How auth emails (password reset) are delivered. :later enqueues an ActiveJob so the request " \
+                "never waits on mail; :inline performs the job in the request. Defaults to :later",
+          allowed: Symbol,
+          default: :later,
+          validator: ->(val) { %i[later inline].include?(val) },
+          invalid_message: ->(val) { "Provided #{val.inspect}. Value must be :later or :inline" }
+
+        add_composer :rate_limits,
+          desc: "Login rate limit ceilings: per-account soft lockout and per client IP",
+          allowed: RateLimits,
+          default: RateLimits.new
 
         add_composer_blocking :plain_text,
           desc: "Login strategy for plain text authentication via User/Password combination",

@@ -6,6 +6,9 @@ module CommandTower
       extend ActiveSupport::Concern
 
       CLIENT_TIME_ZONE_MAX_LENGTH = 64
+      INSTALLATION_ID_HEADER = "X-Installation-Id"
+      INSTALLATION_COOKIE_NAME = "ct_installation"
+      INSTALLATION_ID_FORMAT = /\A\h{8}-\h{4}-4\h{3}-[89abAB]\h{3}-\h{12}\z/
 
       included do
         around_action :command_tower_http_execution
@@ -15,6 +18,7 @@ module CommandTower
 
       def command_tower_http_execution
         request_id = request.request_id.presence || request.uuid
+        installation_id, installation_id_source = resolve_installation_id
         CommandTower.with_execution(
           source: :http,
           request_id:,
@@ -22,12 +26,29 @@ module CommandTower
           remote_ip: request.remote_ip,
           user_agent: request.user_agent,
           ui_catalog: CommandTower::UI::Catalog.from_header(request.headers["X-UI-Catalog"]),
-          client_time_zone: parse_client_time_zone(request.headers["X-Time-Zone"])
+          client_time_zone: parse_client_time_zone(request.headers["X-Time-Zone"]),
+          installation_id:,
+          installation_id_source:,
+          client_platform: request.headers["X-Client-Platform"].to_s.strip.downcase.presence,
+          client_app_version: request.headers["X-App-Version"].to_s.strip.presence
         ) do
           yield
           record_impersonation_activity_if_needed
           record_client_time_zone_if_needed
         end
+      end
+
+      # The installation id: the X-Installation-Id header first (native clients), then the
+      # ct_installation cookie (web). Only a UUID v4 is accepted; anything else is ignored.
+      # Returns [id, source] with source :header or :cookie, or [nil, nil].
+      def resolve_installation_id
+        header = request.headers[INSTALLATION_ID_HEADER].to_s.strip
+        return [header.downcase, :header] if INSTALLATION_ID_FORMAT.match?(header)
+
+        cookie = request.cookies[INSTALLATION_COOKIE_NAME].to_s.strip
+        return [cookie.downcase, :cookie] if INSTALLATION_ID_FORMAT.match?(cookie)
+
+        [nil, nil]
       end
 
       # A TZInfo identifier of at most 64 characters, else nil (the header is ignored).

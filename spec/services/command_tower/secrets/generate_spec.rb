@@ -31,6 +31,14 @@ RSpec.describe CommandTower::Secrets::Generate do
     subject(:call) { described_class.(**params) }
 
     shared_examples "default examples" do
+      it "returns plaintext from memory" do
+        expect(call.secret).to be_present
+      end
+
+      it "persists only the digest" do
+        expect(call.record).to have_attributes(secret: nil, secret_digest: UserSecret.digest_for(call.secret))
+      end
+
       shared_examples "with deathable" do
         context "with extra" do
           let(:extra) { "this is a custom reason that will get saved" }

@@ -6,7 +6,9 @@ module CommandTower
       class StartWorkflow < CommandTower::Workflows::ApplicationWorkflow
         retry_strategy :none
 
-        def call(id:, actor:, scope_value: nil)
+        # `device_session` is the actor's signed-in device; the overlay token keeps its `sid`
+        # so the overlay shares that device's lifecycle (nil for a legacy sid-less token).
+        def call(id:, actor:, scope_value: nil, device_session: nil)
           if CommandTower::Current.impersonation_active
             return failure(
               errors: [CommandTower::Errors::Auth::NestedImpersonationError.new],
@@ -54,7 +56,8 @@ module CommandTower
 
           token = CommandTower::Jwt::LoginCreate.call(
             user: actor,
-            impersonation_session_id: session.id
+            impersonation_session_id: session.id,
+            device_session:
           ).token
           expires_at = CommandTower.config.jwt.ttl.from_now.to_time.to_s
 

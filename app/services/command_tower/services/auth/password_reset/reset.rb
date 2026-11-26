@@ -13,12 +13,15 @@ module CommandTower
 
           validate :token, is_a: String, required: true, sensitive: true
           validate :password, is_a: String, required: true, sensitive: true
-          validate :password_confirmation, is_a: String, required: true, sensitive: true
+          validate :password_confirmation, is_a: String, required: false, sensitive: true
           validate :email, is_a: String, required: false, sensitive: true
 
+          validate :client_ip, is_a: String
+
           def call
-            reject!(password_confirmation: CONFIRMATION_MISMATCH) unless password == password_confirmation
-            reject!(password: password_length_message) unless password_length_valid?
+            enforce_attempt_limit!
+            reject!(password_confirmation: CONFIRMATION_MISMATCH) if confirmation_mismatch?
+            enforce_password_policy!
 
             require_email!
 
@@ -27,13 +30,15 @@ module CommandTower
             match_email!(token_user: user)
 
             user.password = password
-            user.password_confirmation = password_confirmation
+            user.password_confirmation = password
 
             ActiveRecord::Base.transaction do
               unless user.save
                 log_error("Failed to update the password for user [#{user.id}]")
                 reject!(user.errors.to_hash.transform_values { Array(_1).join(", ") })
               end
+
+              CommandTower::Services::Auth::DeviceSessions::RevokeAll.call(user:, reason: "password_reset")
 
               audit(
                 :password_changed,
@@ -44,25 +49,27 @@ module CommandTower
               )
             end
 
+            # Proving mailbox ownership ends any soft login lockout and its repeat-lock level.
+            CommandTower::Services::Auth::LoginRateLimits::Lockout
+              .new(subject: CommandTower::Services::Auth::LoginRateLimits::Lockout.subject_for(user:, identifier: nil))
+              .clear(lock_and_level: true)
+
             log_info("Password reset completed for user [#{user.id}]")
             context.message = RESET_MESSAGE
           end
 
           private
 
-          def plain_text_configuration
-            CommandTower.config.login.plain_text
+          # Confirmation is optional; it is only compared when the caller sent one.
+          def confirmation_mismatch?
+            password_confirmation.present? && password != password_confirmation
           end
 
-          def password_length_valid?
-            length = password.length
-            length >= plain_text_configuration.password_length_min &&
-              length <= plain_text_configuration.password_length_max
-          end
+          def enforce_password_policy!
+            check = CommandTower::Services::Auth::PasswordPolicy::Check.call(password:)
+            return if check.data[:valid]
 
-          def password_length_message
-            "Password length must be between #{plain_text_configuration.password_length_min} " \
-              "and #{plain_text_configuration.password_length_max} characters"
+            reject!(password: CommandTower::Services::Auth::PasswordPolicy::Check.message_for(check.data[:failures]))
           end
 
           def reject!(details)

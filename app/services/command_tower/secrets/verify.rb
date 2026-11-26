@@ -29,18 +29,19 @@ module CommandTower::Secrets
       def failure? = !@success
     end
 
-    def self.call(secret:, reason:, access_count: false)
-      new(secret:, reason:, access_count:).call
+    def self.call(secret:, reason:, user: nil, access_count: false)
+      new(secret:, reason:, user:, access_count:).call
     end
 
-    def initialize(secret:, reason:, access_count: false)
+    def initialize(secret:, reason:, user: nil, access_count: false)
       @secret = secret
       @reason = reason
+      @user = user
       @access_count = access_count
     end
 
     def call
-      record = UserSecret.find_record(secret:, reason:, access_count:)
+      record = UserSecret.find_record(secret:, reason:, user:, access_count:)
 
       return Redemption.failure(record:, msg: NOT_FOUND_MSG) if record[:found] == false
 
@@ -56,6 +57,6 @@ module CommandTower::Secrets
 
     private
 
-    attr_reader :secret, :reason, :access_count
+    attr_reader :secret, :reason, :user, :access_count
   end
 end

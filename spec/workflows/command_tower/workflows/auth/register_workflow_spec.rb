@@ -13,10 +13,12 @@ RSpec.describe CommandTower::Workflows::Auth::RegisterWorkflow, :messaging_accep
         last_name: "Member",
         username: username,
         email: email,
-        password: "password1234",
-        password_confirmation: "password1234"
+        password: "correct-horse-9f3Qz!battery",
+        password_confirmation: "correct-horse-9f3Qz!battery",
+        start_session: start_session
       )
     end
+    let(:start_session) { false }
 
     before do
       flush_signup_rate_limits!
@@ -186,6 +188,72 @@ RSpec.describe CommandTower::Workflows::Auth::RegisterWorkflow, :messaging_accep
         expect(result).to be_failure
         expect(result.http_status).to eq(:unprocessable_entity)
         expect(result.errors.first).to be_a(CommandTower::Errors::Auth::EmailAlreadyRegisteredError)
+      end
+    end
+
+    context "with start_session" do
+      let(:start_session) { true }
+
+      it "returns a login-shaped session and the token effects" do
+        expect(result).to be_success
+        expect(result.payload).to include(:token, :tokenExpiresAt, :user)
+        expect(result.response_effects).to include(:set_token, :ensure_csrf_cookie)
+        expect(result.response_effects[:set_token][:token]).to eq(result.payload[:token])
+      end
+
+      it "starts one device session and audits session_created" do
+        expect { result }.to change { CommandTower::Audit::Event.where(action: "session_created").count }.by(1)
+        expect(CommandTower::Auth::DeviceSession.where(user_id: User.find_by!(email: email).id).count).to eq(1)
+      end
+
+      context "when the session cannot be issued" do
+        before do
+          allow(CommandTower::Services::Auth::IssueSession).to receive(:call).and_return(
+            CommandTower::Services::ServiceResult.failure(errors: [CommandTower::Errors::InternalError.new])
+          )
+        end
+
+        it "rolls back the user", :aggregate_failures do
+          expect(result).to be_failure
+          expect(User.find_by(email: email)).to be_nil
+        end
+      end
+    end
+
+    context "without start_session" do
+      it "issues no session effects" do
+        expect(result.response_effects).to be_blank
+      end
+    end
+
+    context "with a weak password" do
+      let(:input) do
+        CommandTower::Deserializers::Auth::RegisterDeserializer::Input.new(
+          first_name: "", last_name: "", username: nil, email: email,
+          password: "password123", password_confirmation: nil, start_session: false
+        )
+      end
+
+      it "returns 422 with passwordRulesFailed" do
+        expect(result).to be_failure
+        expect(result.http_status).to eq(:unprocessable_entity)
+        expect(result.errors.first.details).to include(passwordRulesFailed: ["not_common"])
+      end
+    end
+
+    context "when the per-email bucket is exhausted" do
+      before do
+        allow(CommandTower::Services::Auth::SignupRateLimits::CheckRegisterEmail).to receive(:call).and_return(
+          CommandTower::Services::ServiceResult.failure(
+            errors: [CommandTower::Errors::Auth::AuthRateLimitedError.new(retry_after_seconds: 30)]
+          )
+        )
+      end
+
+      it "returns 429 auth_rate_limited with retry_after_seconds" do
+        expect(result).to be_failure
+        expect(result.http_status).to eq(:too_many_requests)
+        expect(result.errors.first.details).to eq(retry_after_seconds: 30)
       end
     end
 

@@ -10,6 +10,8 @@ module CommandTower::Configuration
 
       DEFAULT_MAX_LENGTH = 32
       DEFAULT_MIN_LENGTH = 4
+      PROMPT_AFTER_SIGNUP = "after_signup"
+      PROMPT_OFF = "off"
 
       add_composer_blocking :realtime_username_check,
         desc: "Adds components to check if the username is available in real time",
@@ -36,6 +38,21 @@ module CommandTower::Configuration
         desc: "Max Length for Username",
         allowed: String,
         default: "Username length must be between #{DEFAULT_MIN_LENGTH} and #{DEFAULT_MAX_LENGTH}. Must contain only letters and/or numbers"
+
+      add_composer :self_service,
+        desc: "Host flag: users may set their own username. Served by the identity policy as username.selfService",
+        allowed: [FalseClass, TrueClass],
+        default: false
+
+      add_composer :self_change,
+        desc: "Allow a user who already has a username to change it. Served as username.selfChange",
+        allowed: [FalseClass, TrueClass],
+        default: false
+
+      add_composer :prompt,
+        desc: "Post-signup username step: `after_signup` or `off`. Served as username.prompt",
+        allowed: String,
+        default: PROMPT_AFTER_SIGNUP
     end
   end
 end

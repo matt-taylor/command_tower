@@ -22,6 +22,12 @@ entities:
   - name: me_name
     controller: CommandTower::Me::NameController
     only: update
+  - name: me_username
+    controller: CommandTower::Me::UsernameController
+    only: update
+  - name: me_username_availability
+    controller: CommandTower::Me::UsernameAvailabilityController
+    only: show
   - name: me_password
     controller: CommandTower::Me::PasswordController
     only: update

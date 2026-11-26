@@ -70,12 +70,35 @@ RSpec.describe CommandTower::Workflows::Auth::PlainText::LoginWorkflow do
         end
 
         it "delegates to the login service" do
-          described_class.call(input: input)
+          described_class.call(input: input, client_ip: "203.0.113.5")
           expect(CommandTower::Services::Auth::PlainText::Login).to have_received(:call).with(
             identifier: user.email,
-            password: password
+            password: password,
+            client_ip: "203.0.113.5"
           )
         end
+      end
+    end
+
+    context "when the login service is rate limited" do
+      let(:input) do
+        CommandTower::Deserializers::Auth::PlainText::LoginDeserializer::Input.new(
+          identifier: "limited@example.com",
+          password: "password1234"
+        )
+      end
+      let(:error) { CommandTower::Errors::Auth::AuthRateLimitedError.new(retry_after_seconds: 60) }
+
+      before do
+        allow(CommandTower::Services::Auth::PlainText::Login).to receive(:call).and_return(
+          CommandTower::Services::ServiceResult.failure(errors: [error])
+        )
+      end
+
+      it "returns 429 rather than 401 or 500" do
+        expect(result).to be_failure
+        expect(result.http_status).to eq(:too_many_requests)
+        expect(result.errors).to contain_exactly(error)
       end
     end
 

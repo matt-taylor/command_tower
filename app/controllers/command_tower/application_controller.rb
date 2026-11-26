@@ -69,7 +69,9 @@ module CommandTower
           CommandTower::Jwt::AuthorizationHelper.set_token(
             response,
             result.generated_token,
-            expires_at: result.expires_at
+            expires_at: result.expires_at,
+            header: token_source != :cookie,
+            cookie_expires_at: result.device_session&.absolute_expires_at
           )
 
           # Handle CSRF cookie issuance/rotation for token reset path
@@ -106,6 +108,11 @@ module CommandTower
             CommandTower::Jwt::AuthorizationHelper.clear_cookie(response)
           end
           status = result.status || 401
+          if result.session_failure?
+            # Device session codes use the FE error envelope so clients can tell them apart.
+            render(json: session_failure_body(result), status:)
+            return false
+          end
           schema = CommandTower::Schema::Error::Base.new(status:, message: result.msg)
         end
         render(json: schema.to_h, status:)
@@ -150,6 +157,16 @@ module CommandTower
     end
 
     private
+
+    def session_failure_body(result)
+      error =
+        if result.code == CommandTower::Jwt::AuthenticationOutcome::SESSION_EXPIRED
+          CommandTower::Errors::Auth::SessionExpiredError.new
+        else
+          CommandTower::Errors::Auth::SessionRevokedError.new
+        end
+      { data: nil, errors: [{ code: error.code, message: error.message }] }
+    end
 
     def csrf_required?(request, token_source)
       return false unless CommandTower::Jwt::CsrfHelper.csrf_enabled?

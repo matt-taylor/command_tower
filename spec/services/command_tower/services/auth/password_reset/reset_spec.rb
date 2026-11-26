@@ -31,6 +31,55 @@ RSpec.describe CommandTower::Services::Auth::PasswordReset::Reset do
       end
     end
 
+    context "when the user has an active device session" do
+      let!(:device_session) { create(:device_session, user:) }
+
+      it "revokes it as password_reset" do
+        expect(result).to be_success
+        expect(device_session.reload.revoked_reason).to eq("password_reset")
+      end
+    end
+
+    context "when the account is soft locked" do
+      let(:lockout) do
+        CommandTower::Services::Auth::LoginRateLimits::Lockout.new(
+          subject: CommandTower::Services::Auth::LoginRateLimits::Lockout.subject_for(user: user, identifier: nil)
+        )
+      end
+
+      before do
+        CommandTower.config.login.rate_limits.account_failures.times { lockout.record_failure }
+      end
+
+      it "starts locked" do
+        expect(lockout.status).to be_locked
+      end
+
+      it "clears the lock when the password is reset" do
+        result
+
+        expect(lockout.status).not_to be_locked
+      end
+    end
+
+    context "when the client IP is over the reset ceiling" do
+      subject(:result) do
+        described_class.call(
+          token: token, password: password, password_confirmation: password, client_ip: "203.0.113.9"
+        )
+      end
+
+      before do
+        allow(CommandTower.config.login.rate_limits).to receive(:reset_attempts_per_ip).and_return(1)
+        CommandTower::Services::Auth::IdentityRateLimits::CheckResetAttempt.call(client_ip: "203.0.113.9")
+      end
+
+      it "fails with AuthRateLimitedError and leaves the password alone" do
+        expect(result.errors.first).to be_a(CommandTower::Errors::Auth::AuthRateLimitedError)
+        expect(user.reload.authenticate("password1234")).to be_truthy
+      end
+    end
+
     context "with a live token" do
       it { expect(result).to be_success }
 
@@ -70,7 +119,7 @@ RSpec.describe CommandTower::Services::Auth::PasswordReset::Reset do
       end
 
       it "consumes the token" do
-        expect { result }.to change { UserSecret.find_by(secret: token).use_count }.by(1)
+        expect { result }.to change { UserSecret.find_by(secret_digest: UserSecret.digest_for(token)).use_count }.by(1)
 
         expect(described_class.call(
           token: token,
@@ -78,6 +127,15 @@ RSpec.describe CommandTower::Services::Auth::PasswordReset::Reset do
           password_confirmation: "anotherpassword99",
           email: nil
         )).to be_failure
+      end
+    end
+
+    context "with an absent confirmation" do
+      let(:password_confirmation) { nil }
+
+      it "resets the password" do
+        expect(result).to be_success
+        expect(user.reload.authenticate(password)).to be_truthy
       end
     end
 
@@ -119,7 +177,7 @@ RSpec.describe CommandTower::Services::Auth::PasswordReset::Reset do
     end
 
     context "with an expired token" do
-      before { UserSecret.find_by!(secret: token).update!(death_time: 1.hour.ago) }
+      before { UserSecret.find_by!(secret_digest: UserSecret.digest_for(token)).update!(death_time: 1.hour.ago) }
 
       it "returns PasswordResetInvalidTokenError" do
         expect(result).to be_failure
