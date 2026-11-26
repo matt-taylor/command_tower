@@ -90,6 +90,7 @@ CommandTower.config.registry.audit.set_enabled!(:login_failed, true)
 | `home_notice_acknowledged` | yes | no |
 | `home_notice_dismissed` | yes | no |
 | `home_notice_control_changed` | yes | no |
+| `experience_state_completed` | yes | yes |
 
 `messaging_inbox_item_viewed` is emitted by `Workflows::Messaging::Inbox::OpenWorkflow` once per first view of an inbox item, for every notification type (metadata: `inbox_item_id`, `communication_id`; retention `ninety_days`, not in account history). A repeat open, bulk read/unread, `Show`, and `Contract::Inbox` emit nothing. An impersonated open returns the detail but neither marks the item viewed nor audits.
 
@@ -98,6 +99,8 @@ CommandTower.config.registry.audit.set_enabled!(:login_failed, true)
 `home_notice_acknowledged` is emitted by `Services::HomeNotices::Acknowledge` (via `POST /me/home-notices/:id/acknowledge`) when the request itself changes the row (subject and affected user: the user; metadata `notice_id`, `key`, `kind`, `severity`; no changes; retention `one_year`; in account history). Metadata is ids only: the content hash of a blocking acknowledgement stays on the notice row. The decision is an atomic write in the same transaction as the audit, so concurrent requests audit exactly once. A repeat acknowledge and an impersonated request (refused with 403) emit nothing.
 
 `home_notice_dismissed` is emitted by `Services::HomeNotices::Dismiss` (via `POST /me/home-notices/:id/dismiss`) when the request itself changes the row (affected user: the user; metadata `notice_id`, `key`, `kind`, `severity`; no changes; retention `ninety_days`; not in account history). Only dismissible notices can be dismissed. A repeat dismiss while already dismissed, a blocking dismiss (422) and an impersonated request (403) emit nothing.
+
+`experience_state_completed` is emitted by `Workflows::Me::ExperienceStates::CompleteWorkflow` on the first durable creation of a fact (affected user: the user; metadata `experience_key` and `version`; no changes; retention `one_year`; not in account history). The host context carries the opaque scope type and identifier. An idempotent replay and every rejected request (impersonating, rate limited, unregistered, over the cap) emit nothing. See [API reference](api_reference.md#experience-states).
 
 `home_notice_control_changed` is emitted by `Workflows::Admin::HomeNotices::UpdateControlWorkflow` (via `PATCH /admin/home-notices/:key`) in the same transaction as the write, only when the request changes the effective state (admin attribution `admin_direct`; no affected user; metadata `key`; change `enabled` from/to; retention `permanent`; not in account history). A no-op, an unknown key (404) and an impersonated request (403) emit nothing. See [home_notices.md](home_notices.md#kill-switch-runbook).
 

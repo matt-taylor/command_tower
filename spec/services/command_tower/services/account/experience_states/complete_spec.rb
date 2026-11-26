@@ -75,6 +75,46 @@ RSpec.describe CommandTower::Services::Account::ExperienceStates::Complete do
       end
     end
 
+    context "when the soft cap is reached" do
+      before do
+        allow(CommandTower.config.registry.experience_states).to receive(:max_rows_per_user).and_return(1)
+        create(:user_experience_state, user:, host_key: "command_tower", experience_key: "other",
+                                       scope_type:, scope_identifier: "1", version:)
+      end
+
+      it "fails with limit reached and creates nothing", :aggregate_failures do
+        expect { result }.not_to change(CommandTower::UserExperienceState, :count)
+        expect(result.errors.first).to be_a(CommandTower::Errors::Account::ExperienceStateLimitReached)
+      end
+    end
+
+    context "when the soft cap is reached and the fact already exists" do
+      before do
+        allow(CommandTower.config.registry.experience_states).to receive(:max_rows_per_user).and_return(1)
+        create(:user_experience_state, user:, host_key: "command_tower", experience_key:,
+                                       scope_type:, scope_identifier:, version:)
+      end
+
+      it "still replays the existing fact", :aggregate_failures do
+        expect(result).to be_success
+        expect(result.data[:created]).to be(false)
+      end
+    end
+
+    context "when the cap is reached only by another user or host_key" do
+      before do
+        allow(CommandTower.config.registry.experience_states).to receive(:max_rows_per_user).and_return(1)
+        create(:user_experience_state, user: create(:user), host_key: "command_tower", experience_key: "x",
+                                       scope_type:, scope_identifier: "1", version:)
+        create(:user_experience_state, user:, host_key: "elsewhere", experience_key: "x",
+                                       scope_type:, scope_identifier: "1", version:)
+      end
+
+      it "does not count those rows" do
+        expect(result).to be_success
+      end
+    end
+
     context "when completing a different scope" do
       before do
         create(

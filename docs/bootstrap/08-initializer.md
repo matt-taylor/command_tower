@@ -31,6 +31,18 @@ Blank `host_key` → Me experience-state routes return **503**.
 
 The dummy sets `config.application.host_key = "command_tower"`. A product host uses its **own** key.
 
+### Experience-state keys
+
+Register every experience-state key the product completes, **before** the first deploy (or gem bump) that serves `POST /me/experience-states/complete`. An unregistered key is refused with `422`. CommandTower seeds none.
+
+```ruby
+CommandTower.configure do |config|
+  config.registry.experience_states.register "welcome", scope_types: %w[account]
+end
+```
+
+A key is a non-blank string of at most 128 characters; a duplicate raises. With `host_key` set and nothing registered, boot raises in the test environment and logs an error in development and production. Optional composers: `config.registry.experience_states.max_rows_per_user` (default 250) and `complete_rate` (default `{ limit: 30, window: 60 }`). Contract: [API reference](../api_reference.md#experience-states).
+
 ### Secrets
 
 Prefer ENV already injected by Compose:

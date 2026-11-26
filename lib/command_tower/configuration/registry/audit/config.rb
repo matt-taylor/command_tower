@@ -312,7 +312,7 @@ module CommandTower
               user_history: false,
               sensitive_fields: [],
               allowed_changes: [],
-              retention: :permanent,
+              retention: :one_year,
               subject_required: false,
               affected_user_required: true
             },

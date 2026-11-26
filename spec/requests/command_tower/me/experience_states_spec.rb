@@ -84,6 +84,106 @@ RSpec.describe "Me experience states", :with_rbac_setup, type: :request do
     end
   end
 
+  describe "complete failure statuses" do
+    let(:log) { StringIO.new }
+    let(:submitted) do
+      {
+        experienceKey: "sentinel-key-zq91",
+        scopeType: "example_scope",
+        scopeIdentifier: "sentinel-id-zq92",
+        version: "v1",
+      }
+    end
+
+    before do
+      logger = ActiveSupport::Logger.new(log)
+      allow(Rails).to receive(:logger).and_return(logger)
+      allow(Rails.logger).to receive(:error).and_call_original
+    end
+
+    let(:echoed_output) { response.body + log.string }
+
+    context "when impersonating" do
+      before do
+        allow(CommandTower::Current).to receive(:impersonation_active).and_return(true)
+        post "/me/experience-states/complete", headers: headers, params: submitted, as: :json
+      end
+
+      it "returns 403" do
+        expect(response).to have_http_status(:forbidden)
+        expect(response.parsed_body.dig("errors", 0, "code")).to eq("experience_state_impersonation_forbidden")
+      end
+
+      it "does not echo submitted input" do
+        expect(echoed_output).not_to match(/sentinel-(key|id)-zq9[12]/)
+      end
+    end
+
+    context "when rate limited" do
+      before do
+        allow(CommandTower.config.registry.experience_states).to receive(:complete_rate)
+          .and_return({ limit: 1, window: 60 })
+        flush_signup_rate_limits!
+        post "/me/experience-states/complete", headers: headers, params: complete_params, as: :json
+        post "/me/experience-states/complete", headers: headers, params: submitted, as: :json
+      end
+
+      it "returns 429 with retry_after_seconds" do
+        expect(response).to have_http_status(:too_many_requests)
+        expect(response.parsed_body.dig("errors", 0, "details", "retry_after_seconds")).to be_positive
+      end
+
+      it "does not echo submitted input" do
+        expect(echoed_output).not_to match(/sentinel-(key|id)-zq9[12]/)
+      end
+    end
+
+    context "with an unregistered key" do
+      before { post "/me/experience-states/complete", headers: headers, params: submitted, as: :json }
+
+      it "returns 422" do
+        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response.parsed_body.dig("errors", 0, "code")).to eq("experience_state_unregistered")
+      end
+
+      it "does not echo submitted input" do
+        expect(echoed_output).not_to match(/sentinel-(key|id)-zq9[12]/)
+      end
+    end
+
+    context "when the per-user cap is reached" do
+      let(:complete_params) { super().merge(scopeIdentifier: "sentinel-id-zq92") }
+
+      before do
+        allow(CommandTower.config.registry.experience_states).to receive(:max_rows_per_user).and_return(1)
+        create(:user_experience_state, user:, host_key: "command_tower", experience_key: "other",
+                                       scope_type: "example_scope", scope_identifier: "1", version: "v1")
+        post "/me/experience-states/complete", headers: headers, params: complete_params, as: :json
+      end
+
+      it "returns 422" do
+        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response.parsed_body.dig("errors", 0, "code")).to eq("experience_state_limit_reached")
+      end
+
+      it "does not echo the identifier" do
+        expect(echoed_output).not_to include("sentinel-id-zq92")
+      end
+    end
+
+    context "when replaying an existing fact at the cap" do
+      before do
+        allow(CommandTower.config.registry.experience_states).to receive(:max_rows_per_user).and_return(1)
+        post "/me/experience-states/complete", headers: headers, params: complete_params, as: :json
+        post "/me/experience-states/complete", headers: headers, params: complete_params, as: :json
+      end
+
+      it "returns 200" do
+        expect(response).to have_http_status(:ok)
+      end
+    end
+  end
+
   context "when another host_key row exists" do
     before do
       create(

@@ -27,10 +27,13 @@ module CommandTower
                CommandTower::Errors::Account::PushEndpointNotFoundError,
                CommandTower::Errors::Account::PushTestNoEndpointError,
                CommandTower::Errors::Account::PushTestDestinationError,
+               CommandTower::Errors::Account::ExperienceStateUnregistered,
+               CommandTower::Errors::Account::ExperienceStateLimitReached,
                CommandTower::Errors::ValidationError
             :unprocessable_entity
           when CommandTower::Errors::Account::PhoneVerificationThrottledError,
-               CommandTower::Errors::Account::PushTestRateLimitError
+               CommandTower::Errors::Account::PushTestRateLimitError,
+               CommandTower::Errors::Account::ExperienceStateRateLimited
             :too_many_requests
           when CommandTower::Errors::Account::SmsCapabilityUnavailableError,
                CommandTower::Errors::Account::PushoverCapabilityUnavailableError,

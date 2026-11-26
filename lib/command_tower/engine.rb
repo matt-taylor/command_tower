@@ -30,6 +30,9 @@ module CommandTower
         CommandTower::CredentialResolution::SmtpActionMailerBridge.apply!
         CommandTower.config.registry.client_compatibility.apply_env_overlay!
         CommandTower::EmailTheme::TokenFile.validate_host_file!
+        CommandTower.config.registry.experience_states.validate_registered!(
+          host_key: CommandTower.config.application.host_key
+        )
 
         unless Rails.env.test?
           CommandTower.config.impersonation.validate!
@@ -38,6 +41,7 @@ module CommandTower
           CommandTower.config.registry.principal_capabilities.finalize!
           CommandTower.config.registry.client_compatibility.finalize!
           CommandTower.config.registry.inbox_presentations.finalize!
+          CommandTower.config.registry.experience_states.finalize!
           CommandTower.config.admin_scope.finalize!
           # Now that we can confirm all variables are defined, freeze all objects an their children
           CommandTower.config.class_composer_freeze_objects!(behavior: :raise, children: true)
