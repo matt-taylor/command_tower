@@ -4,6 +4,7 @@ Host-facing upgrade / change summaries for CommandTower releases.
 
 | Version | Summary |
 |---------|---------|
+| [0.26.0](0.26.0.md) | Experience-states hardening: host key registry (register before bumping), complete rate limit and per-user cap, refused while impersonating, audit metadata and one-year retention; no migration |
 | [0.25.0](0.25.0.md) (draft) | Device sessions: `command_tower_device_sessions` migration, `config.session.*`, `sid` token claim, `session_expired` / `session_revoked` 401 codes |
 | [0.24.0](0.24.0.md) | Home Notices: `Campaign` / `Delivery` notices (blocking or dismissible), `command_tower_home_notices` and `command_tower_home_notice_controls` migrations, `config.home_notices`, `me_home_notices` / `admin_home_notices_kill` RBAC |
 | [0.23.0](0.23.0.md) | Message definitions: `MessageDefinition` / `AnnouncementDefinition`, composer-built email with compliance footer and one-click unsubscribe, shared email token file, first-view inbox audit, `X-Time-Zone` writer, admin message gallery and test send; `no-store` on inbox reads; one additive migration |

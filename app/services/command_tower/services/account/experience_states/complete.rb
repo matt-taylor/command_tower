@@ -36,6 +36,11 @@ module CommandTower
               return
             end
 
+            if cap_reached?(host_key)
+              context.fail!(application_error: CommandTower::Errors::Account::ExperienceStateLimitReached.new)
+              return
+            end
+
             begin
               created = CommandTower::UserExperienceState.create!(
                 identity.merge(completed_at: Time.current),
@@ -47,6 +52,14 @@ module CommandTower
               context.experience_state = recovered
               context.created = false
             end
+          end
+
+          private
+
+          # Soft cap, checked only when no row exists so a replay of an existing fact always succeeds.
+          def cap_reached?(host_key)
+            cap = CommandTower.config.registry.experience_states.max_rows_per_user
+            CommandTower::UserExperienceState.where(user_id: user.id, host_key:).count >= cap
           end
         end
       end

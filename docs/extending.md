@@ -17,7 +17,8 @@ Layer map: [architecture.md](architecture.md). Install/configure/migrate/doctor:
 | `Communications::Produce` / `ProduceMany` | Sending messaging |
 | `FactoryBot.modify` | Extend shared factories |
 | Model reopen | Product associations / behavior |
-| Initializers | Configuration, including `config.registry.audit.event`, `config.registry.admin_workspace.tool`, and `config.registry.principal_capabilities.capability` |
+| Initializers | Configuration, including `config.registry.audit.event`, `config.registry.admin_workspace.tool`, `config.registry.principal_capabilities.capability`, and `config.registry.experience_states.register` (required before a key can be completed; see [API reference](api_reference.md#experience-states)) |
+| `Services::Account::ExperienceStates::Completed` | Read-only check that one completion fact exists: `call(user:, experience_key:, scope_type:, scope_identifier:, version:)` returns `data[:completed]`. The `host_key` is server-bound |
 | Notification catalogs / channel policy | Host-owned messaging customization |
 | `app/views/command_tower/messaging/rendering/**` | Host override of generic and/or per-`notification_type_key` rendered Email/SMS/Pushover/Push templates — see [messaging_integration_guide.md](messaging_integration_guide.md#rendering-template-overrides) |
 

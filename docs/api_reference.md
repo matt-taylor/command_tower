@@ -561,7 +561,20 @@ Durable completion facts for host-composed experiences. CommandTower stores opaq
 
 **RBAC:** `me_experience_states` (`index`, `complete`). Grant explicitly on host roles (dummy host `member` includes it).
 
-**Audit:** first durable creation emits `experience_state_completed` (opaque `host_context` type/identifier). Idempotent replay does not emit again.
+**Registration:** a host registers every key it completes with `config.registry.experience_states.register "key", scope_types: %w[...]` (key: non-blank string of at most 128 characters; at least one scope type). CommandTower seeds none. `POST complete` for a key or scope type that is not registered fails with `422` `experience_state_unregistered`. The registry freezes after boot. A host with `host_key` set and an empty registry raises at boot in the test environment and logs an error elsewhere. See [Bootstrap 08](bootstrap/08-initializer.md#experience-state-keys).
+
+**`POST complete` checks, in order:**
+
+| Order | Check | Failure |
+|------:|-------|---------|
+| 1 | Impersonation active (`Current.impersonation_active`) | `403` `experience_state_impersonation_forbidden` |
+| 2 | Per-user rate limit (`registry.experience_states.complete_rate`, default 30 per 60 s) | `429` `experience_state_rate_limited`, `errors[].details.retry_after_seconds` |
+| 3 | Key and scope type registered | `422` `experience_state_unregistered` |
+| 4 | Soft cap (`registry.experience_states.max_rows_per_user`, default 250 rows per user and `host_key`), checked only when no row exists yet | `422` `experience_state_limit_reached` |
+
+The rate limit runs before the registry check so unregistered traffic is throttled too. Replay of an existing fact returns `200` and skips the cap. The rate limit fails open: if the limiter itself fails, the request proceeds (the failure is logged with the user id only). Error messages never echo the submitted key or identifier. `GET` is unchanged by all of the above.
+
+**Audit:** first durable creation emits `experience_state_completed` (opaque `host_context` type/identifier; metadata `experience_key` and `version`; retention `one_year`). Idempotent replay does not emit again. See [Audit](audit.md).
 
 **Spec:** `spec/requests/command_tower/me/experience_states_spec.rb`.
 

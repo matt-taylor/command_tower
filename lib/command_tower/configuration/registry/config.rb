@@ -6,6 +6,7 @@ require "command_tower/configuration/registry/admin_workspace/config"
 require "command_tower/configuration/registry/principal_capabilities/config"
 require "command_tower/configuration/registry/client_compatibility/config"
 require "command_tower/configuration/registry/inbox_presentations/config"
+require "command_tower/configuration/registry/experience_states/config"
 
 module CommandTower
   module Configuration
@@ -42,6 +43,12 @@ module CommandTower
           allowed: InboxPresentations::Config,
           dynamic_default: ->(_) { InboxPresentations::Config.new },
           default_shown: "InboxPresentations::Config.new"
+
+        add_composer :experience_states,
+          desc: "Registered experience keys users may complete (host-owned), plus the complete cap and rate limit",
+          allowed: ExperienceStates::Config,
+          dynamic_default: ->(_) { ExperienceStates::Config.new },
+          default_shown: "ExperienceStates::Config.new"
       end
     end
   end

@@ -400,6 +400,10 @@ CommandTower.configure do |config|
   # Host-additive principal capability proof (1:1 with host RBAC entity).
   config.registry.principal_capabilities.capability :dummy_admin_example
 
+  # Experience-state keys used by the existing specs. Owner :fixture so the per-example
+  # host reset (reset_host_definitions!) leaves them registered.
+  config.registry.experience_states.register "welcome", scope_types: %w[example_scope], owner: :fixture
+
   # Client-version-compatibility: observe-mode web floor proof. Observe mode
   # never blocks requests; this only exercises boot validation and the
   # non-blocking evaluation/logging path for the dummy host.

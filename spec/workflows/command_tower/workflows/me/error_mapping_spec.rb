@@ -19,6 +19,10 @@ RSpec.describe CommandTower::Workflows::Me::ErrorMapping do
       CommandTower::Errors::Account::PushoverNotConfiguredError => :unprocessable_entity,
       CommandTower::Errors::Account::PushoverAlreadyConfiguredError => :unprocessable_entity,
       CommandTower::Errors::Account::PushoverProviderUnavailableError => :bad_gateway,
+      CommandTower::Errors::Account::ExperienceStateImpersonationForbidden => :forbidden,
+      CommandTower::Errors::Account::ExperienceStateUnregistered => :unprocessable_entity,
+      CommandTower::Errors::Account::ExperienceStateLimitReached => :unprocessable_entity,
+      CommandTower::Errors::Account::ExperienceStateRateLimited => :too_many_requests,
     }.each do |error_class, status|
       it "maps #{error_class.name} to #{status}" do
         expect(described_class.http_status_for(error_class.new)).to eq(status)
