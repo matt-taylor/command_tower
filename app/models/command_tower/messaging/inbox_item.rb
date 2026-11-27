@@ -19,12 +19,18 @@ module CommandTower
       scope :not_deleted, -> { where(deleted_at: nil) }
       scope :not_archived, -> { where(archived_at: nil) }
       scope :archived, -> { where.not(archived_at: nil) }
-      scope :default_list, -> { not_deleted.not_archived }
-      scope :archived_list, -> { not_deleted.archived }
-      scope :unread, -> { default_list.where(viewed_at: nil) }
+      scope :unresolved, -> { where(resolved_at: nil) }
+      scope :resolved, -> { where.not(resolved_at: nil) }
+      scope :default_list, -> { not_deleted.not_archived.unresolved }
+      scope :archived_list, -> { not_deleted.archived.unresolved }
+      # Global rule (unread-count, push badge, mark-all-read): not deleted, archived,
+      # resolved or viewed.
+      scope :counts_as_unread, -> { default_list.where(viewed_at: nil) }
+      # Alias kept for existing callers.
+      scope :unread, -> { counts_as_unread }
       # Per-entry rule used by the Reader in both Inbox and Archived scopes: archived rows
-      # keep reporting their own unread members. The global count uses `unread`.
-      scope :unread_in_scope, -> { not_deleted.where(viewed_at: nil) }
+      # keep reporting their own unread members. Resolved rows never count.
+      scope :unread_in_scope, -> { not_deleted.unresolved.where(viewed_at: nil) }
 
       def viewed?
         viewed_at.present?
@@ -44,13 +50,19 @@ module CommandTower
         !deleted?
       end
 
-      def unread?
-        !viewed? && !archived? && !deleted?
+      def resolved?
+        resolved_at.present?
       end
+
+      # Instance form of the `counts_as_unread` scope.
+      def counts_as_unread?
+        !viewed? && !archived? && !deleted? && !resolved?
+      end
+      alias unread? counts_as_unread?
 
       # Instance form of the `unread_in_scope` scope.
       def unread_in_scope?
-        !viewed? && !deleted?
+        !viewed? && !deleted? && !resolved?
       end
 
       # Denormalized label helper — timestamps remain authoritative for filters.

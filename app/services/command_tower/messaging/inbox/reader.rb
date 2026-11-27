@@ -77,7 +77,7 @@ module CommandTower
 
           def unread_count(recipient_id:)
             recipient_id = require_recipient_id!(recipient_id)
-            unread = Scope.for_recipient(recipient_id).merge(Messaging::InboxItem.unread)
+            unread = Scope.for_recipient(recipient_id).merge(Messaging::InboxItem.counts_as_unread)
 
             UnreadCountResult.build(
               recipient_id:,

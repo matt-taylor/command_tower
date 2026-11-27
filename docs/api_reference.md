@@ -435,14 +435,16 @@ A notification type may override the document with a pure-Ruby composer (`declar
 
 **Unread rules (two, by design):**
 
-- **Global number** (`GET /me/inbox/unread-count` `count`, `badgeCount`, `meta.unreadCount.count`, and the push badge for every notification type): items that are not viewed, not archived and not deleted. `badgeCount` equals `count`. The notification type declaration's `badge_eligible` is deprecated, accepted and ignored.
-- **Per-row** (`unreadCount`, `read`, `unreadInboxItemIds` on list rows, and `oldest_unread` anchoring in `GET /me/inbox/conversation`): items that are not viewed and not deleted, in both `inbox` and `archived` scopes, so an archived row reports its own unread members. These do not feed the global number.
+- **Global number** (`GET /me/inbox/unread-count` `count`, `badgeCount`, `meta.unreadCount.count`, and the push badge for every notification type): items that are not viewed, not archived, not deleted and not resolved. `badgeCount` equals `count`. The notification type declaration's `badge_eligible` is deprecated, accepted and ignored.
+- **Per-row** (`unreadCount`, `read`, `unreadInboxItemIds` on list rows, and `oldest_unread` anchoring in `GET /me/inbox/conversation`): items that are not viewed, not deleted and not resolved, in both `inbox` and `archived` scopes, so an archived row reports its own unread members. These do not feed the global number.
 
 **`meta.unreadCount` on mutations:** `POST /me/inbox/:id/open`, `PATCH /me/inbox/:id/archive`, `DELETE /me/inbox/:id` and every `POST /me/inbox/bulk/*` response carry `meta: { unreadCount: { count, badgeCount } }`, the same one number as `GET /me/inbox/unread-count` read after the mutation, so a client can update its badge from the same response. The `data` shapes are unchanged.
 
 Hosts never expose `inboxEnabled` as a user-facing inbox switch; it appears only in the preferences contract below.
 
-**Errors:** `401` / `403` / `422`; show/open may return `404` `not_found`.
+**Resolved items:** a host can resolve an item through the messaging contract ([messaging_integration_guide.md](messaging_integration_guide.md)). Resolved rows are excluded from `GET /me/inbox` (both `inbox` and `archived` scopes), from every unread number, and from `GET /me/inbox/conversation`; a conversation whose members are all resolved returns `404` `not_found`. `GET /me/inbox/:id` and `POST /me/inbox/:id/open` still return a resolved item.
+
+**Errors:** `401` / `403` / `422`; show/open may return `404` `not_found`, as may `GET /me/inbox/conversation` when no member is in scope (including when all are resolved).
 
 **Specs:** `spec/requests/command_tower/me/inbox_spec.rb`, `me/inbox_bulk_spec.rb`.
 

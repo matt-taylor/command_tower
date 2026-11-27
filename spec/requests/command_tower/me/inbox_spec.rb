@@ -427,6 +427,54 @@ RSpec.describe "Me inbox", :with_rbac_setup, :messaging_inbox, type: :request do
     end
   end
 
+  context "when conversation members are resolved" do
+    let!(:inbox_item) { nil }
+    let(:first_communication) do
+      create(:messaging_communication, user:, title: "One", conversation_key: "week-5", conversation_title: "Week 5")
+    end
+    let(:second_communication) do
+      create(:messaging_communication, user:, title: "Two", conversation_key: "week-5", conversation_title: "Week 5")
+    end
+    let!(:first_member) { create(:messaging_inbox_item, communication: first_communication) }
+    let!(:second_member) { create(:messaging_inbox_item, communication: second_communication) }
+
+    context "with one member resolved" do
+      before { first_member.update!(resolved_at: Time.current) }
+
+      it "keeps the conversation with its unresolved members" do
+        get "/me/inbox/conversation", params: { key: "week-5" }, headers: headers
+
+        expect(response).to have_http_status(:ok)
+        expect(response.parsed_body.dig("data", "inboxItemIds")).to eq([second_member.id])
+      end
+    end
+
+    context "with every member resolved" do
+      before do
+        first_member.update!(resolved_at: Time.current)
+        second_member.update!(resolved_at: Time.current)
+      end
+
+      it "is not found for the conversation" do
+        get "/me/inbox/conversation", params: { key: "week-5" }, headers: headers
+
+        expect(response).to have_http_status(:not_found)
+      end
+
+      it "drops resolved members from the list" do
+        get "/me/inbox", headers: headers
+
+        expect(response.parsed_body.fetch("data")).to eq([])
+      end
+
+      it "still opens one by id" do
+        get "/me/inbox/#{first_member.id}", headers: headers
+
+        expect(response).to have_http_status(:ok)
+      end
+    end
+  end
+
   context "when the key belongs to someone else" do
     let!(:inbox_item) { nil }
     let(:other_user) { create(:user, roles: ["member"]) }

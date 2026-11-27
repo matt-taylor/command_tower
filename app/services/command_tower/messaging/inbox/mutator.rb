@@ -32,6 +32,17 @@ module CommandTower
             nil
           end
 
+          # Host-driven, keyed by the communication idempotency namespace. Idempotent,
+          # never touches viewed_at, emits no audit. Returns nil when there is no live
+          # inbox item for the recipient and event.
+          def resolve_for_event(recipient_id:, notification_type_key:, host_event_identity:)
+            set_resolved(recipient_id:, notification_type_key:, host_event_identity:, resolved: true)
+          end
+
+          def unresolve_for_event(recipient_id:, notification_type_key:, host_event_identity:)
+            set_resolved(recipient_id:, notification_type_key:, host_event_identity:, resolved: false)
+          end
+
           def mark_unviewed(recipient_id:, inbox_item_id:)
             mutate(recipient_id:, inbox_item_id:, operation: :mark_unviewed)
           end
@@ -69,6 +80,33 @@ module CommandTower
           end
 
           private
+
+          def set_resolved(recipient_id:, notification_type_key:, host_event_identity:, resolved:)
+            recipient_id = require_recipient_id!(recipient_id)
+            raise ValidationError, "notification_type_key is required" if blank?(notification_type_key)
+            raise ValidationError, "host_event_identity is required" if blank?(host_event_identity)
+
+            communication = Messaging::Communication.find_by_idempotency_namespace(
+              user_id: recipient_id, notification_type_key:, host_event_identity:,
+            )
+            return nil if communication.nil?
+
+            ActiveRecord::Base.transaction do
+              flip_resolved(recipient_id:, communication_id: communication.id, resolved:)
+            end
+          end
+
+          def flip_resolved(recipient_id:, communication_id:, resolved:)
+            record = Scope.find_for_recipient_communication(recipient_id:, communication_id:, lock: true)
+            return nil if record.nil? || record.deleted?
+
+            changed = record.resolved? != resolved
+            record.update!(resolved_at: resolved ? Time.current : nil) if changed
+
+            ResolutionResult.new(
+              communication_id:, inbox_item_id: record.id, resolved: record.resolved?, changed:,
+            ).freeze
+          end
 
           def mutate(recipient_id:, inbox_item_id:, operation:)
             recipient_id = require_recipient_id!(recipient_id)

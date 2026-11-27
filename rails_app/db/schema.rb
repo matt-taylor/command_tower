@@ -243,6 +243,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_24_200002) do
     t.bigint "communication_id", null: false
     t.datetime "created_at", null: false
     t.datetime "deleted_at"
+    t.datetime "resolved_at"
     t.string "status"
     t.datetime "updated_at", null: false
     t.datetime "viewed_at"

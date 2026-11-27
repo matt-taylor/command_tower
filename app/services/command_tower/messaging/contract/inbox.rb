@@ -31,6 +31,23 @@ module CommandTower
             end
           end
 
+          # Per recipient, idempotent, never touches viewed_at, emits no audit (the
+          # calling host owns it). Returns Results::InboxResolution, or nil when there
+          # is no live inbox item for the recipient and event. Badge sync scheduling
+          # belongs to the scheduler, which is a no-op while impersonating.
+          def resolve_for_event(request)
+            guarded("inbox.resolve_for_event", request, Requests::ResolveForEvent) do
+              resolution(CommandTower::Messaging::Inbox.resolve_for_event(**event_args(request)))
+            end
+          end
+
+          # Inverse of resolve_for_event; same guarantees and nil rule.
+          def unresolve_for_event(request)
+            guarded("inbox.unresolve_for_event", request, Requests::ResolveForEvent) do
+              resolution(CommandTower::Messaging::Inbox.unresolve_for_event(**event_args(request)))
+            end
+          end
+
           # Read-only, no audit. Returns Results::InboxDocument carrying the catalog 2
           # UI::Document, or nil when the communication is missing, not the recipient's,
           # deleted or archived, not inbox-backed, or its type has no MessageDefinition.
@@ -77,6 +94,25 @@ module CommandTower
             ).freeze
           end
 
+          def event_args(request)
+            {
+              recipient_id: request.recipient_id,
+              notification_type_key: request.notification_type_key,
+              host_event_identity: request.host_event_identity
+            }
+          end
+
+          def resolution(result)
+            return nil if result.nil?
+
+            Results::InboxResolution.new(
+              communication_id: result.communication_id,
+              inbox_item_id: result.inbox_item_id,
+              resolved: result.resolved,
+              changed: result.changed
+            ).freeze
+          end
+
           def ensure_request!(request, expected_class)
             return if request.is_a?(expected_class)
 
@@ -84,8 +120,21 @@ module CommandTower
           end
 
           def validate!(request)
+            if request.is_a?(Requests::ResolveForEvent)
+              validate_event!(request)
+              return
+            end
+
             raise Contract::ValidationError, "communication_id is required" if request.communication_id.nil?
             raise Contract::ValidationError, "recipient_id is required" if request.recipient_id.nil?
+          end
+
+          def validate_event!(request)
+            raise Contract::ValidationError, "recipient_id is required" if request.recipient_id.nil?
+
+            %i[notification_type_key host_event_identity].each do |field|
+              raise Contract::ValidationError, "#{field} is required" if request.public_send(field).to_s.strip.empty?
+            end
           end
         end
       end

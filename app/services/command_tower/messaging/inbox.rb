@@ -29,6 +29,14 @@ module CommandTower
         Mutator.mark_viewed_for_communication(recipient_id:, communication_id:)
       end
 
+      def resolve_for_event(recipient_id:, notification_type_key:, host_event_identity:)
+        Mutator.resolve_for_event(recipient_id:, notification_type_key:, host_event_identity:)
+      end
+
+      def unresolve_for_event(recipient_id:, notification_type_key:, host_event_identity:)
+        Mutator.unresolve_for_event(recipient_id:, notification_type_key:, host_event_identity:)
+      end
+
       def mark_viewed(recipient_id:, inbox_item_id:)
         Mutator.mark_viewed(recipient_id:, inbox_item_id:)
       end
