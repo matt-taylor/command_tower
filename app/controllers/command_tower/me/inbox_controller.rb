@@ -2,12 +2,36 @@
 
 module CommandTower
   module Me
-    class InboxController < CommandTower::ApplicationController
+    class InboxController < CommandTower::ApplicationController # rubocop:disable Metrics/ClassLength
       include CommandTower::Auth::AuthenticationBoundary
       include CommandTower::Auth::AuthorizationBoundary
 
       before_action :authenticate_request!
       before_action :authorize_request!
+
+      # What each action does while impersonating. Every routed action needs an entry; a missing one
+      # is refused.
+      #   passive_skip  - reads and view tracking: the action itself redacts or skips.
+      #   allow_audited - state changes the operator may make; the Mutator writes one audit event inside its transaction.
+      #   refuse        - 403 `inbox_impersonation_forbidden`.
+      IMPERSONATION_POLICY = {
+        index: :passive_skip,
+        show: :passive_skip,
+        conversation: :passive_skip,
+        unread_count: :passive_skip,
+        open: :passive_skip,
+        views: :passive_skip,
+        archive: :allow_audited,
+        mark_all_read: :allow_audited,
+        bulk_read: :allow_audited,
+        bulk_unread: :allow_audited,
+        bulk_archive: :allow_audited,
+        bulk_restore: :allow_audited,
+        destroy: :refuse,
+        bulk_delete: :refuse
+      }.freeze
+
+      before_action :enforce_impersonation_policy!
       # Inbox reads can carry per-recipient, impersonation-redacted content: never cache them.
       before_action :set_no_store, only: %i[index show open conversation unread_count]
 
@@ -109,6 +133,16 @@ module CommandTower
         return render_deserializer_errors unless deserialized.success?
 
         render_application_result(workflow.call(user: current_user, inbox_item_id: deserialized.input.inbox_item_id, **extra))
+      end
+
+      def enforce_impersonation_policy!
+        return unless impersonating_flag
+        return unless IMPERSONATION_POLICY.fetch(action_name.to_sym, :refuse) == :refuse
+
+        render_application_result(CommandTower::Workflows::WorkflowResult.failure(
+          errors: [CommandTower::Errors::Messaging::InboxImpersonationForbiddenError.new],
+          http_status: :forbidden
+        ))
       end
 
       def set_no_store

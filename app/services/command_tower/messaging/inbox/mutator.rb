@@ -121,6 +121,7 @@ module CommandTower
                    .where(id: ..up_to).order(:id).lock.each do |record|
                 changed_ids << record.id if apply_mark_viewed(record) == :changed
               end
+              audit_impersonated_changes(recipient_id:, action: :mark_all_read, changed_ids:, up_to:)
             end
 
             log_bulk_lifecycle(recipient_id:, operation: :mark_viewed, changed_ids:)
@@ -176,10 +177,11 @@ module CommandTower
               outcome = apply(operation, record)
               record.reload
               result = ItemResult.from_record(record)
+              audit_impersonated_changes(recipient_id:, action: operation, changed_ids: outcome == :changed ? [record.id] : [])
             end
 
             if outcome == :changed
-              OperationLogger.lifecycle_changed(operation:, item: result)
+              OperationLogger.after_commit { OperationLogger.lifecycle_changed(operation:, item: result) }
             end
 
             result = result.with(newly_viewed: true) if operation == :mark_viewed && outcome == :changed
@@ -201,6 +203,7 @@ module CommandTower
                 ids << record.id
                 changed_ids << record.id if apply(operation, record) == :changed
               end
+              audit_impersonated_changes(recipient_id:, action: :"bulk_#{operation}", changed_ids:)
             end
 
             log_bulk_lifecycle(recipient_id:, operation:, changed_ids:)
@@ -231,26 +234,33 @@ module CommandTower
             requested_ids.map { |requested_id| records_by_id.fetch(requested_id.to_s) }
           end
 
-          # Logs post-commit, one lifecycle event per actually-changed item.
+          # Called inside the mutation transaction; emits at most one audit event per request.
+          def audit_impersonated_changes(recipient_id:, action:, changed_ids:, up_to: nil)
+            ImpersonationAudit.record_changes(recipient_id:, action:, changed_ids:, up_to:)
+          end
+
+          # Logs after the outermost transaction commits, one lifecycle event per actually-changed item.
           def log_bulk_lifecycle(recipient_id:, operation:, changed_ids:)
             return if changed_ids.empty?
 
-            records_by_id =
-              Scope
-                .for_recipient(recipient_id)
-                .includes(:communication)
-                .where(id: changed_ids)
-                .index_by(&:id)
+            OperationLogger.after_commit do
+              records_by_id =
+                Scope
+                  .for_recipient(recipient_id)
+                  .includes(:communication)
+                  .where(id: changed_ids)
+                  .index_by(&:id)
 
-            changed_ids.each do |changed_id|
-              record = records_by_id[changed_id]
-              next if record.nil?
+              changed_ids.each do |changed_id|
+                record = records_by_id[changed_id]
+                next if record.nil?
 
-              OperationLogger.lifecycle_changed(
-                operation:,
-                item: ItemResult.from_record(record),
-                bulk: true,
-              )
+                OperationLogger.lifecycle_changed(
+                  operation:,
+                  item: ItemResult.from_record(record),
+                  bulk: true,
+                )
+              end
             end
           end
 

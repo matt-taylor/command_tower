@@ -87,6 +87,7 @@ CommandTower.config.registry.audit.set_enabled!(:login_failed, true)
 | `session_cleared` | no | yes |
 | `login_failed` | no | yes |
 | `messaging_inbox_item_viewed` | yes | yes |
+| `messaging_inbox_changed_while_impersonating` | yes | no |
 | `home_notice_impression` | yes | no |
 | `home_notice_acknowledged` | yes | no |
 | `home_notice_dismissed` | yes | no |
@@ -94,6 +95,8 @@ CommandTower.config.registry.audit.set_enabled!(:login_failed, true)
 | `experience_state_completed` | yes | yes |
 
 `messaging_inbox_item_viewed` is emitted by `Workflows::Messaging::Inbox::OpenWorkflow` once per first view of an inbox item, for every notification type (metadata: `inbox_item_id`, `communication_id`; retention `ninety_days`, not in account history). A repeat open, bulk read/unread, `Show`, and `Contract::Inbox` emit nothing. An impersonated open returns the detail but neither marks the item viewed nor audits.
+
+`messaging_inbox_changed_while_impersonating` is emitted by `Messaging::Inbox::Mutator` (via `Messaging::Inbox::ImpersonationAudit`) in the same transaction as the change, once per request, when an operator archives, restores, bulk reads/unreads/archives/restores, or marks all read while impersonating (affected user: the inbox owner; admin attribution is always set; metadata `action`, `inbox_item_ids` (first 50 changed ids), `changed_count`, `up_to` (mark-all-read only) and `truncated: true` when more than 50 ids changed; no changes; retention `one_year`; not in account history). A failed audit rolls the change back. A request that changes nothing emits nothing. Delete and bulk delete are refused with 403 while impersonating, so they emit nothing. See [API reference](api_reference.md#me-inbox).
 
 `home_notice_impression` is emitted by `Services::HomeNotices::RecordImpression` (via `POST /me/home-notices/:id/impression`) once per first impression of a campaign period or of a delivery (affected user: the viewer; metadata `notice_id`, `key`, `kind`, `severity`; no changes; retention `ninety_days`; not in account history). The decision is an atomic write, so concurrent requests audit exactly once. A repeat impression, one inside the 60 s idempotency window, and an impersonated request emit nothing; a new campaign period audits again. See [home_notices.md](home_notices.md).
 

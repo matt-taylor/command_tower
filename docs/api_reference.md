@@ -448,7 +448,9 @@ Hosts never expose `inboxEnabled` as a user-facing inbox switch; it appears only
 
 **Resolved items:** a host can resolve an item through the messaging contract ([messaging_integration_guide.md](messaging_integration_guide.md)). Resolved rows are excluded from `GET /me/inbox` (both `inbox` and `archived` scopes), from every unread number, and from `GET /me/inbox/conversation`; a conversation whose members are all resolved returns `404` `not_found`. `GET /me/inbox/:id` and `POST /me/inbox/:id/open` still return a resolved item.
 
-**Errors:** `401` / `403` / `422`; show/open may return `404` `not_found`, as may `GET /me/inbox/conversation` when no member is in scope (including when all are resolved).
+**Impersonation policy:** `InboxController::IMPERSONATION_POLICY` lists every routed action as `passive_skip` (reads, `open`, `views`: redacted or skipped as described above), `allow_audited` (archive, mark-all-read, `bulk/read`, `bulk/unread`, `bulk/archive`, `bulk/restore`: allowed, and each request that changes rows emits one `messaging_inbox_changed_while_impersonating` audit event in the same transaction, see [audit.md](audit.md)) or `refuse`. `DELETE /me/inbox/:id` and `POST /me/inbox/bulk/delete` are refused while impersonating with `403` `inbox_impersonation_forbidden`; nothing is changed. An action missing from the policy is refused.
+
+**Errors:** `401` / `403` (`inbox_impersonation_forbidden` for delete and bulk delete while impersonating) / `422`; show/open may return `404` `not_found`, as may `GET /me/inbox/conversation` when no member is in scope (including when all are resolved).
 
 **Specs:** `spec/requests/command_tower/me/inbox_spec.rb`, `me/inbox_bulk_spec.rb`, `me/inbox_views_spec.rb`, `me/inbox_mark_all_read_spec.rb`.
 

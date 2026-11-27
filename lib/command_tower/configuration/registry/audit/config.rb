@@ -318,6 +318,22 @@ module CommandTower
               subject_required: false,
               affected_user_required: true
             },
+            # An operator changed a recipient's inbox while impersonating (archive, restore, bulk
+            # actions, mark all read). Metadata is ids only, capped, with a `truncated` flag. Not shown
+            # in the end user's history.
+            messaging_inbox_changed_while_impersonating: {
+              label: "Inbox changed while impersonating",
+              tags: %w[messaging inbox impersonation],
+              enabled: true,
+              enablement_configurable: false,
+              user_history: false,
+              sensitive_fields: [],
+              allowed_changes: [],
+              retention: :one_year,
+              subject_required: false,
+              affected_user_required: true,
+              global_visible_in_host_scope: true
+            },
             experience_state_completed: {
               label: "Experience state completed",
               tags: %w[experience account],
