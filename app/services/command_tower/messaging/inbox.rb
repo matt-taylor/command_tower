@@ -57,6 +57,14 @@ module CommandTower
         Mutator.delete(recipient_id:, inbox_item_id:)
       end
 
+      def record_views(recipient_id:, inbox_item_ids:)
+        Mutator.record_views(recipient_id:, inbox_item_ids:)
+      end
+
+      def mark_all_read(recipient_id:, up_to:)
+        Mutator.mark_all_read(recipient_id:, up_to:)
+      end
+
       def bulk_mark_viewed(recipient_id:, inbox_item_ids:)
         Mutator.bulk_mark_viewed(recipient_id:, inbox_item_ids:)
       end

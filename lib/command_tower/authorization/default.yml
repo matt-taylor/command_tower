@@ -44,6 +44,8 @@ entities:
       - archive
       - destroy
       - unread_count
+      - views
+      - mark_all_read
       - bulk_read
       - bulk_unread
       - bulk_archive

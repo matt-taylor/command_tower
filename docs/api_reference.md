@@ -409,6 +409,8 @@ Pagination for list: query `limit` (default **50**, max **100**), `offset` (defa
 | `POST` | `/me/inbox/bulk/archive` | same |
 | `POST` | `/me/inbox/bulk/restore` | same |
 | `POST` | `/me/inbox/bulk/delete` | same |
+| `POST` | `/me/inbox/views` | Scroll-read. Body `ids` (1–100 ints) → `{ viewedIds, changedCount, unavailableIds }`. Marks each available item viewed in one transaction and emits one `messaging_inbox_item_viewed` audit event per first view. Missing, other-recipient and deleted ids do not fail the batch: they are returned together in `unavailableIds`, with no per-id reason. While impersonating nothing is recorded and the response is `{ viewedIds: [], changedCount: 0, unavailableIds: [], skipped: "impersonating" }`; this is decided before the body is validated. |
+| `POST` | `/me/inbox/mark-all-read` | Body `upTo` (positive int) → `{ ids, count, changedCount }`. Marks viewed every live, non-archived, non-resolved unread item with `id <= upTo` in one transaction. Archived, resolved and deleted rows and rows above `upTo` are untouched, so calling it from the Archived segment is a no-op. |
 
 For a defined notification type while impersonating (or when the type is unknown), `GET /me/inbox/:id`, `POST /me/inbox/:id/open` and `GET /me/inbox/conversation` return `metadata: null`, and `content` has its `code` nodes replaced (`UI::Redaction`).
 
@@ -438,7 +440,9 @@ A notification type may override the document with a pure-Ruby composer (`declar
 - **Global number** (`GET /me/inbox/unread-count` `count`, `badgeCount`, `meta.unreadCount.count`, and the push badge for every notification type): items that are not viewed, not archived, not deleted and not resolved. `badgeCount` equals `count`. The notification type declaration's `badge_eligible` is deprecated, accepted and ignored.
 - **Per-row** (`unreadCount`, `read`, `unreadInboxItemIds` on list rows, and `oldest_unread` anchoring in `GET /me/inbox/conversation`): items that are not viewed, not deleted and not resolved, in both `inbox` and `archived` scopes, so an archived row reports its own unread members. These do not feed the global number.
 
-**`meta.unreadCount` on mutations:** `POST /me/inbox/:id/open`, `PATCH /me/inbox/:id/archive`, `DELETE /me/inbox/:id` and every `POST /me/inbox/bulk/*` response carry `meta: { unreadCount: { count, badgeCount } }`, the same one number as `GET /me/inbox/unread-count` read after the mutation, so a client can update its badge from the same response. The `data` shapes are unchanged.
+**`meta.unreadCount` on mutations:** `POST /me/inbox/:id/open`, `PATCH /me/inbox/:id/archive`, `DELETE /me/inbox/:id`, `POST /me/inbox/views`, `POST /me/inbox/mark-all-read` and every `POST /me/inbox/bulk/*` response carry `meta: { unreadCount: { count, badgeCount } }`, the same one number as `GET /me/inbox/unread-count` read after the mutation, so a client can update its badge from the same response. The `data` shapes are unchanged.
+
+**`upTo` is an opaque watermark.** Clients send the largest inbox item id they have loaded and must not interpret or compute it. Item ids come from an auto-increment column, so ids are not guaranteed to become visible in id order: a row with an id below `upTo` can commit after the client loaded its list, and `mark-all-read` will still mark it viewed. The watermark protects against rows newer than the loaded list in the common case, not against out-of-order commits.
 
 Hosts never expose `inboxEnabled` as a user-facing inbox switch; it appears only in the preferences contract below.
 
@@ -446,7 +450,7 @@ Hosts never expose `inboxEnabled` as a user-facing inbox switch; it appears only
 
 **Errors:** `401` / `403` / `422`; show/open may return `404` `not_found`, as may `GET /me/inbox/conversation` when no member is in scope (including when all are resolved).
 
-**Specs:** `spec/requests/command_tower/me/inbox_spec.rb`, `me/inbox_bulk_spec.rb`.
+**Specs:** `spec/requests/command_tower/me/inbox_spec.rb`, `me/inbox_bulk_spec.rb`, `me/inbox_views_spec.rb`, `me/inbox_mark_all_read_spec.rb`.
 
 ---
 

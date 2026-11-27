@@ -57,6 +57,31 @@ module CommandTower
         render_application_result(CommandTower::Workflows::Messaging::Inbox::UnreadCountWorkflow.call(user: current_user))
       end
 
+      def views
+        # Impersonation is decided before the body is validated.
+        if CommandTower::Current.impersonation_active == true
+          return render_application_result(CommandTower::Workflows::Messaging::Inbox::RecordViewsWorkflow.call(
+            user: current_user, inbox_item_ids: [], impersonated: true
+          ))
+        end
+
+        deserialized = CommandTower::Deserializers::Messaging::Inbox::BulkIdsDeserializer.call(params)
+        return render_deserializer_errors unless deserialized.success?
+
+        render_application_result(CommandTower::Workflows::Messaging::Inbox::RecordViewsWorkflow.call(
+          user: current_user, inbox_item_ids: deserialized.input.inbox_item_ids
+        ))
+      end
+
+      def mark_all_read
+        deserialized = CommandTower::Deserializers::Messaging::Inbox::MarkAllReadDeserializer.call(params)
+        return render_deserializer_errors unless deserialized.success?
+
+        render_application_result(CommandTower::Workflows::Messaging::Inbox::MarkAllReadWorkflow.call(
+          user: current_user, up_to: deserialized.input.up_to
+        ))
+      end
+
       def bulk_read
         run_bulk_workflow(CommandTower::Workflows::Messaging::Inbox::BulkReadWorkflow)
       end

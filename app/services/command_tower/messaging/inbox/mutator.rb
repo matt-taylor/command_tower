@@ -79,6 +79,55 @@ module CommandTower
             bulk_mutate(recipient_id:, inbox_item_ids:, operation: :delete)
           end
 
+          # Scroll-read: marks every available id viewed in one transaction. Unlike bulk_mark_viewed,
+          # ids that are missing, another recipient's or deleted do not fail the batch; they are
+          # returned together as unavailable_ids. newly_viewed lists only first views.
+          def record_views(recipient_id:, inbox_item_ids:)
+            recipient_id = require_recipient_id!(recipient_id)
+            requested_ids = require_inbox_item_ids!(inbox_item_ids)
+
+            viewed_ids = []
+            newly_viewed = []
+
+            ActiveRecord::Base.transaction do
+              records_by_id = Scope.for_recipient(recipient_id).lock.where(id: requested_ids).index_by { |record| record.id.to_s }
+              requested_ids.each do |requested_id|
+                record = records_by_id[requested_id.to_s]
+                next if record.nil? || record.deleted?
+
+                viewed_ids << record.id
+                newly_viewed << { id: record.id, communication_id: record.communication_id } if apply_mark_viewed(record) == :changed
+              end
+            end
+
+            log_bulk_lifecycle(recipient_id:, operation: :mark_viewed, changed_ids: newly_viewed.pluck(:id))
+
+            unavailable_ids = requested_ids.reject { |requested_id| viewed_ids.include?(requested_id.to_i) }
+            RecordViewsResult.new(viewed_ids:, newly_viewed:, unavailable_ids:).freeze
+          end
+
+          # Marks every row that counts as unread (live, not archived, not resolved) with
+          # id <= up_to viewed, in one transaction. Rows above the watermark, archived,
+          # resolved and deleted rows are left untouched, so an Archived-segment call is a no-op.
+          # Locked in id order so concurrent callers cannot deadlock.
+          def mark_all_read(recipient_id:, up_to:)
+            recipient_id = require_recipient_id!(recipient_id)
+            raise ValidationError, "up_to must be a positive integer" unless up_to.is_a?(Integer) && up_to.positive?
+
+            changed_ids = []
+
+            ActiveRecord::Base.transaction do
+              Scope.for_recipient(recipient_id).merge(Messaging::InboxItem.counts_as_unread)
+                   .where(id: ..up_to).order(:id).lock.each do |record|
+                changed_ids << record.id if apply_mark_viewed(record) == :changed
+              end
+            end
+
+            log_bulk_lifecycle(recipient_id:, operation: :mark_viewed, changed_ids:)
+
+            BulkResult.build(ids: changed_ids, changed_count: changed_ids.size)
+          end
+
           private
 
           def set_resolved(recipient_id:, notification_type_key:, host_event_identity:, resolved:)

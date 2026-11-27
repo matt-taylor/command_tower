@@ -1,0 +1,17 @@
+{
+  "contract": "command_tower 0.27.0",
+  "data": {
+    "viewedIds": [
+      1
+    ],
+    "changedCount": 1,
+    "unavailableIds": []
+  },
+  "meta": {
+    "unreadCount": {
+      "count": 1,
+      "badgeCount": 1
+    }
+  },
+  "errors": []
+}

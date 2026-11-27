@@ -156,6 +156,18 @@ module CommandTower
             success(Input.new(inbox_item_ids: values.uniq))
           end
         end
+
+        # `upTo` is an opaque watermark: the client sends the largest id it loaded.
+        class MarkAllReadDeserializer < ShowDeserializer
+          Input = Data.define(:up_to)
+
+          def call(params)
+            value = positive_integer(params[:upTo] || params[:up_to])
+            return failure(errors: { message: "invalid_up_to" }) unless value
+
+            success(Input.new(up_to: value))
+          end
+        end
       end
     end
   end
