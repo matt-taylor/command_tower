@@ -9,7 +9,7 @@ module CommandTower
       before_action :authenticate_request!
       before_action :authorize_request!
       # Inbox reads can carry per-recipient, impersonation-redacted content: never cache them.
-      before_action :set_no_store, only: %i[index show open conversation]
+      before_action :set_no_store, only: %i[index show open conversation unread_count]
 
       def index
         deserialized = CommandTower::Deserializers::Messaging::Inbox::ListDeserializer.call(params)

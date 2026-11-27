@@ -130,7 +130,8 @@ module CommandTower
             with_recipient do |recipient_id|
               result = CommandTower::Messaging::Inbox.unread_count(recipient_id:)
               context.count = result.count
-              context.badge_count = result.badge_count
+              # One number everywhere: the deprecated badgeCount field equals count.
+              context.badge_count = result.count
             end
           end
         end
@@ -173,6 +174,8 @@ module CommandTower
               unread_count: entry.unread_count,
               read: entry.read,
               inbox_item_ids: entry.inbox_item_ids,
+              notification_type_key: entry.notification_type_key,
+              unread_inbox_item_ids: entry.unread_inbox_item_ids,
             }
           end
 

@@ -5,12 +5,12 @@ module CommandTower
     module Rendering
       # Resolves how a push should present itself, in provider-neutral terms: the member's
       # effective urgency, the sound asset (nil for System Default), the conversation
-      # thread, and, for a badge-eligible type, the recipient's current badge-eligible
-      # unread count. Reads the member's stored preference once. Reads the unread count
-      # once, through Messaging::Inbox, only when the declaration is badge-eligible.
+      # thread, and the recipient's current unread count as the badge (every registered
+      # type; `badge_eligible` is deprecated and ignored). Reads the member's stored
+      # preference once. Reads the unread count once, through Messaging::Inbox.
       # The provider adapter maps the result to its own fields. Never raises for an
       # unregistered type or an unreadable preference: it returns defaults and records
-      # a fallback diagnostic instead. An eligible type keeps its badge on that
+      # a fallback diagnostic instead. A registered type keeps its badge on that
       # preference fallback. Any other error, including a count failure, surfaces.
       class PushPresentation
         Result = Data.define(:urgency, :sound, :thread_id, :badge)
@@ -28,7 +28,7 @@ module CommandTower
 
         def call
           declaration = NotificationTypes.lookup(@communication.notification_type_key)
-          badge = badge_count(declaration)
+          badge = badge_count
           blocks = Preferences::EffectiveChoice.call(declaration:, stored: stored_state(declaration))
 
           build(
@@ -59,11 +59,9 @@ module CommandTower
           SoundCatalog.fetch(sound_id)&.fetch(:asset)
         end
 
-        # Nil for a type that is not badge-eligible, so the adapter omits Expo `badge`.
-        # The count is NPB-4's absolute eligible unread total, including 0.
-        def badge_count(declaration)
-          return nil unless declaration.badge_eligible
-
+        # Every type carries the badge: the recipient's absolute unread count, including 0.
+        # `badge_eligible` is deprecated and ignored.
+        def badge_count
           Inbox.unread_count(recipient_id: @communication.user_id).badge_count
         end
 

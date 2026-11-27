@@ -22,6 +22,9 @@ module CommandTower
       scope :default_list, -> { not_deleted.not_archived }
       scope :archived_list, -> { not_deleted.archived }
       scope :unread, -> { default_list.where(viewed_at: nil) }
+      # Per-entry rule used by the Reader in both Inbox and Archived scopes: archived rows
+      # keep reporting their own unread members. The global count uses `unread`.
+      scope :unread_in_scope, -> { not_deleted.where(viewed_at: nil) }
 
       def viewed?
         viewed_at.present?
@@ -43,6 +46,11 @@ module CommandTower
 
       def unread?
         !viewed? && !archived? && !deleted?
+      end
+
+      # Instance form of the `unread_in_scope` scope.
+      def unread_in_scope?
+        !viewed? && !deleted?
       end
 
       # Denormalized label helper — timestamps remain authoritative for filters.

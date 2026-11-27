@@ -80,7 +80,8 @@ RSpec.describe "Inbox conversation fields" do
     it "allows the entry and conversation fields" do
       expect(entry.keys).to contain_exactly(
         :kind, :id, :title, :preview, :activityAt, :createdAt,
-        :messageCount, :unreadCount, :read, :inboxItemIds
+        :messageCount, :unreadCount, :read, :inboxItemIds,
+        :notificationTypeKey, :unreadInboxItemIds
       )
       expect(conversation.keys).to contain_exactly(
         :scope, :subject, :messageCount, :unreadCount, :inboxItemIds, :messages

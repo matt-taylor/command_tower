@@ -1037,7 +1037,7 @@ RSpec.describe CommandTower::Workflows::Messaging::Execution::DeliverWorkflow, :
             deliver_and_capture.call
 
             expect(sent_messages.first).to include("sound" => "chime.wav", "interruptionLevel" => "time-sensitive")
-            expect(sent_messages.first).not_to have_key("badge")
+            expect(sent_messages.first).to include("badge" => 0)
           end
         end
 
@@ -1047,7 +1047,7 @@ RSpec.describe CommandTower::Workflows::Messaging::Execution::DeliverWorkflow, :
 
             expect(sent_messages.first).to include("sound" => "chime.wav")
             expect(sent_messages.first).not_to have_key("interruptionLevel")
-            expect(sent_messages.first).not_to have_key("badge")
+            expect(sent_messages.first).to include("badge" => 0)
           end
         end
 
@@ -1071,7 +1071,7 @@ RSpec.describe CommandTower::Workflows::Messaging::Execution::DeliverWorkflow, :
 
           it "sends the stored choice on the permitted retry after not_submitted" do
             expect(sent_messages.first).to include("sound" => "chime.wav", "interruptionLevel" => "time-sensitive")
-            expect(sent_messages.first).not_to have_key("badge")
+            expect(sent_messages.first).to include("badge" => 0)
           end
         end
 

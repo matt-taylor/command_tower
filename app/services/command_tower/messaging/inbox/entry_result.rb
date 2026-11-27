@@ -14,8 +14,11 @@ module CommandTower
         :unread_count,
         :read,
         :inbox_item_ids,
+        :notification_type_key,
+        :unread_inbox_item_ids,
       ) do
-        def self.build(kind:, id:, title:, preview:, activity_at:, message_count:, unread_count:, inbox_item_ids:)
+        def self.build(kind:, id:, title:, preview:, activity_at:, message_count:, unread_count:, inbox_item_ids:,
+                       notification_type_key: nil, unread_inbox_item_ids: [])
           kind = kind.to_s
           new(
             kind:,
@@ -27,8 +30,14 @@ module CommandTower
             message_count: Integer(message_count),
             unread_count: Integer(unread_count),
             read: Integer(unread_count).zero?,
-            inbox_item_ids: Array(inbox_item_ids).map { |value| Integer(value) }.freeze,
+            inbox_item_ids: integer_ids(inbox_item_ids),
+            notification_type_key: notification_type_key&.to_s,
+            unread_inbox_item_ids: integer_ids(unread_inbox_item_ids),
           ).freeze
+        end
+
+        def self.integer_ids(values)
+          Array(values).map { |value| Integer(value) }.freeze
         end
       end
     end

@@ -19,6 +19,18 @@ module CommandTower
 
             failure(errors: result.errors, http_status: CommandTower::Workflows::Messaging::ErrorMapping.http_status_for(result.errors.first))
           end
+
+          # Read after the mutation so the client updates its badge from the same response.
+          def success_with_unread_count(user:, payload:)
+            count_result = CommandTower::Services::Messaging::Inbox::UnreadCount.call(user:)
+            return result_or_failure(count_result) unless count_result.success?
+
+            success(
+              payload:,
+              meta: CommandTower::Serializers::Messaging::Inbox::UnreadCountMetaSerializer.serialize(count_result.data),
+              http_status: :ok
+            )
+          end
         end
 
         class ListWorkflow < BaseWorkflow
@@ -71,7 +83,9 @@ module CommandTower
 
             audit_first_view(user:, inbox_item_id:, result:) unless impersonated
 
-            success(payload: CommandTower::Serializers::Messaging::Inbox::DetailSerializer.serialize(result.data[:item]), http_status: :ok)
+            success_with_unread_count(
+              user:, payload: CommandTower::Serializers::Messaging::Inbox::DetailSerializer.serialize(result.data[:item])
+            )
           end
 
           private
@@ -94,7 +108,9 @@ module CommandTower
             result = CommandTower::Services::Messaging::Inbox::Archive.call(user:, inbox_item_id:)
             return result_or_failure(result) unless result.success?
 
-            success(payload: CommandTower::Serializers::Messaging::Inbox::ItemSerializer.serialize(result.data[:item]), http_status: :ok)
+            success_with_unread_count(
+              user:, payload: CommandTower::Serializers::Messaging::Inbox::ItemSerializer.serialize(result.data[:item])
+            )
           end
         end
 
@@ -103,7 +119,7 @@ module CommandTower
             result = CommandTower::Services::Messaging::Inbox::Delete.call(user:, inbox_item_id:)
             return result_or_failure(result) unless result.success?
 
-            success(payload: nil, http_status: :ok)
+            success_with_unread_count(user:, payload: nil)
           end
         end
 
@@ -123,9 +139,8 @@ module CommandTower
               result = CommandTower::Services::Messaging::Inbox.const_get(service_name).call(user:, inbox_item_ids:)
               return result_or_failure(result) unless result.success?
 
-              success(
-                payload: CommandTower::Serializers::Messaging::Inbox::BulkResultSerializer.serialize(result.data[:bulk_result]),
-                http_status: :ok
+              success_with_unread_count(
+                user:, payload: CommandTower::Serializers::Messaging::Inbox::BulkResultSerializer.serialize(result.data[:bulk_result])
               )
             end
           end)

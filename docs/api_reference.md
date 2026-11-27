@@ -403,7 +403,7 @@ Pagination for list: query `limit` (default **50**, max **100**), `offset` (defa
 | `POST` | `/me/inbox/:id/open` | Detail (+ `content`). Renders once; the first non-impersonated open marks the item viewed and emits one `messaging_inbox_item_viewed` audit event (see [audit.md](audit.md)). Impersonated opens return the detail without marking viewed or auditing. |
 | `PATCH` | `/me/inbox/:id/archive` | Item |
 | `DELETE` | `/me/inbox/:id` | `data: null` |
-| `GET` | `/me/inbox/unread-count` | `{ count, badgeCount }` (`badgeCount` counts only unread items of badge-eligible notification types) |
+| `GET` | `/me/inbox/unread-count` | `{ count, badgeCount }`. `badgeCount` is deprecated and always equals `count`. Sends `Cache-Control: no-store`. |
 | `POST` | `/me/inbox/bulk/read` | Body `ids` (1–100 ints) → `{ ids, count, changedCount }` |
 | `POST` | `/me/inbox/bulk/unread` | same |
 | `POST` | `/me/inbox/bulk/archive` | same |
@@ -423,7 +423,7 @@ For a defined notification type while impersonating (or when the type is unknown
 
 Generic (default) rendering: one `paragraph` block from `communication.body` (omitted if blank — `blocks` can legitimately be `[]`), plus one `cta` block if there is a safe destination: `metadata.deep_link_path` (internal, wins when present and safe) else `metadata.deep_link` (external). Label from `metadata.cta_label`, default `"Open"`.
 
-**`X-UI-Catalog` request header:** accepted on every request (CommandTower reads it in the HTTP boundary). Missing or invalid values mean `1`; it changes only Inbox `content` for types registered with a `message:` MessageDefinition (catalog 2 or higher returns `ui_document`, catalog 1 returns `inbox_document_v1`); undefined types are identical for every catalog. Inbox read responses set `Cache-Control: no-store`. See [ui.md](ui.md#catalog-header).
+**`X-UI-Catalog` request header:** accepted on every request (CommandTower reads it in the HTTP boundary). Missing or invalid values mean `1`; it changes only Inbox `content` for types registered with a `message:` MessageDefinition (catalog 2 or higher returns `ui_document`, catalog 1 returns `inbox_document_v1`); undefined types are identical for every catalog. Inbox read responses (list, show, open, conversation, unread-count) set `Cache-Control: no-store`. See [ui.md](ui.md#catalog-header).
 
 **`X-Time-Zone` request header:** an optional TZInfo identifier (for example `America/New_York`, at most 64 characters). The HTTP boundary reads it into `CommandTower::Current.client_time_zone`; anything else is ignored. After a 2xx response to an authenticated, non-impersonated request, CommandTower records it as the user's `last_known_timezone` column, which `GET /me` returns (as the user's shown attribute; hosts with serializer or snapshot tests will see a real value instead of null). The write happens only when the zone changed and the previous write is more than one hour old, fails open (it never changes the response), and never logs the zone. Requests made while impersonating never write. Hosts that list CORS `headers:` explicitly must add `X-Time-Zone` ([bootstrap step 11](bootstrap/11-auth-client-path.md), [cookie guide](cookie_authentication_guide.md#cors)).
 
@@ -431,7 +431,14 @@ Generic (default) rendering: one `paragraph` block from `communication.body` (om
 
 A notification type may override the document with a pure-Ruby composer (`declaration.inbox_document_composer`, called with `communication:`, returning an `InboxDocument`). Any failure (unregistered type, unresolvable class, a raising composer, a non-`InboxDocument` result) fails open to the generic document — the Inbox read path never 500s on a bad composer. The former `inbox_document.json.erb` host override is no longer read.
 
-**List row fields (`GET /me/inbox`):** `kind`, `id`, `title`, `preview`, `activityAt`, `createdAt`, `messageCount`, `unreadCount`, `read`, `inboxItemIds`. Item payloads (archive, `bulk` targets, conversation `messages`) use `id`, `title`, `status`, `read`, `viewedAt`, `createdAt`, `updatedAt`; conversation messages also carry the detail fields.
+**List row fields (`GET /me/inbox`):** `kind`, `id`, `title`, `preview`, `activityAt`, `createdAt`, `messageCount`, `unreadCount`, `read`, `inboxItemIds`, `notificationTypeKey` (the latest message's type key, may be `null`), `unreadInboxItemIds` (ids of the row's unread members, `[]` when none). Item payloads (archive, `bulk` targets, conversation `messages`) use `id`, `title`, `status`, `read`, `viewedAt`, `createdAt`, `updatedAt`; conversation messages also carry the detail fields.
+
+**Unread rules (two, by design):**
+
+- **Global number** (`GET /me/inbox/unread-count` `count`, `badgeCount`, `meta.unreadCount.count`, and the push badge for every notification type): items that are not viewed, not archived and not deleted. `badgeCount` equals `count`. The notification type declaration's `badge_eligible` is deprecated, accepted and ignored.
+- **Per-row** (`unreadCount`, `read`, `unreadInboxItemIds` on list rows, and `oldest_unread` anchoring in `GET /me/inbox/conversation`): items that are not viewed and not deleted, in both `inbox` and `archived` scopes, so an archived row reports its own unread members. These do not feed the global number.
+
+**`meta.unreadCount` on mutations:** `POST /me/inbox/:id/open`, `PATCH /me/inbox/:id/archive`, `DELETE /me/inbox/:id` and every `POST /me/inbox/bulk/*` response carry `meta: { unreadCount: { count, badgeCount } }`, the same one number as `GET /me/inbox/unread-count` read after the mutation, so a client can update its badge from the same response. The `data` shapes are unchanged.
 
 Hosts never expose `inboxEnabled` as a user-facing inbox switch; it appears only in the preferences contract below.
 
