@@ -42,7 +42,6 @@ class CreateCommandTowerMessagingCore < ActiveRecord::Migration[7.2]
       t.datetime :viewed_at
       t.datetime :archived_at
       t.datetime :deleted_at
-      t.datetime :resolved_at
     end
 
     add_index :messaging_inbox_items,
