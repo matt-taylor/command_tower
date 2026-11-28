@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.27.0
+
+Inbox lifecycle and freshness. Two additive migrations (`messaging_inbox_items.resolved_at`, `messaging_communications.collapse_key`): run `command_tower:install:migrations` and `db:migrate` before new code serves traffic. See the [upgrade guide](docs/upgrades/0.27.0.md), the [API reference](docs/api_reference.md) and the [messaging guide](docs/messaging_integration_guide.md).
+
+### Added
+
+- `POST /me/inbox/views` (passive scroll-read, 1 to 100 ids) and `POST /me/inbox/mark-all-read` (`upTo` watermark).
+- `meta.unreadCount` (`{ count, badgeCount }`) on open, archive, delete, views, mark-all-read and every `bulk/*` response. `GET /me/inbox/unread-count` sends `Cache-Control: no-store`.
+- `Messaging::Contract::Inbox.resolve_for_event` / `unresolve_for_event` (`resolved_at`): resolved items leave the list, count and badge.
+- List rows add `notificationTypeKey` and `unreadInboxItemIds`; unread is counted within the list scope.
+- Optional `collapse_key:` on Produce and Accept, sent to Expo as `collapseId`.
+- `config.messaging.inbox.restore_archived_thread_on_new_message` (default `false`) and `config.messaging.inbox.badge_sync_push` (default `false`, silent badge-only push).
+- Audit event `messaging_inbox_changed_while_impersonating` for allowed inbox mutations while impersonating.
+
+### Changed
+
+- One number rule: `badgeCount` always equals `count`, and the push `badge` is the same number for every notification type.
+- `DELETE /me/inbox/:id` and `POST /me/inbox/bulk/delete` return `403` `inbox_impersonation_forbidden` while impersonating.
+
+### Deprecated
+
+- `badge_eligible` on notification type declarations is accepted and ignored.
+
 ## Unreleased
 
 ### Security

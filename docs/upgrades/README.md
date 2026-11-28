@@ -4,6 +4,7 @@ Host-facing upgrade / change summaries for CommandTower releases.
 
 | Version | Summary |
 |---------|---------|
+| [0.27.0](0.27.0.md) | Inbox lifecycle and freshness: one unread number (`badge_eligible` deprecated), `resolved_at` resolve contract, `meta.unreadCount` on mutations, `views` and `mark-all-read`, `no-store` unread-count, delete 403 and audit under impersonation, thread restore and badge-only push options (off by default), push `collapse_key`; two additive migrations (`install:migrations` + `db:migrate` required) |
 | [0.26.0](0.26.0.md) | Experience-states hardening: host key registry (register before bumping), complete rate limit and per-user cap, refused while impersonating, audit metadata and one-year retention; no migration |
 | [0.25.0](0.25.0.md) (draft) | Device sessions: `command_tower_device_sessions` migration, `config.session.*`, `sid` token claim, `session_expired` / `session_revoked` 401 codes |
 | [0.24.0](0.24.0.md) | Home Notices: `Campaign` / `Delivery` notices (blocking or dismissible), `command_tower_home_notices` and `command_tower_home_notice_controls` migrations, `config.home_notices`, `me_home_notices` / `admin_home_notices_kill` RBAC |
