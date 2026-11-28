@@ -13,6 +13,17 @@ module CommandTower
         }.freeze
 
         class << self
+          # Runs the block once the outermost transaction has committed (immediately when none is
+          # open), so a rolled-back change never logs a lifecycle event. Logging is best-effort and
+          # must not fail a request whose change is already committed.
+          def after_commit
+            ActiveRecord.after_all_transactions_commit do
+              yield
+            rescue StandardError
+              nil
+            end
+          end
+
           def lifecycle_changed(operation:, item:, bulk: false)
             event = EVENT_BY_OPERATION.fetch(operation)
             Contract::Observability::Publisher.info(

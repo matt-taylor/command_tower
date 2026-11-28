@@ -1,0 +1,29 @@
+{
+  "contract": "command_tower 0.27.0",
+  "data": [
+    {
+      "kind": "message",
+      "id": 1,
+      "title": "Message title 1",
+      "preview": null,
+      "activityAt": "2026-01-01T00:00:00.000Z",
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "messageCount": 1,
+      "unreadCount": 1,
+      "read": false,
+      "inboxItemIds": [
+        1
+      ],
+      "notificationTypeKey": "example.type",
+      "unreadInboxItemIds": [
+        1
+      ]
+    }
+  ],
+  "meta": {
+    "limit": 50,
+    "offset": 0,
+    "totalCount": 1
+  },
+  "errors": []
+}

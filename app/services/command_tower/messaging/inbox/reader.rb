@@ -46,7 +46,7 @@ module CommandTower
               scope:,
               subject: latest.communication.conversation_title,
               message_count: records.size,
-              unread_count: records.count { |record| record.viewed_at.nil? },
+              unread_count: records.count(&:unread_in_scope?),
               inbox_item_ids: records.map(&:id),
               message_ids: window ? window.fetch(:message_ids) : records.map(&:id),
               window: window&.except(:message_ids),
@@ -77,25 +77,16 @@ module CommandTower
 
           def unread_count(recipient_id:)
             recipient_id = require_recipient_id!(recipient_id)
-            unread = Scope.for_recipient(recipient_id).merge(Messaging::InboxItem.unread)
+            unread = Scope.for_recipient(recipient_id).merge(Messaging::InboxItem.counts_as_unread)
 
             UnreadCountResult.build(
               recipient_id:,
               count: unread.count,
-              badge_count: badge_eligible_count(unread),
+              badge_count: unread.count,
             )
           end
 
           private
-
-          # Unread rows whose declaration is badge_eligible. Unregistered keys are absent
-          # from that set. Channel preferences are not consulted.
-          def badge_eligible_count(unread)
-            keys = CommandTower::Messaging::NotificationTypes.enumerate.select(&:badge_eligible).map(&:key)
-            return 0 if keys.empty?
-
-            unread.where(messaging_communications: { notification_type_key: keys }).count
-          end
 
           def require_recipient_id!(recipient_id)
             raise ValidationError, "recipient_id is required" if blank?(recipient_id)
@@ -234,8 +225,10 @@ module CommandTower
               preview: conversation ? latest.communication.title : nil,
               activity_at: latest.created_at,
               message_count: group.size,
-              unread_count: group.count { |member| member.viewed_at.nil? },
+              unread_count: group.count(&:unread_in_scope?),
               inbox_item_ids: group.map(&:id),
+              notification_type_key: latest.communication.notification_type_key,
+              unread_inbox_item_ids: group.select(&:unread_in_scope?).map(&:id),
             )
           end
 
@@ -277,7 +270,7 @@ module CommandTower
           end
 
           def resolve_anchor(records, around)
-            return records.find { |record| record.viewed_at.nil? } || records.last if around.to_s == OLDEST_UNREAD
+            return records.find(&:unread_in_scope?) || records.last if around.to_s == OLDEST_UNREAD
 
             find_member!(records, around)
           end

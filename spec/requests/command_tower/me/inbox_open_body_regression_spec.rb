@@ -31,7 +31,11 @@ RSpec.describe "Me inbox open body regression", :messaging_inbox, :with_rbac_set
       "createdAt" => item.created_at.utc.iso8601,
       "updatedAt" => item.updated_at.utc.iso8601
     }
-    { "data" => per_item_fields.merge(static_fields), "meta" => {}, "errors" => [] }
+    {
+      "data" => per_item_fields.merge(static_fields),
+      "meta" => { "unreadCount" => { "count" => 0, "badgeCount" => 0 } },
+      "errors" => []
+    }
   end
 
   shared_examples "an unchanged open body" do

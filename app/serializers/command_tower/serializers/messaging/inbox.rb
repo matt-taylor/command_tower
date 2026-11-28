@@ -17,6 +17,8 @@ module CommandTower
               unreadCount: entry.fetch(:unread_count),
               read: entry.fetch(:read),
               inboxItemIds: entry.fetch(:inbox_item_ids),
+              notificationTypeKey: entry[:notification_type_key],
+              unreadInboxItemIds: entry.fetch(:unread_inbox_item_ids, []),
             }
           end
         end
@@ -71,9 +73,25 @@ module CommandTower
           end
         end
 
+        class RecordViewsSerializer
+          def self.serialize(result)
+            payload = { viewedIds: result.fetch(:viewed_ids), changedCount: result.fetch(:changed_count),
+                        unavailableIds: result.fetch(:unavailable_ids) }
+            payload[:skipped] = result[:skipped] if result[:skipped]
+            payload
+          end
+        end
+
         class UnreadCountSerializer
           def self.serialize(payload)
             { count: payload.fetch(:count), badgeCount: payload.fetch(:badge_count) }
+          end
+        end
+
+        # `meta.unreadCount` on every inbox mutation: the same one number as GET /me/inbox/unread-count.
+        class UnreadCountMetaSerializer
+          def self.serialize(payload)
+            { unreadCount: UnreadCountSerializer.serialize(payload) }
           end
         end
 

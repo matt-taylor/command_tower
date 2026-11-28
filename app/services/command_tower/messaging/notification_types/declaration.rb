@@ -93,7 +93,8 @@ module CommandTower
             # artifacts/visual-improvements/rich-messaging/authority/RICH_MESSAGING_RUBY_INBOX_DEFINITION_DISCOVERY.md.
             inbox_document_composer: inbox_document_composer.nil? ? nil : inbox_document_composer.to_s,
             # Notification Product Behavior (NPB-1). All default to today's behavior.
-            # `badge_eligible`: unread inbox items of this type count toward the app-icon badge.
+            # `badge_eligible`: DEPRECATED, accepted and ignored. Every push badge and the
+            # served `badgeCount` equal the single unread `count` for every type.
             # `urgency` / `sound`: `{ default:, allowed: [ids] | "all" }`; nil is fixed
             # "normal" / "default". Invalid input is kept so DeclarationValidator reports it.
             badge_eligible: !!badge_eligible,

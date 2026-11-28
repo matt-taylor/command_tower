@@ -34,10 +34,48 @@ RSpec.describe "Me inbox", :with_rbac_setup, :messaging_inbox, type: :request do
 
     expect(response).to have_http_status(:ok)
     expect(response.parsed_body.dig("data", "count")).to eq(1)
-    expect(response.parsed_body.dig("data", "badgeCount")).to eq(0)
+    expect(response.parsed_body.dig("data", "badgeCount")).to eq(1)
   end
 
-  context "when unread items differ in badge eligibility", :messaging_notification_types do
+  it "serves unread-count with Cache-Control no-store" do
+    get "/me/inbox/unread-count", headers: headers
+
+    expect(response.headers["Cache-Control"]).to include("no-store")
+    write_inbox_contract_fixture("unread_count", response)
+  end
+
+  it "adds notificationTypeKey and unreadInboxItemIds to list rows" do
+    get "/me/inbox", headers: headers
+    write_inbox_contract_fixture("list_row", response)
+
+    row = response.parsed_body.fetch("data").find { |entry| entry["id"] == inbox_item.id }
+    expect(row).to include(
+      "notificationTypeKey" => inbox_item.communication.notification_type_key,
+      "unreadInboxItemIds" => [inbox_item.id],
+    )
+  end
+
+  it "attaches meta.unreadCount to open, archive and delete without changing data" do
+    post "/me/inbox/#{inbox_item.id}/open", headers: headers
+    expect(response.parsed_body.dig("meta", "unreadCount")).to eq("count" => 0, "badgeCount" => 0)
+    expect(response.parsed_body.fetch("data")).to include("id" => inbox_item.id, "read" => true)
+    write_inbox_contract_fixture("open", response)
+
+    other = create_inbox_for(user:)
+    patch "/me/inbox/#{other.id}/archive", headers: headers
+    expect(response.parsed_body.dig("meta", "unreadCount", "count")).to eq(0)
+    expect(response.parsed_body.fetch("data")).to include("id" => other.id)
+    write_inbox_contract_fixture("archive", response)
+
+    third = create_inbox_for(user:)
+    delete "/me/inbox/#{third.id}", headers: headers
+    write_inbox_contract_fixture("delete", response)
+    expect(response).to have_http_status(:ok)
+    expect(response.parsed_body.dig("meta", "unreadCount", "count")).to eq(0)
+    expect(response.parsed_body["data"]).to be_nil
+  end
+
+  context "when unread items differ in the deprecated badge eligibility flag", :messaging_notification_types do
     before do
       register_and_seal_notification_types(
         build_notification_type_declaration(key: "badge.on", badge_eligible: true),
@@ -60,12 +98,12 @@ RSpec.describe "Me inbox", :with_rbac_setup, :messaging_inbox, type: :request do
       create(:messaging_inbox_item, communication:)
     end
 
-    it "returns count and badgeCount" do
+    it "serves badgeCount equal to count" do
       get "/me/inbox/unread-count", headers: headers
 
       expect(response).to have_http_status(:ok)
       expect(response.parsed_body.dig("data", "count")).to eq(2)
-      expect(response.parsed_body.dig("data", "badgeCount")).to eq(1)
+      expect(response.parsed_body.dig("data", "badgeCount")).to eq(2)
       expect(eligible_item).to be_present
       expect(ineligible_item).to be_present
     end
@@ -389,6 +427,54 @@ RSpec.describe "Me inbox", :with_rbac_setup, :messaging_inbox, type: :request do
     end
   end
 
+  context "when conversation members are resolved" do
+    let!(:inbox_item) { nil }
+    let(:first_communication) do
+      create(:messaging_communication, user:, title: "One", conversation_key: "week-5", conversation_title: "Week 5")
+    end
+    let(:second_communication) do
+      create(:messaging_communication, user:, title: "Two", conversation_key: "week-5", conversation_title: "Week 5")
+    end
+    let!(:first_member) { create(:messaging_inbox_item, communication: first_communication) }
+    let!(:second_member) { create(:messaging_inbox_item, communication: second_communication) }
+
+    context "with one member resolved" do
+      before { first_member.update!(resolved_at: Time.current) }
+
+      it "keeps the conversation with its unresolved members" do
+        get "/me/inbox/conversation", params: { key: "week-5" }, headers: headers
+
+        expect(response).to have_http_status(:ok)
+        expect(response.parsed_body.dig("data", "inboxItemIds")).to eq([second_member.id])
+      end
+    end
+
+    context "with every member resolved" do
+      before do
+        first_member.update!(resolved_at: Time.current)
+        second_member.update!(resolved_at: Time.current)
+      end
+
+      it "is not found for the conversation" do
+        get "/me/inbox/conversation", params: { key: "week-5" }, headers: headers
+
+        expect(response).to have_http_status(:not_found)
+      end
+
+      it "drops resolved members from the list" do
+        get "/me/inbox", headers: headers
+
+        expect(response.parsed_body.fetch("data")).to eq([])
+      end
+
+      it "still opens one by id" do
+        get "/me/inbox/#{first_member.id}", headers: headers
+
+        expect(response).to have_http_status(:ok)
+      end
+    end
+  end
+
   context "when the key belongs to someone else" do
     let!(:inbox_item) { nil }
     let(:other_user) { create(:user, roles: ["member"]) }
@@ -454,7 +540,7 @@ RSpec.describe "Me inbox", :with_rbac_setup, :messaging_inbox, type: :request do
     it "counts inbox items" do
       expect(count_response).to have_http_status(:ok)
       expect(count_response.parsed_body.dig("data", "count")).to eq(2)
-      expect(count_response.parsed_body.dig("data", "badgeCount")).to eq(0)
+      expect(count_response.parsed_body.dig("data", "badgeCount")).to eq(2)
     end
   end
 

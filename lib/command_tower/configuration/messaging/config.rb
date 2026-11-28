@@ -5,6 +5,7 @@ require "command_tower/configuration/messaging/sms"
 require "command_tower/configuration/messaging/pushover"
 require "command_tower/configuration/messaging/expo"
 require "command_tower/configuration/messaging/compliance"
+require "command_tower/configuration/messaging/inbox"
 
 module CommandTower
   module Configuration
@@ -77,6 +78,11 @@ module CommandTower
                 "preferences path, postal address, token secret)",
           allowed: Compliance,
           default: Compliance.new
+
+        add_composer :inbox,
+          desc: "Inbox behaviour configuration (thread restore on a new message)",
+          allowed: Inbox,
+          default: Inbox.new
 
         add_composer :strict_definitions,
           desc: "When true, MessageDefinition violations (metadata schema, explicit copy on a defined " \

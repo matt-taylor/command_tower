@@ -1,0 +1,19 @@
+{
+  "contract": "command_tower 0.27.0",
+  "data": {
+    "id": 1,
+    "title": "Message title 1",
+    "status": "archived",
+    "read": false,
+    "viewedAt": null,
+    "createdAt": "2026-01-01T00:00:00.000Z",
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  "meta": {
+    "unreadCount": {
+      "count": 0,
+      "badgeCount": 0
+    }
+  },
+  "errors": []
+}

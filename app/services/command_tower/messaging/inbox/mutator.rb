@@ -32,6 +32,17 @@ module CommandTower
             nil
           end
 
+          # Host-driven, keyed by the communication idempotency namespace. Idempotent,
+          # never touches viewed_at, emits no audit. Returns nil when there is no live
+          # inbox item for the recipient and event.
+          def resolve_for_event(recipient_id:, notification_type_key:, host_event_identity:)
+            set_resolved(recipient_id:, notification_type_key:, host_event_identity:, resolved: true)
+          end
+
+          def unresolve_for_event(recipient_id:, notification_type_key:, host_event_identity:)
+            set_resolved(recipient_id:, notification_type_key:, host_event_identity:, resolved: false)
+          end
+
           def mark_unviewed(recipient_id:, inbox_item_id:)
             mutate(recipient_id:, inbox_item_id:, operation: :mark_unviewed)
           end
@@ -68,7 +79,91 @@ module CommandTower
             bulk_mutate(recipient_id:, inbox_item_ids:, operation: :delete)
           end
 
+          # Scroll-read: marks every available id viewed in one transaction. Unlike bulk_mark_viewed,
+          # ids that are missing, another recipient's or deleted do not fail the batch; they are
+          # returned together as unavailable_ids. newly_viewed lists only first views.
+          def record_views(recipient_id:, inbox_item_ids:)
+            recipient_id = require_recipient_id!(recipient_id)
+            requested_ids = require_inbox_item_ids!(inbox_item_ids)
+
+            viewed_ids = []
+            newly_viewed = []
+
+            ActiveRecord::Base.transaction do
+              records_by_id = Scope.for_recipient(recipient_id).lock.where(id: requested_ids).index_by { |record| record.id.to_s }
+              requested_ids.each do |requested_id|
+                record = records_by_id[requested_id.to_s]
+                next if record.nil? || record.deleted?
+
+                viewed_ids << record.id
+                newly_viewed << { id: record.id, communication_id: record.communication_id } if apply_mark_viewed(record) == :changed
+              end
+            end
+
+            log_bulk_lifecycle(recipient_id:, operation: :mark_viewed, changed_ids: newly_viewed.pluck(:id))
+
+            unavailable_ids = requested_ids.reject { |requested_id| viewed_ids.include?(requested_id.to_i) }
+            RecordViewsResult.new(viewed_ids:, newly_viewed:, unavailable_ids:).freeze
+          end
+
+          # Marks every row that counts as unread (live, not archived, not resolved) with
+          # id <= up_to viewed, in one transaction. Rows above the watermark, archived,
+          # resolved and deleted rows are left untouched, so an Archived-segment call is a no-op.
+          # Locked in id order so concurrent callers cannot deadlock.
+          def mark_all_read(recipient_id:, up_to:)
+            recipient_id = require_recipient_id!(recipient_id)
+            raise ValidationError, "up_to must be a positive integer" unless up_to.is_a?(Integer) && up_to.positive?
+
+            changed_ids = []
+
+            ActiveRecord::Base.transaction do
+              Scope.for_recipient(recipient_id).merge(Messaging::InboxItem.counts_as_unread)
+                   .where(id: ..up_to).order(:id).lock.each do |record|
+                changed_ids << record.id if apply_mark_viewed(record) == :changed
+              end
+              audit_impersonated_changes(recipient_id:, action: :mark_all_read, changed_ids:, up_to:)
+            end
+
+            log_bulk_lifecycle(recipient_id:, operation: :mark_viewed, changed_ids:)
+            schedule_badge_sync(recipient_id) if changed_ids.any?
+
+            BulkResult.build(ids: changed_ids, changed_count: changed_ids.size)
+          end
+
           private
+
+          def schedule_badge_sync(recipient_id)
+            BadgeSyncScheduler.schedule_after_commit(recipient_id)
+          end
+
+          def set_resolved(recipient_id:, notification_type_key:, host_event_identity:, resolved:)
+            recipient_id = require_recipient_id!(recipient_id)
+            raise ValidationError, "notification_type_key is required" if blank?(notification_type_key)
+            raise ValidationError, "host_event_identity is required" if blank?(host_event_identity)
+
+            communication = Messaging::Communication.find_by_idempotency_namespace(
+              user_id: recipient_id, notification_type_key:, host_event_identity:,
+            )
+            return nil if communication.nil?
+
+            result = ActiveRecord::Base.transaction do
+              flip_resolved(recipient_id:, communication_id: communication.id, resolved:)
+            end
+            schedule_badge_sync(recipient_id) if result&.changed
+            result
+          end
+
+          def flip_resolved(recipient_id:, communication_id:, resolved:)
+            record = Scope.find_for_recipient_communication(recipient_id:, communication_id:, lock: true)
+            return nil if record.nil? || record.deleted?
+
+            changed = record.resolved? != resolved
+            record.update!(resolved_at: resolved ? Time.current : nil) if changed
+
+            ResolutionResult.new(
+              communication_id:, inbox_item_id: record.id, resolved: record.resolved?, changed:,
+            ).freeze
+          end
 
           def mutate(recipient_id:, inbox_item_id:, operation:)
             recipient_id = require_recipient_id!(recipient_id)
@@ -89,10 +184,12 @@ module CommandTower
               outcome = apply(operation, record)
               record.reload
               result = ItemResult.from_record(record)
+              audit_impersonated_changes(recipient_id:, action: operation, changed_ids: outcome == :changed ? [record.id] : [])
             end
 
             if outcome == :changed
-              OperationLogger.lifecycle_changed(operation:, item: result)
+              OperationLogger.after_commit { OperationLogger.lifecycle_changed(operation:, item: result) }
+              schedule_badge_sync(recipient_id)
             end
 
             result = result.with(newly_viewed: true) if operation == :mark_viewed && outcome == :changed
@@ -114,9 +211,11 @@ module CommandTower
                 ids << record.id
                 changed_ids << record.id if apply(operation, record) == :changed
               end
+              audit_impersonated_changes(recipient_id:, action: :"bulk_#{operation}", changed_ids:)
             end
 
             log_bulk_lifecycle(recipient_id:, operation:, changed_ids:)
+            schedule_badge_sync(recipient_id) if changed_ids.any?
 
             BulkResult.build(ids:, changed_count: changed_ids.size)
           end
@@ -144,26 +243,33 @@ module CommandTower
             requested_ids.map { |requested_id| records_by_id.fetch(requested_id.to_s) }
           end
 
-          # Logs post-commit, one lifecycle event per actually-changed item.
+          # Called inside the mutation transaction; emits at most one audit event per request.
+          def audit_impersonated_changes(recipient_id:, action:, changed_ids:, up_to: nil)
+            ImpersonationAudit.record_changes(recipient_id:, action:, changed_ids:, up_to:)
+          end
+
+          # Logs after the outermost transaction commits, one lifecycle event per actually-changed item.
           def log_bulk_lifecycle(recipient_id:, operation:, changed_ids:)
             return if changed_ids.empty?
 
-            records_by_id =
-              Scope
-                .for_recipient(recipient_id)
-                .includes(:communication)
-                .where(id: changed_ids)
-                .index_by(&:id)
+            OperationLogger.after_commit do
+              records_by_id =
+                Scope
+                  .for_recipient(recipient_id)
+                  .includes(:communication)
+                  .where(id: changed_ids)
+                  .index_by(&:id)
 
-            changed_ids.each do |changed_id|
-              record = records_by_id[changed_id]
-              next if record.nil?
+              changed_ids.each do |changed_id|
+                record = records_by_id[changed_id]
+                next if record.nil?
 
-              OperationLogger.lifecycle_changed(
-                operation:,
-                item: ItemResult.from_record(record),
-                bulk: true,
-              )
+                OperationLogger.lifecycle_changed(
+                  operation:,
+                  item: ItemResult.from_record(record),
+                  bulk: true,
+                )
+              end
             end
           end
 

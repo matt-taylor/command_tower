@@ -1,0 +1,11 @@
+{
+  "contract": "command_tower 0.27.0",
+  "data": null,
+  "meta": {},
+  "errors": [
+    {
+      "code": "inbox_impersonation_forbidden",
+      "message": "This inbox action is unavailable while impersonating a user."
+    }
+  ]
+}

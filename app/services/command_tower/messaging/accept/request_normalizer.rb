@@ -45,6 +45,7 @@ module CommandTower
 
         # Defined types (a non-nil metadata_version) derive title and body from the definition, so
         # they are not part of the basis; the version is, so a changed definition conflicts.
+        # conversation_key, conversation_title and collapse_key are delivery hints and stay out of it.
         def canonical_payload
           shared = {
             "metadata" => normalize_value(@metadata),

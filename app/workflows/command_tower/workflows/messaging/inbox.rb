@@ -19,6 +19,18 @@ module CommandTower
 
             failure(errors: result.errors, http_status: CommandTower::Workflows::Messaging::ErrorMapping.http_status_for(result.errors.first))
           end
+
+          # Read after the mutation so the client updates its badge from the same response.
+          def success_with_unread_count(user:, payload:)
+            count_result = CommandTower::Services::Messaging::Inbox::UnreadCount.call(user:)
+            return result_or_failure(count_result) unless count_result.success?
+
+            success(
+              payload:,
+              meta: CommandTower::Serializers::Messaging::Inbox::UnreadCountMetaSerializer.serialize(count_result.data),
+              http_status: :ok
+            )
+          end
         end
 
         class ListWorkflow < BaseWorkflow
@@ -71,7 +83,9 @@ module CommandTower
 
             audit_first_view(user:, inbox_item_id:, result:) unless impersonated
 
-            success(payload: CommandTower::Serializers::Messaging::Inbox::DetailSerializer.serialize(result.data[:item]), http_status: :ok)
+            success_with_unread_count(
+              user:, payload: CommandTower::Serializers::Messaging::Inbox::DetailSerializer.serialize(result.data[:item])
+            )
           end
 
           private
@@ -89,12 +103,63 @@ module CommandTower
           end
         end
 
+        # Scroll-read. While impersonating nothing is recorded: the skip answers before any
+        # id is looked at, so it never depends on the ids being valid.
+        class RecordViewsWorkflow < BaseWorkflow
+          def call(user:, inbox_item_ids:, impersonated: false)
+            return skipped_result(user:) if impersonated
+
+            result = CommandTower::Services::Messaging::Inbox::RecordViews.call(user:, inbox_item_ids:)
+            return result_or_failure(result) unless result.success?
+
+            data = result.data[:record_views]
+            audit_first_views(user:, newly_viewed: data[:newly_viewed])
+            success_with_unread_count(user:, payload: CommandTower::Serializers::Messaging::Inbox::RecordViewsSerializer.serialize(data))
+          end
+
+          private
+
+          def skipped_result(user:)
+            payload = CommandTower::Serializers::Messaging::Inbox::RecordViewsSerializer.serialize(
+              viewed_ids: [], unavailable_ids: [], changed_count: 0, skipped: "impersonating"
+            )
+            success_with_unread_count(user:, payload:)
+          end
+
+          # One event per first view, ids only (same shape as OpenWorkflow).
+          def audit_first_views(user:, newly_viewed:)
+            newly_viewed.each do |entry|
+              audit(
+                :messaging_inbox_item_viewed,
+                affected_user: user,
+                changes: {},
+                metadata: { inbox_item_id: entry[:id], communication_id: entry[:communication_id] }
+              )
+            end
+          end
+        end
+
+        # Marks everything unread up to the client's watermark viewed. Reversible, so it stays
+        # allowed while impersonating (the audit policy lands with the impersonation slice).
+        class MarkAllReadWorkflow < BaseWorkflow
+          def call(user:, up_to:)
+            result = CommandTower::Services::Messaging::Inbox::MarkAllRead.call(user:, up_to:)
+            return result_or_failure(result) unless result.success?
+
+            success_with_unread_count(
+              user:, payload: CommandTower::Serializers::Messaging::Inbox::BulkResultSerializer.serialize(result.data[:bulk_result])
+            )
+          end
+        end
+
         class ArchiveWorkflow < BaseWorkflow
           def call(user:, inbox_item_id:)
             result = CommandTower::Services::Messaging::Inbox::Archive.call(user:, inbox_item_id:)
             return result_or_failure(result) unless result.success?
 
-            success(payload: CommandTower::Serializers::Messaging::Inbox::ItemSerializer.serialize(result.data[:item]), http_status: :ok)
+            success_with_unread_count(
+              user:, payload: CommandTower::Serializers::Messaging::Inbox::ItemSerializer.serialize(result.data[:item])
+            )
           end
         end
 
@@ -103,7 +168,7 @@ module CommandTower
             result = CommandTower::Services::Messaging::Inbox::Delete.call(user:, inbox_item_id:)
             return result_or_failure(result) unless result.success?
 
-            success(payload: nil, http_status: :ok)
+            success_with_unread_count(user:, payload: nil)
           end
         end
 
@@ -123,9 +188,8 @@ module CommandTower
               result = CommandTower::Services::Messaging::Inbox.const_get(service_name).call(user:, inbox_item_ids:)
               return result_or_failure(result) unless result.success?
 
-              success(
-                payload: CommandTower::Serializers::Messaging::Inbox::BulkResultSerializer.serialize(result.data[:bulk_result]),
-                http_status: :ok
+              success_with_unread_count(
+                user:, payload: CommandTower::Serializers::Messaging::Inbox::BulkResultSerializer.serialize(result.data[:bulk_result])
               )
             end
           end)

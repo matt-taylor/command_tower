@@ -101,6 +101,16 @@ RSpec.describe CommandTower::Messaging::InboxItem, type: :model do
         expect(described_class.default_list).not_to include(archived, deleted)
         expect(described_class.archived_list).not_to include(created, viewed, deleted)
       end
+
+      it "keeps archived unread rows in unread_in_scope but not in the global unread scope" do
+        expect(archived).not_to be_viewed
+        expect(described_class.unread_in_scope).to contain_exactly(created, archived)
+        expect(described_class.unread).to contain_exactly(created)
+        expect(archived).to be_unread_in_scope
+        expect(archived).not_to be_unread
+        expect(deleted).not_to be_unread_in_scope
+        expect(viewed).not_to be_unread_in_scope
+      end
     end
   end
 

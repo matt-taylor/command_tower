@@ -46,8 +46,13 @@ module CommandTower
 
       CONVERSATION_KEY_FORMAT = /\A[A-Za-z0-9][A-Za-z0-9._:-]{0,127}\z/
 
+      # Push collapse identity (Expo collapseId). Its own pattern and 64-char limit; it is never
+      # derived from conversation_key, which is a thread identity with a different lifetime.
+      COLLAPSE_KEY_FORMAT = /\A[A-Za-z0-9][A-Za-z0-9._:-]{0,63}\z/
+
       validates :notification_type_key, :title, :body, presence: true
       validates :execution_handoff_status, presence: true
+      validates :collapse_key, format: { with: COLLAPSE_KEY_FORMAT }, allow_nil: true
       validate :conversation_identity_is_a_pair
 
       before_validation :normalize_conversation_identity
@@ -84,6 +89,7 @@ module CommandTower
       def normalize_conversation_identity
         self.conversation_key = nil if conversation_key.blank?
         self.conversation_title = nil if conversation_title.blank?
+        self.collapse_key = nil if collapse_key.blank?
       end
 
       def conversation_identity_is_a_pair

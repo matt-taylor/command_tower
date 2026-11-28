@@ -130,7 +130,8 @@ module CommandTower
             with_recipient do |recipient_id|
               result = CommandTower::Messaging::Inbox.unread_count(recipient_id:)
               context.count = result.count
-              context.badge_count = result.badge_count
+              # One number everywhere: the deprecated badgeCount field equals count.
+              context.badge_count = result.count
             end
           end
         end
@@ -156,6 +157,33 @@ module CommandTower
           end)
         end
 
+        class RecordViews < CommandTower::Services::ApplicationService
+          include FailureMapping
+          validate :user, is_a: User, required: true
+          validate :inbox_item_ids, is_a: Array, required: true
+
+          def call
+            with_recipient do |recipient_id|
+              result = CommandTower::Messaging::Inbox.record_views(recipient_id:, inbox_item_ids:)
+              context.record_views = {
+                viewed_ids: result.viewed_ids, unavailable_ids: result.unavailable_ids,
+                changed_count: result.newly_viewed.size, newly_viewed: result.newly_viewed
+              }
+            end
+          end
+        end
+
+        class MarkAllRead < CommandTower::Services::ApplicationService
+          include FailureMapping
+          include BulkMutation
+          validate :user, is_a: User, required: true
+          validate :up_to, is_a: Integer, required: true
+
+          def call
+            super { |recipient_id| CommandTower::Messaging::Inbox.mark_all_read(recipient_id:, up_to:) }
+          end
+        end
+
         class << self
           def item(item)
             { id: item.id, title: item.title, status: item.status, viewed_at: item.viewed_at, created_at: item.created_at, updated_at: item.updated_at }
@@ -173,6 +201,8 @@ module CommandTower
               unread_count: entry.unread_count,
               read: entry.read,
               inbox_item_ids: entry.inbox_item_ids,
+              notification_type_key: entry.notification_type_key,
+              unread_inbox_item_ids: entry.unread_inbox_item_ids,
             }
           end
 

@@ -25,6 +25,8 @@ RSpec.describe "CommandTower migration baseline" do
       20261124000003_create_command_tower_device_sessions.rb
       20261124200001_create_command_tower_home_notices.rb
       20261124200002_create_command_tower_home_notice_controls.rb
+      20261127000000_add_resolved_at_to_messaging_inbox_items.rb
+      20261127000001_add_collapse_key_to_messaging_communications.rb
     ]
   end
 
@@ -140,6 +142,7 @@ RSpec.describe "CommandTower migration baseline" do
         "inbox_presentation_snapshot",
         "conversation_key",
         "conversation_title",
+        "collapse_key",
         "slots",
         "render_zone",
         "metadata_version"

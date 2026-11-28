@@ -199,7 +199,7 @@ Mailer previews for defined types: `/rails/mailers/message_definition/sample_ema
 
 Clients send `X-UI-Catalog: <n>`. `UI::Catalog.from_header` returns `1` for a missing, blank, non-integer or non-positive value and clamps higher numbers to `UI::CATALOG` (currently `2`). `HttpBoundary` passes the result into `with_execution`, and it is available as `CommandTower::Current.ui_catalog` (default `1`; nested `with_execution` keeps the outer value).
 
-It changes only Inbox read responses for types registered with a `message:` MessageDefinition: catalog 2 or higher returns the validated `UI::Document` (`ui_document`), catalog 1 returns `inbox_document_v1` through `UI::LegacyMapping`. Undefined types return the same `inbox_document_v1` for every catalog. The header is never read for authorization. Inbox read responses (list, show, open, conversation) set `Cache-Control: no-store`.
+It changes only Inbox read responses for types registered with a `message:` MessageDefinition: catalog 2 or higher returns the validated `UI::Document` (`ui_document`), catalog 1 returns `inbox_document_v1` through `UI::LegacyMapping`. Undefined types return the same `inbox_document_v1` for every catalog. The header is never read for authorization. Inbox read responses (list, show, open, conversation, unread-count) set `Cache-Control: no-store`.
 
 Push, SMS and Pushover for defined types are built from the slots stored at Accept (`headline`, `push_body`, `sms_body`, `pushover_title`, `pushover_message`), not from the catalog; undefined types keep the generic templates.
 

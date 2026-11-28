@@ -168,7 +168,7 @@ RSpec.describe CommandTower::Messaging::Inbox, :messaging_inbox do
       it "counts only unviewed, non-archived, non-deleted items for the recipient" do
         expect(result).to be_a(CommandTower::Messaging::Inbox::UnreadCountResult)
         expect(result.count).to eq(1)
-        expect(result.badge_count).to eq(0)
+        expect(result.badge_count).to eq(1)
         expect(result.recipient_id).to eq(user.id)
       end
     end
@@ -193,14 +193,14 @@ RSpec.describe CommandTower::Messaging::Inbox, :messaging_inbox do
         end
       end
 
-      it "counts eligible unread items in badge_count and every unread item in count" do
+      it "serves badge_count equal to count whatever the deprecated eligibility flag says" do
         typed_inbox.call("badge.on")
         typed_inbox.call("badge.off")
 
         result = described_class.unread_count(recipient_id: user.id)
 
         expect(result.count).to eq(2)
-        expect(result.badge_count).to eq(1)
+        expect(result.badge_count).to eq(2)
       end
 
       context "when an eligible item is viewed and restored" do
@@ -228,14 +228,14 @@ RSpec.describe CommandTower::Messaging::Inbox, :messaging_inbox do
         expect(result.badge_count).to eq(1)
       end
 
-      it "leaves an unregistered type out of badge_count" do
+      it "counts an unregistered type in badge_count too" do
         typed_inbox.call("badge.on")
         typed_inbox.call("not.registered")
 
         result = described_class.unread_count(recipient_id: user.id)
 
         expect(result.count).to eq(2)
-        expect(result.badge_count).to eq(1)
+        expect(result.badge_count).to eq(2)
       end
 
       context "when a channel preference turns every destination off" do

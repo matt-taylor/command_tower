@@ -84,6 +84,70 @@ RSpec.describe CommandTower::Messaging::Communication, type: :model do
     end
   end
 
+  describe "collapse_key" do
+    context "when valid" do
+      let(:params) { super().merge(collapse_key: "league.1:standings") }
+
+      it "is stored" do
+        expect(communication.reload.collapse_key).to eq("league.1:standings")
+      end
+    end
+
+    context "when absent" do
+      it "is null" do
+        expect(communication.collapse_key).to be_nil
+      end
+    end
+
+    context "when blank" do
+      let(:params) { super().merge(collapse_key: "  ") }
+
+      it "normalizes to null" do
+        expect(communication.collapse_key).to be_nil
+      end
+    end
+
+    context "when outside the charset" do
+      subject(:record) { described_class.new(**params) }
+
+      let(:params) { super().merge(collapse_key: "bad key") }
+
+      it "is invalid" do
+        expect(record).not_to be_valid
+        expect(record.errors[:collapse_key]).to be_present
+      end
+    end
+
+    context "when 64 characters" do
+      subject(:record) { described_class.new(**params) }
+
+      let(:params) { super().merge(collapse_key: "a" * 64) }
+
+      it "is valid" do
+        expect(record).to be_valid
+      end
+    end
+
+    context "when longer than 64 characters" do
+      subject(:record) { described_class.new(**params) }
+
+      let(:params) { super().merge(collapse_key: "a" * 65) }
+
+      it "is invalid" do
+        expect(record).not_to be_valid
+        expect(record.errors[:collapse_key]).to be_present
+      end
+    end
+
+    context "when a conversation key is set" do
+      let(:params) { super().merge(conversation_key: "week-5", conversation_title: "Week 5") }
+
+      it "is not derived from the conversation key" do
+        expect(communication.collapse_key).to be_nil
+      end
+    end
+  end
+
   describe "persistence" do
     it "creates a communication for a recipient" do
       expect(communication).to be_persisted

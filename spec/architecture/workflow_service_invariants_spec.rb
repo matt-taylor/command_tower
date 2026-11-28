@@ -12,6 +12,9 @@ RSpec.describe "CommandTower workflow and service architecture" do
       app/services/command_tower/jwt/authenticate_user.rb
       app/services/command_tower/messaging/pushover/adapters/log_adapter.rb
       app/services/command_tower/messaging/execution/adapters/sms/log_adapter.rb
+      app/services/command_tower/messaging/accept/thread_restorer.rb
+      app/services/command_tower/messaging/inbox/badge_sync_scheduler.rb
+      app/workflows/command_tower/workflows/messaging/inbox/sync_app_icon_badge_workflow.rb
       app/services/command_tower/messaging/notification_types/message_definition_checks.rb
       app/services/command_tower/messaging/rendering/inbox_document_renderer.rb
       app/services/command_tower/messaging/rendering/channel_renderer.rb

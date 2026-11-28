@@ -46,6 +46,7 @@ CommandTower::Services::Messaging::Communications::Produce.call(
 | `metadata` | no (`Hash`) |
 | `conversation_key` | no (`String`) — groups inbox items into one conversation |
 | `conversation_title` | no (`String`) |
+| `collapse_key` | no (`String`) — push collapse identity, see [Push collapse key](#push-collapse-key) |
 
 `Produce` fails with a validation error when the registered type declares `deep_link_required` and `metadata` has no non-blank `deep_link`.
 
@@ -98,6 +99,8 @@ The Me Inbox detail `content` field (`inbox_document_v1`, see [api_reference.md]
 
 `CommandTower::Messaging::Contract::Inbox.document_for_communication(request)` takes `Requests::DocumentForCommunication` (`communication_id:`, `recipient_id:`, `impersonating:`) and returns `Results::InboxDocument` (`communication_id`, `inbox_item_id`, `document`: the catalog 2 `UI::Document`). It returns `nil` when the communication is missing, not the recipient's, deleted or archived, not inbox-backed, or its type has no `MessageDefinition`. It is read-only and emits no audit. Home Notices use it to render a linked delivery ([home_notices.md](home_notices.md#deliver)); `viewed_for_communication?` and `mark_viewed_for_communication` are unchanged.
 
+**Resolving an item.** `CommandTower::Messaging::Contract::Inbox.resolve_for_event(request)` and `unresolve_for_event(request)` take `Requests::ResolveForEvent` (`recipient_id:`, `notification_type_key:`, `host_event_identity:`; the key and identity must be non-blank, otherwise `Contract::ValidationError`) and return `Results::InboxResolution` (`communication_id`, `inbox_item_id`, `resolved`, `changed`), or `nil` when the recipient has no live inbox item for that event. Resolving sets `inbox_items.resolved_at`: a resolved item leaves the list, the unread count and the push badge, and a conversation whose members are all resolved returns `404`. The item stays readable by id (`GET /me/inbox/:id`, `POST /me/inbox/:id/open`), so an old push tap still opens it. Both calls are idempotent (`changed` is `false` on a repeat), never touch `viewed_at`, and emit no audit: the calling host owns the audit decision. Badge sync is scheduled by the scheduler, which is a no-op while impersonating.
+
 ## Me Inbox HTTP (summary)
 
 | Concern | Contract |
@@ -111,6 +114,23 @@ The Me Inbox detail `content` field (`inbox_document_v1`, see [api_reference.md]
 Detail `content` is `inbox_document_v1` with blocks `paragraph`, `cta` (typed `destination`: internal `path` or external `href`), `instant`, and `presentation`. The `X-UI-Catalog` request header is accepted and defaults to `1`; it changes Inbox `content` only for types registered with a `message:` MessageDefinition (catalog 2 or higher returns `ui_document`); undefined types return `inbox_document_v1` for every catalog, and Inbox read responses set `Cache-Control: no-store` ([ui.md](ui.md#catalog-header)). Hosts never expose `inboxEnabled` as an inbox switch to users outside the preferences contract.
 
 Pagination detail: [pagination.md](pagination.md). Full catalog: [api_reference.md](api_reference.md#me-inbox).
+
+## Restoring an archived thread on a new message
+
+`config.messaging.inbox.restore_archived_thread_on_new_message` (default `false`, so archived threads stay archived). When `true`, a genuinely new inbox item that carries a `conversation_key` restores the recipient's archived, non-deleted, non-resolved items in the same conversation. The restore runs after commit, in its own locked transaction with a deadlock retry. An idempotent replay of the same event never restores. Restoring brings back archived unread members too, so one new message can raise the unread count by more than one.
+
+## Badge-only push
+
+`config.messaging.inbox.badge_sync_push` (default `false`, so no badge push is sent). When `true`, an inbox change that alters a recipient's unread count (mark read/unread, archive, restore, delete, mark-all-read, resolve/unresolve, thread restore) enqueues a silent push carrying only `{to, badge}` so the app icon badge matches the unread count. It is enqueued after commit, never while impersonating, and only when the Expo adapter is `http`. Bursts of changes are coalesced per user with a short pending marker in Redis; a change after the marker clears sends again, and the badge is read after the marker clears so it reflects the latest state. If Redis is unavailable the push is sent without coalescing. The push is best effort: failures are logged by class only and never raised. Recording views does not trigger it.
+
+## Push collapse key
+
+`collapse_key` (optional `String`, on `Produce` and the Accept path) is sent to Expo as `collapseId` on the push message. It is a delivery hint: it is not part of the request fingerprint, so changing it does not make a new event.
+
+- Format: starts with a letter or digit, then letters, digits, `.`, `_`, `:` or `-`; 64 characters at most. Anything else fails validation. Blank is stored as `nil`.
+- It is never derived from `conversation_key`. A conversation outlives any one notification, so the producer chooses the key per notification that should replace another.
+- iOS replaces an earlier delivered notification that has the same `collapseId`. Android collapse behaviour is governed by the Expo/FCM collapse rules and not guaranteed to replace a notification already shown; do not rely on it for correctness.
+- Shared-key warning: every push with the same key collapses into one, across types and conversations, for that device. Namespace the key (for example `<type>:<entity_id>`) and never reuse one key for unrelated notifications, or one will silently replace the other.
 
 ## Email compliance (defined types)
 

@@ -16,4 +16,16 @@ RSpec.describe CommandTower::Deserializers::Messaging::Inbox::ListDeserializer d
 
     it { expect(result).not_to be_success }
   end
+
+  context "with up to 100 bulk ids" do
+    subject(:result) { CommandTower::Deserializers::Messaging::Inbox::BulkIdsDeserializer.call(ids: (1..100).to_a) }
+
+    it { expect(result).to be_success }
+  end
+
+  context "with more than 100 bulk ids" do
+    subject(:result) { CommandTower::Deserializers::Messaging::Inbox::BulkIdsDeserializer.call(ids: (1..101).to_a) }
+
+    it { expect(result).not_to be_success }
+  end
 end

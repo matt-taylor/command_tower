@@ -375,6 +375,62 @@ RSpec.describe CommandTower::Messaging::Execution::Adapters::Expo::Adapter, :mes
       end
     end
 
+    context "when the communication has a collapse key and a conversation key" do
+      let!(:endpoint) { create_verified_push!.call(address: "ExponentPushToken[collapse1]") }
+
+      before do
+        communication.update!(conversation_key: "week-5", conversation_title: "Week 5", collapse_key: "standings")
+        allow(http_client).to receive(:send_messages).and_return(
+          ok: true,
+          status_code: 200,
+          tickets: [{ status: "ok", id: "ticket-collapse", message: nil, error: nil }],
+        )
+        allow(http_client).to receive(:get_receipts).and_return(ok: true, status_code: 200, receipts: {})
+      end
+
+      subject(:result) do
+        described_class.new(configuration: configured, http_client:).call(
+          request: build_request.call(endpoint_ids: [endpoint.id]),
+        )
+      end
+
+      it "sends the collapse key as collapseId, not the conversation key" do
+        result
+
+        expect(http_client).to have_received(:send_messages) do |messages|
+          expect(messages.first["collapseId"]).to eq("standings")
+        end
+      end
+    end
+
+    context "when the communication has a conversation key but no collapse key" do
+      let!(:endpoint) { create_verified_push!.call(address: "ExponentPushToken[collapse2]") }
+
+      before do
+        communication.update!(conversation_key: "week-5", conversation_title: "Week 5")
+        allow(http_client).to receive(:send_messages).and_return(
+          ok: true,
+          status_code: 200,
+          tickets: [{ status: "ok", id: "ticket-collapse2", message: nil, error: nil }],
+        )
+        allow(http_client).to receive(:get_receipts).and_return(ok: true, status_code: 200, receipts: {})
+      end
+
+      subject(:result) do
+        described_class.new(configuration: configured, http_client:).call(
+          request: build_request.call(endpoint_ids: [endpoint.id]),
+        )
+      end
+
+      it "omits collapseId" do
+        result
+
+        expect(http_client).to have_received(:send_messages) do |messages|
+          expect(messages.first).not_to have_key("collapseId")
+        end
+      end
+    end
+
     context "when the inbox item is archived" do
       let!(:endpoint) { create_verified_push!.call(address: "ExponentPushToken[inbox3333]") }
       let!(:inbox_item) { create(:messaging_inbox_item, :archived, communication:) }

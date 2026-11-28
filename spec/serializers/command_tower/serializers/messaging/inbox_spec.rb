@@ -13,6 +13,24 @@ RSpec.describe CommandTower::Serializers::Messaging::Inbox::ItemSerializer do
   end
 end
 
+RSpec.describe CommandTower::Serializers::Messaging::Inbox::EntrySerializer do
+  let(:entry) do
+    { kind: "message", id: 1, title: "Notice", preview: nil, activity_at: nil, created_at: nil,
+      message_count: 1, unread_count: 1, read: false, inbox_item_ids: [1],
+      notification_type_key: "example.type", unread_inbox_item_ids: [1] }
+  end
+
+  it "includes notificationTypeKey and unreadInboxItemIds" do
+    expect(described_class.serialize(entry)).to include(notificationTypeKey: "example.type", unreadInboxItemIds: [1])
+  end
+end
+
+RSpec.describe CommandTower::Serializers::Messaging::Inbox::UnreadCountMetaSerializer do
+  it "nests the one number under unreadCount" do
+    expect(described_class.serialize(count: 3, badge_count: 3)).to eq(unreadCount: { count: 3, badgeCount: 3 })
+  end
+end
+
 RSpec.describe CommandTower::Serializers::Messaging::Inbox::DetailSerializer do
   let(:base_item) do
     { id: 1, title: "Notice", status: "created", viewed_at: nil,

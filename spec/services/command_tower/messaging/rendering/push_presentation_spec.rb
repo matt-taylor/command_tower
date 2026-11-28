@@ -48,7 +48,7 @@ RSpec.describe CommandTower::Messaging::Rendering::PushPresentation, :messaging_
     let(:stored_state) { nil }
 
     it "uses the declared defaults" do
-      expect(presentation).to have_attributes(urgency: "normal", sound: nil, thread_id: nil, badge: nil)
+      expect(presentation).to have_attributes(urgency: "normal", sound: nil, thread_id: nil, badge: 0)
     end
 
     it "is frozen" do
@@ -190,7 +190,7 @@ RSpec.describe CommandTower::Messaging::Rendering::PushPresentation, :messaging_
         channel_delivery: nil,
       )
 
-      expect(presentation).to have_attributes(urgency: "normal", sound: nil, badge: nil)
+      expect(presentation).to have_attributes(urgency: "normal", sound: nil, badge: 0)
     end
   end
 
@@ -262,7 +262,7 @@ RSpec.describe CommandTower::Messaging::Rendering::PushPresentation, :messaging_
       end
     end
 
-    context "when the type is not badge eligible" do
+    context "when the type is not badge eligible (deprecated flag, ignored)" do
       before do
         register_and_seal_notification_types(
           build_notification_type_declaration(
@@ -284,19 +284,15 @@ RSpec.describe CommandTower::Messaging::Rendering::PushPresentation, :messaging_
         other_eligible_item
       end
 
-      it "omits the badge and does not query the unread count" do
-        expect(CommandTower::Messaging::Inbox).not_to receive(:unread_count)
-
-        expect(presentation.badge).to be_nil
+      it "still carries the one unread count as the badge" do
+        expect(presentation.badge).to eq(1)
       end
 
       context "when the type is push_delivery_test" do
         let(:type_key) { "push_delivery_test" }
 
-        it "omits the badge and does not query the unread count" do
-          expect(CommandTower::Messaging::Inbox).not_to receive(:unread_count)
-
-          expect(presentation.badge).to be_nil
+        it "still carries the one unread count as the badge" do
+          expect(presentation.badge).to eq(1)
         end
       end
     end

@@ -334,7 +334,7 @@ RSpec.describe CommandTower::Messaging::Rendering::ChannelRenderer, :messaging_a
             urgency: "time_sensitive",
             thread_id: "league.1.period.2",
             deep_link: "pickem://x",
-            badge: nil,
+            badge: 0,
           )
         end
 

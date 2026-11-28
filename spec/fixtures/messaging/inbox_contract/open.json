@@ -1,0 +1,31 @@
+{
+  "contract": "command_tower 0.27.0",
+  "data": {
+    "id": 1,
+    "title": "Message title 1",
+    "status": "viewed",
+    "read": true,
+    "viewedAt": "2026-01-01T00:00:00.000Z",
+    "createdAt": "2026-01-01T00:00:00.000Z",
+    "updatedAt": "2026-01-01T00:00:00.000Z",
+    "body": "Message body 1.",
+    "metadata": {},
+    "notificationTypeKey": "example.type",
+    "content": {
+      "schema": "inbox_document_v1",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Message body 1."
+        }
+      ]
+    }
+  },
+  "meta": {
+    "unreadCount": {
+      "count": 0,
+      "badgeCount": 0
+    }
+  },
+  "errors": []
+}

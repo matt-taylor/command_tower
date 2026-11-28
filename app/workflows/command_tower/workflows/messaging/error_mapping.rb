@@ -17,7 +17,8 @@ module CommandTower
             :conflict
           when CommandTower::Errors::NotFoundError
             :not_found
-          when CommandTower::Errors::Messaging::GalleryTestSendImpersonatingError
+          when CommandTower::Errors::Messaging::GalleryTestSendImpersonatingError,
+               CommandTower::Errors::Messaging::InboxImpersonationForbiddenError
             :forbidden
           when CommandTower::Errors::Messaging::GalleryTestSendRateLimitError
             :too_many_requests

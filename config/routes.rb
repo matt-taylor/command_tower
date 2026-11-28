@@ -75,6 +75,8 @@ CommandTower::Engine.routes.draw do
       collection do
         get :conversation
         get :unread_count, path: "unread-count"
+        post :views
+        post "mark-all-read", action: :mark_all_read
         post "bulk/read", action: :bulk_read
         post "bulk/unread", action: :bulk_unread
         post "bulk/archive", action: :bulk_archive
