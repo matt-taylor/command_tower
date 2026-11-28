@@ -57,13 +57,13 @@ RSpec.describe CommandTower::Workflows::Messaging::Inbox::SyncAppIconBadgeWorkfl
       expect(client).not_to have_received(:send_messages)
     end
 
-    context "when a pending marker is already held" do
+    context "when the scheduler's pending marker is held" do
       before { CommandTower::RedisConnection.with { |redis| redis.set(marker_key, "1", nx: true, ex: 60) } }
 
-      it "sends nothing (coalesced)" do
+      it "sends and clears the marker" do
         invoke
 
-        expect(client).not_to have_received(:send_messages)
+        expect(CommandTower::RedisConnection.with { |redis| redis.exists?(marker_key) }).to be(false)
       end
     end
 

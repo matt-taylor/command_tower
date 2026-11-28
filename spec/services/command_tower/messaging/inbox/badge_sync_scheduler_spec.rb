@@ -1,10 +1,18 @@
 # frozen_string_literal: true
 
 RSpec.describe CommandTower::Messaging::Inbox::BadgeSyncScheduler do
-  let(:job_class) { Class.new { def self.perform_later(*); end } }
+  let(:job_class) do
+    Class.new do
+      def self.set(**) = self
+      def self.perform_later(*); end
+    end
+  end
+  let(:marker_key) { described_class.marker_key(7) }
 
   before do
+    CommandTower::RedisConnection.with(&:flushdb)
     stub_const("CommandTower::Messaging::Inbox::BadgeSyncJob", job_class)
+    allow(job_class).to receive(:set).and_call_original
     allow(job_class).to receive(:perform_later)
   end
 
@@ -27,6 +35,42 @@ RSpec.describe CommandTower::Messaging::Inbox::BadgeSyncScheduler do
       described_class.schedule_after_commit(7)
 
       expect(job_class).to have_received(:perform_later).with(7)
+    end
+
+    it "enqueues with a short wait" do
+      described_class.schedule_after_commit(7)
+
+      expect(job_class).to have_received(:set).with(wait: described_class::ENQUEUE_WAIT)
+    end
+
+    it "takes the pending marker at enqueue time" do
+      described_class.enqueue(7)
+
+      expect(CommandTower::RedisConnection.with { |redis| redis.exists?(marker_key) }).to be(true)
+    end
+
+    it "coalesces a burst into one enqueue" do
+      3.times { described_class.enqueue(7) }
+
+      expect(job_class).to have_received(:perform_later).once
+    end
+
+    it "enqueues again once the marker is cleared" do
+      described_class.enqueue(7)
+      CommandTower::RedisConnection.with { |redis| redis.del(marker_key) }
+      described_class.enqueue(7)
+
+      expect(job_class).to have_received(:perform_later).twice
+    end
+
+    context "when Redis is down" do
+      before { allow(CommandTower::RedisConnection).to receive(:with).and_raise(Redis::CannotConnectError) }
+
+      it "fails open and enqueues" do
+        described_class.enqueue(7)
+
+        expect(job_class).to have_received(:perform_later).with(7)
+      end
     end
 
     it "defers the enqueue until the outer transaction commits" do

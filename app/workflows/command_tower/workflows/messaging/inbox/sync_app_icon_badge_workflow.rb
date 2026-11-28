@@ -7,10 +7,11 @@ module CommandTower
         # Job-entry orchestration: send a silent `{to, badge}` push so the app icon badge matches the
         # recipient's unread count.
         #
-        # Coalescing: a pending marker (`SET NX EX`) is taken first. A job that finds the marker already
-        # held returns, because the holder clears the marker and only then reads the count, so it sees
-        # this job's change. A change committed after the clear takes a new marker and sends again
-        # (trailing edge). Redis failures fail open: the badge is sent without coalescing.
+        # Coalescing: BadgeSyncScheduler takes the pending marker (`SET NX EX`) at enqueue time and
+        # enqueues the job with a short wait, so a burst of changes yields one job. This job clears the
+        # marker first and only then reads the count, so it sees every change made before the clear. A
+        # change committed after the clear takes a new marker and sends again (trailing edge). Redis
+        # failures fail open: the badge is sent without coalescing.
         #
         # Best effort: send failures are logged by class only (never tokens, bodies or payloads) and
         # never raised. Nothing is sent when the flag is off, while impersonating, or unless the Expo
@@ -18,13 +19,11 @@ module CommandTower
         class SyncAppIconBadgeWorkflow < CommandTower::Workflows::ApplicationWorkflow
           retry_strategy :none
 
-          PENDING_TTL_SECONDS = 60
           PUSH_CHANNEL_KEY = "push"
 
           def call(user_id:)
             reason = skip_reason
             return noop(reason) if reason
-            return noop(:coalesced) unless claim_pending_marker(user_id)
 
             deliver(user_id)
           rescue StandardError => e
@@ -61,16 +60,7 @@ module CommandTower
           end
 
           def marker_key(user_id)
-            "command_tower:messaging:inbox:badge_sync:pending:#{user_id}"
-          end
-
-          # True when this job owns the send. Fails open (true) when Redis is unavailable.
-          def claim_pending_marker(user_id)
-            CommandTower::RedisConnection.with do |redis|
-              redis.set(marker_key(user_id), "1", nx: true, ex: PENDING_TTL_SECONDS) ? true : false
-            end
-          rescue Redis::BaseError, Timeout::Error
-            true
+            CommandTower::Messaging::Inbox::BadgeSyncScheduler.marker_key(user_id)
           end
 
           def clear_pending_marker(user_id)
