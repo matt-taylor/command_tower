@@ -21,7 +21,8 @@ module CommandTower
           platform_enabled_channels:,
           message_overrides: nil,
           conversation_key: nil,
-          conversation_title: nil
+          conversation_title: nil,
+          collapse_key: nil
         )
           @recipient_id = recipient_id
           @notification_type_key = notification_type_key
@@ -34,6 +35,7 @@ module CommandTower
           @message_overrides = message_overrides
           @conversation_key = conversation_key
           @conversation_title = conversation_title
+          @collapse_key = collapse_key
         end
 
         def call
@@ -49,6 +51,7 @@ module CommandTower
             message_overrides: @message_overrides,
             conversation_key: @conversation_key,
             conversation_title: @conversation_title,
+            collapse_key: @collapse_key,
           }
 
           OperationLogger.around(request:) do
@@ -209,7 +212,7 @@ module CommandTower
 
         def conversation_pair_invalid?(error)
           names = error.record.errors.attribute_names.map(&:to_sym)
-          names.any? && (names - %i[conversation_key conversation_title]).empty?
+          names.any? && (names - %i[conversation_key conversation_title collapse_key]).empty?
         end
 
         def resolve_record_not_unique!(error, fingerprint)

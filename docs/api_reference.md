@@ -859,7 +859,7 @@ Hosts call these from **product workflows** (not as HTTP on the engine):
 
 | Service | Required kwargs |
 |---------|-----------------|
-| `CommandTower::Services::Messaging::Communications::Produce` | `user`, `notification_type_key`, `host_event_identity`, `title`, `body`, `platform_enabled_channels`; optional `metadata`, `conversation_key`, `conversation_title`. Fails validation when the registered type has `deep_link_required` and `metadata` has no non-blank `deep_link` |
+| `CommandTower::Services::Messaging::Communications::Produce` | `user`, `notification_type_key`, `host_event_identity`, `title`, `body`, `platform_enabled_channels`; optional `metadata`, `conversation_key`, `conversation_title`, `collapse_key` (push collapse identity, sent as Expo `collapseId`; see the [messaging guide](messaging_integration_guide.md#push-collapse-key)). Fails validation when the registered type has `deep_link_required` and `metadata` has no non-blank `deep_link` |
 | `CommandTower::Services::Messaging::Communications::ProduceMany` | `user_ids`, `notification_type_key`, `campaign_identity`, `title`, `body`, `platform_enabled_channels`; optional `metadata`, `conversation_key`, `conversation_title`, `execution_mode` (`:async` default, `:sync` capped at 25) |
 
 Details: [messaging_integration_guide.md](messaging_integration_guide.md).

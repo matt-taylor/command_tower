@@ -275,6 +275,17 @@ RSpec.describe CommandTower::Services::Messaging::Communications::Produce, :mess
       end
     end
 
+    context "when a collapse key is passed" do
+      subject(:result) { described_class.call(**call_kwargs, collapse_key: "standings") }
+
+      let(:communication) { CommandTower::Messaging::Communication.find(result.data[:communication_id]) }
+
+      it "stores it" do
+        expect(result).to be_success
+        expect(communication.collapse_key).to eq("standings")
+      end
+    end
+
     context "when the key is only in metadata" do
       subject(:result) { described_class.call(**call_kwargs) }
 

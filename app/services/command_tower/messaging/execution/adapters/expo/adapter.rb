@@ -181,6 +181,9 @@ module CommandTower
               )
               message["interruptionLevel"] = interruption_level if interruption_level
               message["threadId"] = rendered.thread_id if rendered.thread_id
+              # Only the producer-supplied collapse_key. Never conversation_key (D10).
+              collapse_key = communication&.collapse_key
+              message["collapseId"] = collapse_key if collapse_key.present?
               # nil omits the field. 0 is a real count and must be sent. In Ruby, 0 is truthy.
               message["badge"] = rendered.badge unless rendered.badge.nil?
               data = {}

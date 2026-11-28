@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_11_24_200002) do
+ActiveRecord::Schema[7.2].define(version: 2026_11_27_000001) do
   create_table "command_tower_audit_events", charset: "utf8mb3", force: :cascade do |t|
     t.string "action", null: false
     t.bigint "actor_user_id"
@@ -157,6 +157,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_24_200002) do
   create_table "messaging_communications", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.string "accept_request_fingerprint"
     t.text "body", null: false
+    t.string "collapse_key", limit: 64
     t.string "conversation_key", limit: 128
     t.string "conversation_title"
     t.datetime "created_at", null: false

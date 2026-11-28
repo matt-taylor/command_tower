@@ -25,6 +25,7 @@ module CommandTower
         20261124000003_create_command_tower_device_sessions.rb
         20261124200001_create_command_tower_home_notices.rb
         20261124200002_create_command_tower_home_notice_controls.rb
+        20261127000001_add_collapse_key_to_messaging_communications.rb
       ].freeze
 
       module_function

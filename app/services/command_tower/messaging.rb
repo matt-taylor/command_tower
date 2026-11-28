@@ -15,7 +15,8 @@ module CommandTower
       platform_enabled_channels:,
       message_overrides: nil,
       conversation_key: nil,
-      conversation_title: nil
+      conversation_title: nil,
+      collapse_key: nil
     )
       Accept::Coordinator.call(
         recipient_id:,
@@ -29,6 +30,7 @@ module CommandTower
         message_overrides:,
         conversation_key:,
         conversation_title:,
+        collapse_key:,
       )
     end
 

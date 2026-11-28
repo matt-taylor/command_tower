@@ -18,6 +18,7 @@ module CommandTower
           validate :platform_enabled_channels, is_a: Array, required: true
           validate :conversation_key, is_a: String, required: false
           validate :conversation_title, is_a: String, required: false
+          validate :collapse_key, is_a: String, required: false
 
           def call
             recipient_result = CommandTower::Services::Messaging::Recipients.call(user: user)
@@ -60,6 +61,7 @@ module CommandTower
               message_overrides: nil,
               conversation_key:,
               conversation_title:,
+              collapse_key:,
             )
 
             # Use communication_status — ServiceResult strips Interactor reserved :status.

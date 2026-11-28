@@ -375,6 +375,38 @@ RSpec.describe CommandTower::Messaging::Accept::Coordinator, :messaging_accept d
     end
   end
 
+  describe "collapse key" do
+    let(:communication) { CommandTower::Messaging::Communication.find(first.communication_id) }
+
+    context "when a replay supplies a different collapse key" do
+      subject(:replay) { accept.call(collapse_key: "other") }
+
+      let(:first) { accept.call(collapse_key: "standings") }
+
+      before { first }
+
+      it "replays instead of conflicting, keeping the original key" do
+        expect(replay.idempotent_replay).to be(true)
+        expect(communication.collapse_key).to eq("standings")
+      end
+    end
+
+    context "when the accept carries a conversation but no collapse key" do
+      let(:first) { accept.call(conversation_key: "week-5", conversation_title: "Week 5") }
+
+      it "leaves collapse_key null" do
+        expect(communication.collapse_key).to be_nil
+      end
+    end
+
+    context "when the collapse key is invalid" do
+      it "raises a ValidationError" do
+        expect { accept.call(collapse_key: "bad key") }
+          .to raise_error(CommandTower::Messaging::Accept::ValidationError)
+      end
+    end
+  end
+
   describe "presentation snapshot" do
     let(:doubles) { "CommandTower::Messaging::Rendering::InboxDocumentRendererSpecDoubles" }
     let(:presentation_composer) do

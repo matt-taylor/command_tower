@@ -33,6 +33,7 @@ module CommandTower
               metadata_version: @request[:metadata_version],
               conversation_key: @request[:conversation_key],
               conversation_title: @request[:conversation_title],
+              collapse_key: @request[:collapse_key],
             )
             assign_presentation_snapshot!(communication)
 
@@ -57,10 +58,24 @@ module CommandTower
             end
           end
 
+          schedule_thread_restore(communication)
           reload_aggregate(communication.id)
         end
 
         private
+
+        # D7. Persister runs only for genuinely new items (replays return before it). The restore
+        # owns its transaction, so it runs after the outermost commit, where a deadlock can be
+        # retried in place.
+        def schedule_thread_restore(communication)
+          return unless CommandTower.config.messaging.inbox.restore_archived_thread_on_new_message
+          return if communication.conversation_key.blank?
+
+          inbox_item_id = communication.inbox_item&.id
+          return if inbox_item_id.nil?
+
+          ActiveRecord.after_all_transactions_commit { ThreadRestorer.call(inbox_item_id) }
+        end
 
         def assign_presentation_snapshot!(communication)
           snapshot = CommandTower::Messaging::Rendering::InboxPresentationSnapshot.capture(
