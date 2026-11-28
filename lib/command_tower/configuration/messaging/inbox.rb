@@ -16,6 +16,14 @@ module CommandTower
                            "Default false (archived threads stay archived).",
                      allowed: [TrueClass, FalseClass],
                      default: false
+
+        add_composer :badge_sync_push,
+                     desc: "When true, an inbox change that alters a recipient's unread count (mark read/unread, " \
+                           "archive, restore, delete, mark-all-read, resolve/unresolve, thread restore) enqueues a " \
+                           "silent, badge-only push that sets the app icon badge. Never sent while impersonating. " \
+                           "Default false (no badge push).",
+                     allowed: [TrueClass, FalseClass],
+                     default: false
       end
     end
   end

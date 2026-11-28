@@ -119,6 +119,10 @@ Pagination detail: [pagination.md](pagination.md). Full catalog: [api_reference.
 
 `config.messaging.inbox.restore_archived_thread_on_new_message` (default `false`, so archived threads stay archived). When `true`, a genuinely new inbox item that carries a `conversation_key` restores the recipient's archived, non-deleted, non-resolved items in the same conversation. The restore runs after commit, in its own locked transaction with a deadlock retry. An idempotent replay of the same event never restores. Restoring brings back archived unread members too, so one new message can raise the unread count by more than one.
 
+## Badge-only push
+
+`config.messaging.inbox.badge_sync_push` (default `false`, so no badge push is sent). When `true`, an inbox change that alters a recipient's unread count (mark read/unread, archive, restore, delete, mark-all-read, resolve/unresolve, thread restore) enqueues a silent push carrying only `{to, badge}` so the app icon badge matches the unread count. It is enqueued after commit, never while impersonating, and only when the Expo adapter is `http`. Bursts of changes are coalesced per user with a short pending marker in Redis; a change after the marker clears sends again, and the badge is read after the marker clears so it reflects the latest state. If Redis is unavailable the push is sent without coalescing. The push is best effort: failures are logged by class only and never raised. Recording views does not trigger it.
+
 ## Push collapse key
 
 `collapse_key` (optional `String`, on `Produce` and the Accept path) is sent to Expo as `collapseId` on the push message. It is a delivery hint: it is not part of the request fingerprint, so changing it does not make a new event.

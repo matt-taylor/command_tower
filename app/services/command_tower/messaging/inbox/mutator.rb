@@ -125,11 +125,16 @@ module CommandTower
             end
 
             log_bulk_lifecycle(recipient_id:, operation: :mark_viewed, changed_ids:)
+            schedule_badge_sync(recipient_id) if changed_ids.any?
 
             BulkResult.build(ids: changed_ids, changed_count: changed_ids.size)
           end
 
           private
+
+          def schedule_badge_sync(recipient_id)
+            BadgeSyncScheduler.schedule_after_commit(recipient_id)
+          end
 
           def set_resolved(recipient_id:, notification_type_key:, host_event_identity:, resolved:)
             recipient_id = require_recipient_id!(recipient_id)
@@ -141,9 +146,11 @@ module CommandTower
             )
             return nil if communication.nil?
 
-            ActiveRecord::Base.transaction do
+            result = ActiveRecord::Base.transaction do
               flip_resolved(recipient_id:, communication_id: communication.id, resolved:)
             end
+            schedule_badge_sync(recipient_id) if result&.changed
+            result
           end
 
           def flip_resolved(recipient_id:, communication_id:, resolved:)
@@ -182,6 +189,7 @@ module CommandTower
 
             if outcome == :changed
               OperationLogger.after_commit { OperationLogger.lifecycle_changed(operation:, item: result) }
+              schedule_badge_sync(recipient_id)
             end
 
             result = result.with(newly_viewed: true) if operation == :mark_viewed && outcome == :changed
@@ -207,6 +215,7 @@ module CommandTower
             end
 
             log_bulk_lifecycle(recipient_id:, operation:, changed_ids:)
+            schedule_badge_sync(recipient_id) if changed_ids.any?
 
             BulkResult.build(ids:, changed_count: changed_ids.size)
           end

@@ -38,13 +38,19 @@ module CommandTower
             next if ids.empty?
 
             apply_restore(ids)
+            Messaging::Inbox::BadgeSyncScheduler.schedule_after_commit(item.communication.user_id)
           end
         end
 
         private
 
+        def item
+          return @item if defined?(@item)
+
+          @item = Messaging::InboxItem.includes(:communication).find_by(id: @inbox_item_id)
+        end
+
         def conversation_communication_ids
-          item = Messaging::InboxItem.includes(:communication).find_by(id: @inbox_item_id)
           return Messaging::Communication.none if item.nil?
 
           Messaging::Communication.where(
